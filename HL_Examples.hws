@@ -1,0 +1,1160 @@
+/*
+*******************************************************************************
+*** Helpers.hws Examples                                                    ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 15/02/2019                                                        *
+* Version : 1.3                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Examples of helpers library features.                         *
+* Dependacies : NONE                                                          *
+* Root Table  : HL                                                            *
+*                                                                             *
+* Notes : In this single source you can look at the usage most of the         *
+*         features provided by the Helpers library. To give a nicer look to   *
+*         the examples I've usedthe example.Render() function where I've      *
+*         defined some local functions used to render the informations on the *
+*         screen.                                                             *
+*******************************************************************************
+*/
+
+; Includes the Helpers library, you may need to remap the following path
+; to point to where you have copied the Helpers library.
+@INCLUDE "Helpers.hws"
+
+; Here is a table where we will save all our variables.
+Global example = {}
+
+; Since I want to show the examples in a nice screen, the following function
+; will define some local functions to render the screen, it also use these
+; functions to draw an empty screen. The local functions will be returned
+; so that our single examples can access them to update their screen.
+Function example.Render(title, description)
+  ; A simple function that prepares a nice screen to run the prodived
+  ; tests & examples.
+  
+  ; Setup the screen size
+  Local screen_width, screen_height = 800, 600 
+  SetDisplayAttributes({ Width = screen_width, Height = screen_height })
+  
+  ; Setup colors & variables
+  Local colBG = $444444
+  Local colTitle = { bg = $338800, fg = $FFFF00 }
+  Local colBody = { bg = $555555, fg = $FFFFFF }
+  Local shadowSize = 3
+  Local borders = 8
+  Local text_borders = 4
+  Local titleHeight = 24
+  Local bodyHeight = 500
+  
+  ; Calculate the 3 areas sizes and positions: title, body, description
+  Local titleArea = { x = borders, y = borders, w = screen_width-borders*2, h = titleHeight }
+  Local bodyArea = { x = borders, y = titleArea.y+titleArea.h+borders, w = titleArea.w, h = bodyHeight }
+  Local descArea = { x = borders, y = bodyArea.y+bodyArea.h+borders, w = bodyArea.w, h = screen_height-shadowSize-(bodyArea.y+bodyArea.h+borders*2) }
+  
+  ; Define some utility functions to draw the screen, this is the table where we are
+  ; goin to define the rendering functions and that will be returned to the caller.
+  Local utilities = {}
+  
+  ; Draw the backgorund
+  SetFillStyle(#FILLCOLOR)
+  SetFormStyle(#ANTIALIAS)
+  SetFormStyle(#SHADOW, ARGB(128, $000000), shadowSize, #SHDWSOUTHEAST)
+  Box(0, 0, screen_width, screen_height, colBG)
+  
+  ; Defines the function that renders the screen's Title
+  utilities.drawTitle = 
+    Function(title)
+      SetFont(#SANS, titleHeight-4)
+      SetFontStyle(#ANTIALIAS+#BOLD)
+      Box(titleArea.x, titleArea.y, titleArea.w, titleArea.h, colTitle.bg, { RoundLevel = 20 })
+      TextOut(#CENTER, titleArea.y+titleArea.h/2, title, { align = #CENTER, anchorX = 0.5, anchorY = 0.5, color = colTitle.fg })
+    EndFunction
+  ; Renders the screen's Title
+  utilities.drawTitle(title)
+  
+  ; Define the function that renders the screen's Body
+  utilities.drawBody = 
+    Function()
+      SetFillStyle(#FILLCOLOR)
+      SetFormStyle(#ANTIALIAS)
+      SetFormStyle(#SHADOW, ARGB(128, $000000), shadowSize, #SHDWSOUTHEAST)
+      Box(bodyArea.x, bodyArea.y, bodyArea.w, bodyArea.h, colBody.bg, { RoundLevel = 3 })
+    EndFunction
+  ; Renders the screen's Body
+  utilities.drawBody()
+  
+  ; Defines the function that renders the screen's description at the bottom
+  utilities.drawDescription =
+    Function(description)
+      SetFillStyle(#FILLCOLOR)
+      SetFormStyle(#ANTIALIAS)
+      SetFormStyle(#SHADOW, ARGB(128, $000000), shadowSize, #SHDWSOUTHEAST)
+    
+      SetFont(#SANS, titleHeight*0.70)
+      SetFontStyle(#ANTIALIAS)
+      Box(descArea.x, descArea.y, descArea.w, descArea.h, colBody.bg, { RoundLevel = 20 })
+      TextOut(descArea.x+descArea.w/2, descArea.y+descArea.h/2, description, { align = #CENTER, anchorX = 0.5, anchorY = 0.5, color = colBody.fg, wordwrap = descArea.w-text_borders*2 })
+    EndFunction
+  ; Renders the screen's description
+  utilities.drawDescription(description)
+  
+  ; Defines a generic Print to help us to print informations in the
+  ; screen's body.
+  utilities.print = 
+    Function(text, x, y)
+      ; If x or y is not provided set them at the top/left of the
+      ; screen's body.
+      If IsNil(y) Then y = bodyArea.y+text_borders
+      If IsNil(x) Then x = bodyArea.x+text_borders
+      
+      ; Usable width (total width - left and right borders)
+      Local usable_width = bodyArea.w - text_borders*2      
+      ; Check how many lines will be used
+      Local textWidth = TextWidth(text)
+      ; Calculate how many lines will be used
+      Local usedLines = Round(textWidth/usable_Width + 0.5)
+      ; Text height
+      Local h = TextHeight("|")
+      ; Check if the text will be printed outside the bottom area
+      Local lastY = y + h*usedLines
+      
+      If lastY > bodyArea.y + bodyArea.h - h
+        ; If the text will go out of the screen asks the user to
+        ; hit the left mouse button to continue so the screen will be
+        ; cleared.
+        TextOut(x, y, "::: Left Mouse Key to continue... :::", { Color = $00FFFF })
+        WaitLeftMouse()
+        utilities.drawBody()
+        y = bodyArea.y + text_borders
+        lastY = y+h*usedlines
+      EndIf
+
+      ; Renders the text
+      TextOut(x, y, text, { WordWrap = usable_width })    
+      y = lastY
+
+      ; Returns the x & y positions for the next print
+      Return(x, y)
+    EndFunction
+    
+  ; We also need a function able to draw a simple menu and wait for the user
+  ; input.
+  utilities.drawMenu = 
+    Function(menuDefinition)
+      Repeat
+        ; Clear the body
+        utilities.drawBody()
+        
+        SetFont(#SANS, titleHeight*0.80)
+        SetFontStyle(#ANTIALIAS)
+        
+        ; Defines 2 item columns positions
+        Local column1 = bodyArea.x + text_borders + 20
+        Local column2 = bodyArea.x + bodyArea.w/2 + text_borders
+        Local y = bodyArea.y + text_borders
+        Local h = TextHeight("|")
+        Local yellow = "[color=$FFFF00]"
+        Local white  = "[color=$FFFFFF]"
+        
+        ; No width check is performed here to simplify the code! :)
+        Local c = column1
+        For i = 0 To ListItems(menu)-1
+          TextOut(c-TextWidth(ToString(i)), y, yellow .. i)
+          TextOut(c+8, y, white .. menuDefinition[i].name)
+          ; Swap the active column
+          If c = column1
+            c = column2
+          Else
+            y = y + h
+            c = column1
+          EndIf
+          
+        Next
+        
+        ; At the bottom of the area ask for the user input
+        Local y = bodyArea.y + bodyArea.h - h*2
+        Local message = "[b]Type your choice and hit enter :[/b]"
+        TextOut(column1+16, y, message, { Color = $66FF88 })
+        
+        ; Wait for the user's input
+        Locate(column1+16+TextWidth(message), y)
+        Local choice = InKeyStr(#NUMERICAL, Nil, False, True)
+        
+        ; Check the input
+        If choice <> ""
+          choice = ToNumber(choice)
+          If HaveItem(menuDefinition, choice)
+            ; Menu item exists, execute the example function
+            menuDefinition[choice].func()
+          EndIf
+        EndIf
+        
+      Forever
+    EndFunction
+
+  ; Returns the bodyArea, the text_borders and the utilities table where all
+  ; our rendering functions are stored.
+  Return(bodyArea, text_borders, utilities)
+  
+EndFunction
+
+;=========================
+;=== EXAMPLE FUNCTIONS ===
+;=========================
+Function example.TEST_AmperConversion()
+  ; ---------------------------------------------------------------------------
+  ; Function used to test the ampersands conversion into UTF8 encoded characters.
+  ; ---------------------------------------------------------------------------
+  Local fontName = "tahoma"
+  Local fontSize = 20
+  Local title = "TEST : Ampersands Conversion to UTF8"
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                         "This program tests the function [b]HL.Convert.HTML2Hollywood()[/b] " ..
+                         "to check if ampersands are handled correctly. " .. UpperStr(fontName) .. " font is " ..
+                         "used for this test, change it if it is not installed in your system or install it. Very useful to render basic HTML pages!")
+
+  Local x, y = bodyArea.x+text_borders, bodyArea.y+text_borders
+   
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local page, count = 1, 0
+  
+  ; The following code will iterate through all html amper symbols
+  ; and will print them on the screen along with their unicode
+  ; character.
+  For i, v In Pairs(HL.HTML_Amper)
+    ; The symbol <i> is converted into the corresponding unicode
+    ; character tha is stored in the <decoded> variable.
+    ; HL.Convert.HTML2Hollywood() is able to convert others symbols
+    ; like bold tag (<b></b>), it is illustrated in another
+    ; example.
+    count = count + 1
+    Local decoded = HL.Convert.HTML2Hollywood(i)
+    decoded = ReplaceStr(decoded, "[", "[[")
+    decoded = ReplaceStr(decoded, "]", "]]")
+    decoded = i .. "[color=$FFFF00]" .. decoded
+
+    TextOut(x, y, decoded, { Encoding = #ENCODING_UTF8 })
+    x = x + TextWidth(decoded)+12-TextWidth("[color=$FFFF00]")
+    
+    ; Check if we have to go to a new line
+    If x > bodyArea.x+bodyArea.w-text_borders*2 - 150
+      ; Move to the next line and reset the x coordinate
+      y = y + fontSize
+      x = bodyArea.x + text_borders
+      
+      ; Check if we have reached the bottom of the area
+      If y > bodyArea.y+bodyArea.h-fontSize*2-text_borders
+        ; Print a message before resetting the screen and wait
+        ; for the user to hit the left mouse button
+        SetFont(#SANS, fontSize)
+        SetFontStyle(#ANTIALIAS+#BOLD)
+        TextOut(x, y+fontSize/2, "=== Left Mouse Click to continue ===", { Color = $00FFFF })
+        WaitLeftMouse()
+        
+        ; Reset the screen and increase the page number that will be printed
+        ; in the title.
+        page = page + 1
+        utilities.drawTitle(title .. " (page " .. page .. ")")
+        utilities.drawBody()
+        y = bodyArea.y+text_borders
+        
+        ; Restore the font we are using to print the amper and unicode pairs
+        SetFont(fontName, fontSize)
+        SetFontColor($DDDDDD)
+        SetFontStyle(#ANTIALIAS)        
+      EndIf
+    EndIf
+  Next
+
+  y = y + 30
+  x, y = utilities.print("Decoded [color=$FFFF00][b]" .. count .. "[/b][/color] ampersand symbols", Nil, y)    
+  x, y = utilities.print("[color=$FFFF00]Click [b]Left Mouse Button[/b] to continue...", Nil, y)  
+
+  WaitLeftMouse()
+  
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_WaitForAction()
+  ; ---------------------------------------------------------------------------
+  ; Test HL.WaitForAction() function
+  ;   
+  ; HL.WaitForAction() arguments
+  ;   key         Monitored key.
+  ;   delay       Delay in milliseconds for the detection loop, every 
+  ;               wait a call to <callback> will be made.
+  ;   callback    Function called every loop check with the <userData>
+  ;               parameter. If the callback function returns TRUE the 
+  ;               wait loop will be interrupted immediatly.
+  ;   timeout     Timeout in milliseconds.
+  ;   to_callback Function called if the timeout is reached, the function
+  ;               will be called with <userData> parameter.
+  ;   userData    Custom user data parameter passed to the callback 
+  ;               function.
+  ; ---------------------------------------------------------------------------
+  Local fontName =  #SANS
+  Local fontSize = 18
+  Local title = "TEST : WaitForAction()"
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "This program tests the function [b]HL.WaitForAction()[/b], it also " ..
+                   "shows how this function can be used to create animated wait-for-action " ..
+                   "screens.")
+
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  ; Timer animation position
+  Local c = { 650, 270 }
+  Local angle = 0
+  
+  SetFormStyle(#ANTIALIAS)
+  
+  ; This callback function will be called every time the input is checked,
+  ; in this example it is called to update a timer.
+  Local callback = Function(userdata, elapsed)
+    SetFillStyle(#FILLCOLOR)
+    SetFormStyle(#NORMAL)
+    SetFormStyle(#ANTIALIAS)
+    Local component = (angle+1)/361*255
+    Arc(c[0], c[1], 50, 50, 0, angle, RGB(0, component, component))
+    Local t = 10-Int(elapsed/100)/10
+    Box(c[0]+25, c[1]-20, 50, 20, $cc0000)
+    TextOut(c[0]+40, c[1]-20, FormatStr("%.1f", t))
+    SetFillStyle(#FILLNONE, 3)
+    Circle(c[0], c[1], 50, $cc0000)
+    angle = angle + 1
+    If angle > 360 Then angle = angle - 360
+  EndFunction
+  
+  ; This callback function will be called when the timeout is reached
+  Local timeout = 
+    Function()
+      SystemRequest("ALERT!", "Timeout reached!", "I see", #REQICON_INFORMATION)
+    EndFunction
+  
+  ; Set some shortcuts
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+  
+  ; Print infos to the screen
+  Local x, y = utilities.print("This test program will wait for the user input and will listen to the following events :")
+  x, y = utilities.print(bullet .. "The 'a' keypress", x, y)
+  x, y = utilities.print(bullet .. "The left mouse button press", x, y)
+  x, y = utilities.print(bullet .. "Any joystick button", x, y)
+  x, y = utilities.print("The animation is updated every 5 milliseconds and a timeout of 10 seconds will be set, " ..
+                         "this means that if the user take no actions for 10 seconds the timeout callback function " ..
+                         "will be called.", x, y)
+  y = y + 10
+  x, y = utilities.print("This function is useful to halt the program execution waiting for the user input but still " ..
+                         "to show animations or run background tasks. Very useful to show some informative text and " ..
+                         "to let the program continue its flow.", x, y)
+
+  y = y + 10
+  x, y = utilities.print(yellow .. "Test will start after you click the left mouse button.", x, y)
+  WaitLeftMouse()
+  
+  y = y + 10
+  x, y = utilities.print(yellow .. "Starting the test now...", x, y)
+  
+  ; Here is the utility command, the routine will wait for 10 seconds,
+  ; every 5 milliseconds the routine 'callback' will be called to
+  ; update a timer. The 'timeout' callback will be called if the
+  ; 10 seconds timeout is reached.
+  ; The program flow will continue if the user press he specified key
+  ; (in this case the 'a' key) or if the user pushes the left mouse
+  ; button, or if the timeout is reached.
+  Local result = HL.WaitForAction("a", 5, callback, 1000*10, timeout)
+
+  y = y + 10
+  If result
+    x, y = utilities.print(yellow .. "Nice, you have taken an action before the timeout!", x, y)
+  Else
+    x, y = utilities.print(yellow .. "Timeout occurred!", x, y)
+  EndIf
+  
+  y = y + 10
+  x, y = utilities.print(yellow .. "Finished,", x, y)
+
+  y = y + 10
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to quit.", x, y)  
+
+  Wait(1, #SECONDS)
+  WaitLeftMouse()
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_StringFuncs()
+  ; The following functions will be tested:
+  ;      HL.CutBetweenLimits()
+  ;      HL.GetBetweenLimits()
+  ;      HL.CutStringLeft()
+  ;      HL.CutStringRight()
+  ;      HL.SizeString
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : String Manipulation Functions"
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "This program tests the provided string manipulation functions.")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  ; Set some shortcuts
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  ; Set a test string and print it to the screen
+  Local s1 = "Hello, this is a test string with some real Hollywood\n" ..
+             "tags [color=$ff0000]like this[/color] and some invented and\n" ..
+             "not interpreted by Hollywood {link}like this{/link} and" ..
+             "{link}this{/link}"
+  Local x, y = utilities.print(yellow .. "We are going to make a test on the following string:")
+  x, y = utilities.print(s1, x, y)  
+
+  ;::: HL.CutBetweenLimits() :::
+  y = y + 50
+  x, y = utilities.print(bullet .. yellow .. "[b]HL.CutBetweenLimits()[/b]", x, y)
+  x, y = utilities.print("  Cut all occurencies between two substrings, including the substring.", x, y)
+  
+  y = y + 8
+  x, y = utilities.print("Trying to cut between [b]{link}[/b] and [b]{/link}[/b] substrings...", x, y)
+  text, removed = HL.CutBetweenLimits(s1, "{link}", "{/link}")
+  y = y + 8
+  x, y = utilities.print(yellow .. "Returned text (notice the removed text from the source string):", x, y)
+  x, y = utilities.print(text, x, y)
+  y = y + 40
+  x, y = utilities.print(yellow .. "Removed text:", x, y)
+  For i, v In Pairs(removed) Do x, y = utilities.print("  " .. bullet .. v, x, y)
+  
+  y = y + 20
+  x, y = utilities.print("As you can see all [b]{link}anytext{/link}[/b] tags has been removed and returned in the result table.", x, y)
+  x, y = utilities.print("This function is very useful to parse custom tags.", x, y)
+  
+  y = y + 20
+  x, y = utilities.print(yellow .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+  
+  WaitLeftMouse
+  
+  
+  ;::: HL.GetBetweenLimits() :::
+  utilities.drawBody()
+  
+  ; Test string
+  Local s1 = "Hello, this is a test string with some real Hollywood\n" ..
+             "tags [color=$ff0000]like this[/color] and some invented and\n" ..
+             "not interpreted by Hollywood {link}like this{/link} and" ..
+             "{link}this{/link}"
+  Local x, y = utilities.print(yellow .. "We are going to make a test on the following string:")
+  x, y = utilities.print(s1, x, y)  
+
+  y = y + 50
+  x, y = utilities.print(bullet .. yellow .. "[b]HL.GetBetweenLimits()[/b]", x, y)
+  x, y = utilities.print("  Returns all occurencies between two substrings, without the substrings, also returns the found text positions.", x, y)
+  y = y + 8
+  x, y = utilities.print("Trying to get between [b]{link}[/b] and [b]{/link}[/b] substrings...", x, y)
+  text, positions = HL.GetBetweenLimits(s1, "{link}", "{/link}")
+  y = y + 8
+  x, y = utilities.print(yellow .. "Returned text (notice the returned text without the tags):", x, y)
+  For i, v In Pairs(text) Do x, y = utilities.print("  " .. bullet .. "Position " .. i .. " : " .. v, x, y)
+  y = y + 15
+  x, y = utilities.print(yellow .. "Positions (start and end positions for each text found including the tags):", x, y)
+  For i, v In Pairs(positions)
+    x, y = utilities.print(" " .. bullet .. "Positions " .. i, x, y)
+    For l, k In Pairs(v) Do x, y = utilities.print("   " .. bullet .. l .. " : " .. k, x, y)
+  Next
+  
+  y = y + 10
+  x, y = utilities.print("This function is very useful to extract part from text, for example from html pages.", x, y)
+  
+  y = y + 20
+  x, y = utilities.print(yellow .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+  
+  WaitLeftMouse
+  
+  
+  ;::: HL.CutStringLeft(), HL.CutStringRight() :::
+  utilities.drawBody()
+  
+  ; Test string
+  Local s1 = "This is a test string long enough to execute our tests"
+  Local x, y = utilities.print(yellow .. "We are going to make a test on the following string:")
+  x, y = utilities.print(s1, x, y)  
+  
+  y = y + 20
+  x, y = utilities.print(bullet .. yellow .. "[b]HL.CutStringLeft()[/b]", x, y)
+  x, y = utilities.print(bullet .. yellow .. "[b]HL.CutStringRight()[/b]", x, y)
+  
+  x, y = utilities.print("  Cut the string to the left/right if its length is higher than a specified value.", x, y)
+  x, y = utilities.print("  To show that the string has been trunkated a triple dot (...) will be used.", x, y)
+  
+  SetFont(#MONOSPACE, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  y = y + 10
+  x, y = utilities.print("[u]COLUMNS COUNT       [/u]", x, y)
+  x, y = utilities.print("         11111111112", x, y)
+  x, y = utilities.print("12345678901234567890", x, y)
+  x, y = utilities.print("--------------------", x, y)
+  x, y = utilities.print(yellow .. HL.CutStringLeft(s1, 17) .. white .. "        HL.CutStringLeft()", x, y)
+  x, y = utilities.print(yellow .. HL.CutStringRight(s1, 17) .. white .. "        HL.CutStringRight()", x, y)
+  x, y = utilities.print("--------------------", x, y)
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)  
+  y = y + 10
+  x, y = utilities.print("Using these functions it's easy to constrict text in columns or in a delimited space.", x, y)
+  
+  y = y + 20
+  x, y = utilities.print(yellow .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+  
+  WaitLeftMouse
+  
+  
+  ;::: HL.SizeString() :::
+  utilities.drawBody()
+  
+  ; Test string
+  Local s1 = "This is a test string long enough to execute our tests"
+  Local s2 = "Short string"
+  Local x, y = utilities.print(yellow .. "We are going to make a test on the following strings:")
+  x, y = utilities.print(bullet .. s1, x, y)  
+  x, y = utilities.print(bullet .. s2, x, y)  
+  
+  y = y + 20
+  x, y = utilities.print(bullet .. yellow .. "[b]HL.SizeString()[/b]", x, y)
+  x, y = utilities.print("  Adjust the string size to the specified length, if the string lenght is lower than the", x, y)
+  x, y = utilities.print("  specified length, blank spaces will be added to the end, if the string length si higher", x, y)
+  x, y = utilities.print("  than the specified length the string will be trunkated and a triple dot will be added.", x, y)
+    
+  SetFont(#MONOSPACE, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  y = y + 10
+  x, y = utilities.print("[u]COLUMNS COUNT       [/u]", x, y)
+  x, y = utilities.print("         11111111112", x, y)
+  x, y = utilities.print("12345678901234567890", x, y)
+  x, y = utilities.print("--------------------", x, y)
+  x, y = utilities.print(yellow .. HL.SizeString(s1, 20) .. white .. "<- ends here" .. "        Long string", x, y)
+  x, y = utilities.print(yellow .. HL.SizeString(s2, 20) .. white .. "<- ends here" .. "        Short string", x, y)
+  x, y = utilities.print("--------------------", x, y)
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)  
+  y = y + 10
+  x, y = utilities.print("Using these functions it's easy to constrict text in columns or in a delimited space.", x, y)
+  
+  y = y + 20
+  x, y = utilities.print(yellow .. "Click [b]Left Mouse Button[/b] to quit.", x, y)  
+  
+  WaitLeftMouse
+  
+  
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_Convert4TextOut()
+  ; ---------------------------------------------------------------------------
+  ; Test Convert.ForTextOut()
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : Convert for TextOut()..."
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "[b]HL.Convert.ForTextOut()[/b] is very handy to avoid errors with [b]TextOut()[/b] " ..
+                   "when inside the string to print there are square brackets not part of the standard HW tags. " ..
+                   "This function escape those square brackets leaving untouched all HW tags.")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  Local x, y = utilities.print(white .. "Here is the source string, as you can see there are Hollywood tags " ..
+                                        "and text inside square brackets, those, if not escaped, cause " ..
+                                        "crashes because Hollywood does not recognize them :")
+  y = y + 10
+  
+  ; Source string
+  Local source = "Color [color=#RED]RED[/color], Color [COLOR=#YELLOW]YELLOW[/COLOR], Style [b]BOLD[/b], text inside square [brackets]."
+  
+  ; Escape all square brackets to print the string to the screen
+  Local escaped = ReplaceStr(source, "[", "[[")
+        escaped = ReplaceStr(escaped, "]", "]]")
+
+  ; Print it to the screen
+  x, y = utilities.print(escaped, x, y)
+  
+  y = y + 10
+  x, y = utilities.print(white .. "If we use text out with this string the part [i][[brackets]][/i] will cause an error, let's use " ..
+                                  "[color=$FF8800]HL.Convert.ForText()[/color] function instead...", x, y)
+  ; Let's use the conversion function to avoid an error because of the
+  ; ...text inside square [brackets] <-- this cause the error
+  Local converted = HL.Convert.ForTextOut(source)
+  
+  ; Print it with no fear!
+  y = y + 10
+  x, y = utilities.print(converted, x, y)
+  
+  y = y + 10
+  x, y = utilities.print(white .. "As you can see only the unrecognized tags have been escaped!", x, y)
+  
+  y = y + 50
+  x, y = utilities.print(yellow .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+
+  WaitLeftMouse()
+
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_HTML2Hollywood()
+  ; ---------------------------------------------------------------------------
+  ; Test Convert.HTML2Hollywood()
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : Convert for HTML to Hollywood..."
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "[b]HL.Convert.HTML2Hollywood()[/b] allow you to convert and render to the screen very simple " ..
+                   "HTML pages.")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  Local x, y = utilities.print(white .. "[b]HL.Convert.HTML2Hollywood()[/b] converts simple HTML pages to printable text " ..
+                                        "using [b]TextOut()[/b], here is a list of all supported entities :")
+  y = y + 10
+  x, y = utilities.print(bullet .. "Slashes, double slashes and Tabs", x, y)
+  x, y = utilities.print(bullet .. "HTML tags (<div>, <br>, <em>, <strong>, etc...)", x, y)
+  x, y = utilities.print(bullet .. "HTML ampersands (761 supported)", x, y)
+  x, y = utilities.print(bullet .. "Lists (ordered and unordered)", x, y)
+  x, y = utilities.print(bullet .. "Escaped unicodes (with \\uXXXX notation)", x, y)
+  x, y = utilities.print(yellow .. "This function does not yet handle basic tags like <TITLE>, <HEAD>, <BODY>, etc...", x, y)
+  
+  y = y + 10
+  x, y = utilities.print(white .. "Here is a simple HTML page source we are going to convert :", x, y)
+  
+  ; Source string
+  Local source = 
+[[<em>&rArr; Unordered list</em>
+<ul>
+  <li>Coffee</li>
+  <li>Tea</li>
+  <li>Milk</li>
+</ul>  
+
+<b>&rArr; Ordered HTML List</b>
+<ol>
+  <li>Coffee</li>
+  <li>Tea</li>
+  <li>Milk</li>
+</ol> 
+]]
+  
+  ; Print the source string
+  x, y = utilities.print(source, x, y)
+  
+  ; Click to continue
+  y = y + 200
+  x, y = utilities.print(yellow .. "Click to see how it is converted and rendered using [color=#white]tahoma font[/color]...", x, y)
+  
+  WaitLeftMouse()
+  
+  ; Let's convert the source
+  SetFont("tahoma", fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local converted = HL.Convert.HTML2Hollywood(source)
+  utilities.drawBody()
+  x, y = utilities.print(yellow .. "Here is the result :")
+  
+  y = y + 10
+  x, y = utilities.print(converted, x, y)
+  
+  y = y + 200
+  x, y = utilities.print(yellow .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+
+  WaitLeftMouse()
+
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_BufferedStrings()
+  ; ---------------------------------------------------------------------------
+  ; Test BufferedString Object
+  ; ---------------------------------------------------------------------------
+  ; Setup some variables to handle the output
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : Buffered Strings"
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "This program show how buffered strings objects work, and how much you " ..
+                   "can improve code execution speed using this object if you have to concatenate " ..
+                   "strings character by character. You will be surprised!")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+  x, y = utilities.print(bullet .. "Building a 250.000 characters string, one char at a time, be patient...")
+  
+  ; Concatenate 250000 characters, one character at a time
+  Local s = ""
+  StartTimer(1)
+  For Local i = 1 To 250000 Do s = s .. Chr(Rnd(15)+65)
+  x, y = utilities.print("     Elapsed : " .. white .. GetTimer(1) .. "ms", x, y)
+  x, y = utilities.print("     String Len : " .. white .. StrLen(s) .. " characters", x, y)
+  y = y + 8
+  
+  ; Concatenate 250000 characters using BuffereStrings object
+  x, y = utilities.print(bullet .. "Building the same 250000 characters string using [b]BufferedString[/b] object...", x, y)
+  Local so = HL.BufferedString:New()
+  StartTimer(1)
+  For Local i = 1 To 250000 Do so:AddChar(Chr(Rnd(15)+65))
+  x, y = utilities.print("     Elapsed : " .. yellow .. GetTimer(1) .. "ms", x, y)
+  x, y = utilities.print("     String Len : " .. yellow .. StrLen(s) .. " characters", x, y)
+  y = y + 8
+
+  ; Preparing the BufferedString for in-middle readings
+  x, y = utilities.print(bullet .. "Preparing the BufferedString for read...", x, y)
+  StartTimer(1)
+  so:PrepareForRead()
+  x, y = utilities.print("     Elapsed : " .. yellow .. GetTimer(1) .. "ms", x, y)
+  y = y + 8
+  s = so:Get()
+
+  ; Read in-middle strings using MidStr()
+  x, y = utilities.print(bullet .. "Reading using MidStr(), 20.000 times...", x, y)
+  StartTimer(1)
+  For Local i = 0 To 20000
+    Local a = MidStr(s, 350+i, 400+i)
+  Next
+  x, y = utilities.print("     Elapsed : " .. white .. GetTimer(1) .. "ms", x, y)
+  y = y + 8
+
+  ; Read in-middle strings using BufferedString's :Read() method
+  x, y = utilities.print(bullet .. "Reading using :Read() method, 20.000 times...", x, y)
+  StartTimer(1)
+  For Local i = 0 To 20000
+    Local a = so:Read(350+i, 400+i)
+  Next
+  x, y = utilities.print("     Elapsed : " .. yellow .. GetTimer(1) .. "ms", x, y)
+  y = y + 8
+
+  ; Check if in-middle string reading is correct
+  x, y = utilities.print(bullet .. "Checking random reads to check if :Read() method is exactly the same as MidStr() x20.000 times...", x, y)
+  For Local i = 0 To 20000
+    Local rstart, rlen = Rnd(20000), Rnd(2000)
+    Local mstring1 = MidStr(s, rstart, rlen)
+    Local mstring2 = so:Read(rstart, rlen)
+    If mstring1 <> mstring2
+      DebugPrint(i .. " >> ERROR! start : " .. rstart .. ", len : " .. rlen)
+      DebugPrint(mstring1)
+      DebugPrint(mstring2)
+    EndIf
+  Next
+
+  ; Finish the test
+  so = Nil
+  y = y + 16
+  x, y = utilities.print(yellow .. "BufferedString object are much faster!", x, y)
+  y = y + 16
+
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to quit.", x, y)  
+
+  WaitLeftMouse()
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_Colors()
+  ; ---------------------------------------------------------------------------
+  ; Test Color object
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : Color Object"
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "This program show how color objects can be used. They are very useful if you have basic colors " ..
+                   "and want to build variations, darker or brighter colors based on them.")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+  
+  ; Creation methods
+  x, y = utilities.print(bullet .. "Testing color creation methods...") 
+  Local color1 = HL.Color:New({ r = 125, g = 100, b = 255 })
+  Local color2 = HL.Color:New()
+  color2:fromValue($22FF88)
+  Local color3 = HL.Color:New()
+  color3:fromARGB(100, 0, 255, 255)
+
+  ; Conversion methods
+  x, y = utilities.print("     Color 1 : " .. "[color =" .. color1:toARGBValue() .. "]" .. color1:toARGBValue(), x, y)
+  x, y = utilities.print("     Color 2 : " .. "[color =" .. color2:toARGBValue() .. "]" .. color2:toARGBValue(), x, y)
+  x, y = utilities.print("     Color 3 : " .. "[color =" .. color3:toARGBValue() .. "]" .. color3:toARGBValue(), x, y)
+  
+  ; :Darken() and :Brighten() methods
+  color1:Darken(160)
+  x, y = utilities.print(bullet .. "Darkening color 1 by 160 : " .. "[color =" .. color1:toARGBValue() .. "]" .. color1:toARGBValue(), x, y)
+  
+  color2:Brighten(140)
+  x, y = utilities.print(bullet .. "Brightening color 2 by 140 : " .. "[color =" .. color2:toARGBValue() .. "]" .. color2:toARGBValue(), x, y)
+  
+  ; Make shades using :Darken() & :Brighten()
+  x, y = utilities.print(bullet .. "Building 2 shaded boxes using line, :Darken() and :Brighten() methods... ", x, y)
+  For Local i = 200 To 400
+    ; Box 1
+    color3:Darken(1)
+    Line(600, i-150, 770, i-150, color3:toRGBValue())
+
+    ; Box 2
+    color1:Brighten(1)
+    Line(600, i+65, 770, i+65, color1:toRGBValue())
+  Next
+  
+  ; Finish the test
+  color1, color2, color3 = Nil, Nil, Nil
+  
+  y = y + 16
+  x, y = utilities.print(yellow .. "Finished.", x, y)
+  y = y + 16
+
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to quit.", x, y)  
+
+  WaitLeftMouse()
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_ConvertBytes()
+  ; ---------------------------------------------------------------------------
+  ; Test ConvertBytes
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : Convert Bytes To..."
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "This program shows how you can use the function [b]HL.Convert.BytesTo()[/b] to " ..
+                   "convert bytes to Kilobytes, Megabytes, Gigabytes, etc...")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  Local x, y = utilities.print(white .. "Generating and converting some random values, all convertions will have 3 decimals (this value can be configured)...")
+  y = y + 10
+  
+  Local decimals = 3
+  For Local i = 0 To 4
+    value = Int(RndF()*(10^(7+Rnd(3))))
+    x, y = utilities.print(bullet .. "Bytes to convert : " .. yellow .. value, x, y)
+    x, y = utilities.print("  " .. bullet .. HL.Convert.BytesTo(value, #HL_KILOBYTES, decimals) .. "Kb   " .. bullet .. HL.Convert.BytesTo(value, #HL_MEGABYTES, decimals) .. "Mb", x, y)
+    x, y = utilities.print("  " .. bullet .. HL.Convert.BytesTo(value, #HL_GIGABYTES, decimals) .. "Gb   " .. bullet .. HL.Convert.BytesTo(value, #HL_TERABYTES, decimals) .. "Tb", x, y)
+    x, y = utilities.print("  " .. bullet .. "Aute scale: " .. HL.Convert.BytesTo(value, #HL_AUTO, decimals), x, y)
+    y = y + 5
+  Next
+  
+  x, y = utilities.print(yellow .. "Finished.", x, y)
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+
+  WaitLeftMouse()
+
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_GetRandomNames()
+  ; ---------------------------------------------------------------------------
+  ; Test GetRandomNames
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : GetRndName()..."
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "If you need to generate unique names to name your objects you can use the " ..
+                   "function [b]HL.GetRndName()[/b],  it will keep track of already generated " ..
+                   "strings to avoid duplicates.")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  Local x, y = utilities.print(white .. "Generating random names...")
+  y = y + 10
+  
+  For Local i = 0 To 18
+    b, a = utilities.print(bullet .. white .. HL.GetRndName(), x, y)
+    x, a = utilities.print(bullet .. white .. HL.GetRndName(), x+200, y)
+    x, a = utilities.print(bullet .. white .. HL.GetRndName(), x+200, y)
+    x, y = utilities.print(bullet .. white .. HL.GetRndName(), x+200, y)
+    x = b
+  Next
+  
+  y = y + 10
+  x, y = utilities.print(yellow .. "Finished.", x, y)
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+
+  WaitLeftMouse()
+
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_Value2Perc()
+  ; ---------------------------------------------------------------------------
+  ; Test Value2Perc
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : Value2Perc()..."
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "Do you need to convert a specific value into a percentual within a range? " ..
+                   "the function [b]HL.Value2Perc()[/b] is for you!")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  Local x, y = utilities.print(white .. "Here are some examples :")
+  y = y + 10
+  
+  SetFont(#MONOSPACE, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+ 
+  x, y = utilities.print(bullet .. "Range (  1: 100), Value =  89, % = " .. yellow .. HL.Value2Perc({ 1, 100 }, 89)*100 .. "%", x, y)  
+  x, y = utilities.print(bullet .. "Range ( 21: 120), Value = 109, % = " .. yellow .. HL.Value2Perc({ 21, 120 }, 109)*100 .. "%", x, y)  
+  x, y = utilities.print(bullet .. "Range ( 40:1500), Value =  91, % = " .. yellow .. HL.Value2Perc({ 40, 1500 }, 91)*100 .. "%", x, y)  
+  x, y = utilities.print(bullet .. "Range (  5:  70), Value = 104, % = " .. yellow .. HL.Value2Perc({ 5, 70 }, 104)*100 .. "%", x, y)    
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  y = y + 10
+  x, y = utilities.print(yellow .. "Finished.", x, y)
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+
+  WaitLeftMouse()
+
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_GetRndColor()
+  ; ---------------------------------------------------------------------------
+  ; Test GetRndColor()
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : GetRndColor()..."
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "The function [b]HL.GetRndColor()[/b] returns a random color " ..
+                   "with an optional random alpha to obtain random colors with transparency.")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  Local x, y = utilities.print(white .. "Here are some boxes using random colors with transparency :")
+  y = y + 10
+  
+  SetFillStyle(#FILLCOLOR)
+  SetFormStyle(#NORMAL)
+  
+  For Local i = 0 To 200
+    ; Compute random positions and random sizes
+    Local x, y = Rnd(500) + bodyArea.x + 50, Rnd(300) + bodyArea.y + 50
+    Local w, h = Rnd(180) + bodyArea.x + 50, Rnd(50)  + bodyArea.y + 10
+    Box(x, y, w, h, HL.GetRndColor(True))
+    Wait(25, #MILLISECONDS)
+  Next
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  y = bodyArea.y + bodyArea.h - 60
+  x, y = utilities.print(yellow .. "Finished.", x, y)
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+
+  WaitLeftMouse()
+
+EndFunction
+
+;==============================================================================
+
+Function example.TEST_CheckKeyboard()
+  ; ---------------------------------------------------------------------------
+  ; Test CheckKeyboard
+  ; ---------------------------------------------------------------------------
+  Local fontName = #SANS
+  Local fontSize = 18
+  Local title = "TEST : CheckKeyboard()..."
+  
+  Local bodyArea, text_borders, utilities =
+    example.Render(title, 
+                   "This function waits for a keypress from a list of allowed keys. It can check " ..
+                   "and exit immediatly or it can wait for a valid keypress, also it can " ..
+                   "wait until the pressed key is released before returning.")
+  
+  SetFont(fontName, fontSize)
+  SetFontColor($DDDDDD)
+  SetFontStyle(#ANTIALIAS)
+  
+  Local bullet = "[color=$FF9900]•[/color] "
+  Local white  = "[color=$FFFFFF]"
+  Local yellow = "[color=$FFFF00]"
+
+  Local x, y = utilities.print(white .. "Here are some tests :")
+  y = y + 10
+  
+  x, y = utilities.print(bullet .. "Wait for one of the following key to be pressed : a, t, W, Left Shift ", x, y)
+  Local pressedKey = HL.Input.CheckKeyboard({ "a", "t", "W", "LSHIFT" }, True, False)
+  x, y = utilities.print("   You have pressed : " .. yellow .. pressedKey, x, y)
+  
+  x, y = utilities.print(bullet .. "Wait for one of the following key to be pressed : b, c, R, Right Shift ", x, y)
+  x, y = utilities.print("   (Waits until the key is released)", x, y)
+  Local pressedKey = HL.Input.CheckKeyboard({ "b", "c", "R", "RSHIFT" }, True, True)
+  x, y = utilities.print("   You have pressed : " .. yellow .. pressedKey, x, y)
+  
+  x, y = utilities.print(bullet .. "Same as the first example, but using a loop :", x, y)  
+  Local pressedKey = ""
+  While pressedKey = ""
+    pressedKey = HL.Input.CheckKeyboard({ "a", "t", "W", "LSHIFT" }, False, False)
+    Circle(x+600, y, 10, GetRandomColor())
+    Wait(10, #MILLISECONDS) ; <= Do not overload the CPU
+  Wend
+  x, y = utilities.print("   You have pressed : " .. yellow .. pressedKey, x, y)
+  
+ 
+  y = y + 10
+  x, y = utilities.print(yellow .. "Finished.", x, y)
+  x, y = utilities.print(white .. "Click [b]Left Mouse Button[/b] to continue.", x, y)  
+
+  WaitLeftMouse()
+
+EndFunction
+
+;HL.TEST_AmperConversion()
+;HL.TEST_WaitForAction()
+;HL.TEST_StringFuncs()
+;HL.TEST_BufferedStrings()
+;HL.TEST_Colors()
+; DA FARE : HL.Convert.BytesTo()
+; DA FARE : HL.Convert.ForTextOut()
+; DA FARE : HL.GetRndName(), HL.GetRndColor()
+; DA FARE : HL.Input.CheckJoystick(), HL.Input.CheckKeyboard()
+; DA FARE : HL.LineHook.Enable() / .Disable()
+; DA FARE : HL.Value2Perc()
+; SISTEMARE UTILITIES.PRINT PER FARGLI SUPPORTARE IL WORDWRAP, CON LA DIMENSIONE TOTALE DELLA STRINGA
+;   RIESCO A CAPIRE QUANTE RIGHE MI OCCUPA IL TESTO WORDWRAPPATO.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; Let's define a MENU
+Global menu =
+  { [0] = { name = "Amper Conversion", func = example.Test_AmperConversion },
+    [1] = { name = "Wait For Action",  func = example.Test_WaitForAction },
+    [2] = { name = "String Functions", func = example.Test_StringFuncs },
+    [3] = { name = "Buffered Strings", func = example.Test_BufferedStrings },
+    [4] = { name = "Color Object",     func = example.Test_Colors },
+    [5] = { name = "Convert Bytes to...", func = example.Test_ConvertBytes },
+    [6] = { name = "Get Random Name",  func = example.Test_GetRandomNames },
+    [7] = { name = "Value 2 Perc",  func = example.Test_Value2Perc },
+    [8] = { name = "Get Random Color", func = example.Test_GetRndColor },
+    [9] = { name = "Check Keyboard",   func = example.TEST_CheckKeyboard },
+   [10] = { name = "Convert for TextOut", func = example.TEST_Convert4TextOut },
+   [11] = { name = "HTML 2 Hollywood", func = example.TEST_HTML2Hollywood },
+   [12] = { name = "[color=$88FF00][b]QUIT[/b][/color]", func = Function() End EndFunction }
+    }
+    
+Local body, txtBord, utils = example.Render("HELPERS LIBRARY EXAMPLES", "Type the example number and hit ENTER to execute it.")
+utils.drawMenu(menu)
+
+WaitLeftMouse()
