@@ -1,3 +1,6 @@
+# HOLLYWOOD-MAL Libraries
+**This is a collection of libraries I coded to help with my projects**
+
 # Lib-Helpers
  **Hollywood-MAL Helpers Library**
  
