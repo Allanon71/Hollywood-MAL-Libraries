@@ -1,0 +1,39 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Convert.Table2String()                          ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Convert.Table2String() function.            *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Convert.Table2String() Example")
+NPrint("---------------------------------\n")
+
+NPrint("TEST 1")
+
+Local source  = "this, is, a, test"
+Local t = TB.Convert.String2Table(source, ",")
+ForEach (t, NPrint)
+NPrint("Inverse process : " .. TB.Convert.Table2String(t, ", "))
+
+NPrint("\nTEST 2")
+
+Local source  = "here is another|test|have fun"
+Local t = TB.Convert.String2Table(source, "|")
+ForEach (t, NPrint)
+NPrint("Inverse process : " .. TB.Convert.Table2String(t, " | "))
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

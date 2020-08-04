@@ -1,0 +1,71 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Item.Exists()                                   ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Item.Exists() function.                     *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../Tables.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Item.Exists() Example")
+NPrint("------------------------\n")
+
+Local myTable =
+   { item1 = "Batman",
+     item2 = "Superman",
+     "Spiderman",
+     subitems =
+        { sub1 = "Robin",
+          sub2 = "Catwoman",
+          "Spawn"
+          }
+     }
+
+NPrint("Check if 'item1' exists...")
+If TB.Item.Exists(myTable, "item1")
+   NPrint("   Exists and its value is : " .. myTable.item1)
+ElseIf
+   NPrint("   Does not exists!")
+EndIf
+
+NPrint("Check if 'item3' exists...")
+If TB.Item.Exists(myTable, "item3")
+   NPrint("   Exists and its value is : " .. myTable.item3)
+ElseIf
+   NPrint("   Does not exists!")
+EndIf
+
+NPrint("Check if 'subitems.sub1' exists...")
+If TB.Item.Exists(myTable.subitems, "sub1")
+   NPrint("   Exists and its value is : " .. myTable.subitems.sub1)
+ElseIf
+   NPrint("   Does not exists!")
+EndIf
+
+NPrint("Check if 'subitems' item 0 exists...")
+If TB.Item.Exists(myTable.subitems, 0)
+   NPrint("   Exists and its value is : " .. myTable.subitems[0])
+ElseIf
+   NPrint("   Does not exists!")
+EndIf
+
+NPrint("Check if 'subitems' item 1 exists...")
+If TB.Item.Exists(myTable.subitems, 1)
+   NPrint("   Exists and its value is : " .. myTable.subitems[1])
+ElseIf
+   NPrint("   Does not exists!")
+EndIf
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

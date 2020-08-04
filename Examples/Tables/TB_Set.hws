@@ -1,0 +1,30 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Set()                                           ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Set() function.                             *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Set() Example")
+NPrint("----------------\n")
+
+Local source  = { alpha = 1, beta = "hello", gamma = "goodbye" }
+Local changes = { beta = "ciao", delta = "dummy" }
+TB.Set(source, changes, False)
+ForEach(source, NPrint)
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

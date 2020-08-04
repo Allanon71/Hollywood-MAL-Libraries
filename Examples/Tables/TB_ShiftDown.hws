@@ -1,0 +1,30 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.ShiftDown()                                     ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.ShiftDown() function.                       *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.ShiftDown() Example")
+NPrint("----------------------\n")
+
+Local test = { "a", "b", "c", "d" }
+NPrint(test[0], test[1], test[2], test[3])
+TB.ShiftDown(test)
+NPrint(test[0], test[1], test[2], test[3])
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

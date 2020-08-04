@@ -1,0 +1,31 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.ReplaceChars()                                  ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.ReplaceChars() function.                    *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.ReplaceChars() Example")
+NPrint("-------------------------\n")
+
+Local t = { alpha = "A11", beta = "1ate", gamma = "1ord",
+            delta = { a = "a1one", "a11uminium", 11 }}
+TB.ReplaceChars(t, "1", "l", True)
+NPrint(t.alpha, t.beta, t.gamma)
+NPrint(t.delta.a, t.delta[0], t.delta[1])
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

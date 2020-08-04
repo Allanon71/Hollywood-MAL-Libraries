@@ -1,0 +1,43 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Interpolate()                                   ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Interpolate() function.                     *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Item.Compare Example")
+NPrint("-----------------------\n")
+
+Local record1 = { name = "Clark", surname = "Kent", age = 33 }
+Local record2 = { name = "Peter", surname = "Parker", age = 24 }
+NPrint("FIRST RECORD")
+ForEach(record1, NPrint)
+NPrint("\nSECOND RECORD")
+ForEach(record2, NPrint)
+
+; Single field test
+NPrint("\nTEST 1")
+Local result1 = TB.Item.Compare(record1, record2, { True }, { "age" })
+NPrint("Is Clark Kent older than Peter Parker ? " .. IIF(result1, "Yes", "No"))
+
+; Multiple fields test
+NPrint("\nTEST 2")
+Local result2 = TB.Item.Compare(record1, record2, { False, False }, { "surname", "name" })
+NPrint("Alphabetic sort")
+NPrint("'Kent Clark' must be put before 'Parker Peter' ? " .. IIF(result2, "Yes", "No"))
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

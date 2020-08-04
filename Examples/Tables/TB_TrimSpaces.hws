@@ -1,0 +1,32 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.TrimSpaces()                                    ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.TrimSpaces() function.                      *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.TrimSpaces() Example")
+NPrint("-----------------------\n")
+
+Local t = { " hello", "goodbye  ", " hi man    " }
+NPrint("BEFORE")
+For i=0 To 2 Do NPrint("'" .. t[i] .. "'")
+TB.TrimSpaces(t)
+NPrint("\nAFTER")
+For i=0 To 2 Do NPrint("'" .. t[i] .. "'")
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

@@ -1,0 +1,34 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Fill()                                          ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Fill() function.                            *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Fill Example")
+NPrint("---------------\n")
+
+Local t = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+NPrint("TABLE CONTENT BEFORE THE FILL")
+ForEach(t, NPrint)
+
+TB.Fill(t, 4, 9, -1)
+
+NPrint("\nTABLE COUNT AFTER THE FILL")
+ForEach(t, NPrint)
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

@@ -1,0 +1,79 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Compare()                                       ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Compare() function.                         *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Compare() Example")
+NPrint("--------------------\n")
+
+NPrint("TEST 1")
+Local t1 = { 1, 2, 3 }
+Local t2 = { 1, 2, 3 }
+Local result = TB.Compare(t1, t2, True)
+NPrint("The tables are " .. IIf(result, "equal", "not equal"))
+
+
+NPrint("TEST 2")
+Local t1 = { 2, 1, 3 }
+Local t2 = { 1, 2, 3 }
+Local result = TB.Compare(t1, t2, True)
+NPrint("The tables are " .. IIf(result, "equal", "not equal"))
+
+
+NPrint("TEST 3")
+Local t1 = { 1, 2, { 1, 2 } }
+Local t2 = { 1, 2, { 1, 2 } }
+Local result = TB.Compare(t1, t2, True)
+NPrint("The tables are " .. IIf(result, "equal", "not equal"))
+
+
+NPrint("TEST 4")
+Local t1 = { 1, 2, { 1, 2 }, "beta" }
+Local t2 = { 1, 2, { 1, 2 }, "alpha" }
+Local result = TB.Compare(t1, t2, True)
+NPrint("The tables are " .. IIf(result, "equal", "not equal"))
+
+
+NPrint("TEST 5")
+Function dummy1()
+   DebugPrint("Hello")
+EndFunction
+Function dummy2()
+   DebugPrint("Hello")
+EndFunction
+Local t1 = { "alpha", "beta", functions = { dummy1, dummy2 } }
+Local t2 = { "alpha", "beta", functions = { dummy1, dummy2 } }
+Local result = TB.Compare(t1, t2, True)
+NPrint("The tables are " .. IIf(result, "equal", "not equal"))
+
+
+NPrint("TEST 6")
+Function dummy1()
+   DebugPrint("Hello")
+EndFunction
+Function dummy2()
+   DebugPrint("Hello")
+EndFunction
+Local t1 = { "alpha", "beta", functions = { f2 = dummy2, f1 = dummy1 } }
+Local t2 = { "alpha", "beta", functions = { f1 = dummy1, f2 = dummy2 } }
+Local result = TB.Compare(t1, t2, True)
+NPrint("The tables are " .. IIf(result, "equal", "not equal"))
+
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

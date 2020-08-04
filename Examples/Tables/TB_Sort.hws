@@ -1,0 +1,38 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Sort()                                          ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Sort() function.                            *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Sort() Example")
+NPrint("-----------------\n")
+
+Local t = { { name = "Klark", surname = "Kent"   },
+            { name = "Peter", surname = "Parker" },
+            { name = "Bruce", surname = "Wayne"  } }
+NPrint("BEFORE SORTING")
+NPrint(t[0].name, t[0].surname)
+NPrint(t[1].name, t[1].surname)
+NPrint(t[2].name, t[2].surname)
+NPrint("\nAFTER SORTING")
+TB.Sort(t, { True, True }, { "name", "surname" })
+NPrint(t[0].name, t[0].surname)
+NPrint(t[1].name, t[1].surname)
+NPrint(t[2].name, t[2].surname)
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()

@@ -1,0 +1,32 @@
+/*
+*******************************************************************************
+*** Tables.hws Example : TB.Item.Find()                                     ***
+*******************************************************************************
+* Author  : Fabio Falcucci aka Allanon                                        *
+* Contact : fabio.falcucci@alice.it                                           *
+* Build   : 27/03/2014                                                        *
+* Version : 1.1                                                               *
+* License : Freeware                                                          *
+*                                                                             *
+* Description : Example of the TB.Item.Find() function.                       *
+* Dependacies : Helpers.hws, Easing.Hws                                       *
+*******************************************************************************
+*/
+
+/************* REMAP THE FOLLOWING PATH WITH YOUR LIBRARIES PATH **************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_TABLES
+/******************************************************************************/
+
+NPrint("TB.Item.Find() Example")
+NPrint("----------------------\n")
+
+Local t = { alfa = "alpha", beta = 1, gamma = "hello", delta = 0.6 }
+Local f, i = TB.Item.Find(t, 1)
+If f Then NPrint("Item 1 found @ index ", i)
+
+Local f, i = TB.Item.Find(t, "hello")
+If f Then NPrint("Item 'hello' found @ index ", i)
+
+NPrint("\n--- Left mouse button to quit ---")
+WaitLeftMouse()
