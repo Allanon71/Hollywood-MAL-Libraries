@@ -2,8 +2,8 @@
  * HELPER LIBRARY                                                   *
  * Author : Fabio Falcucci (Allanon)                                *
  * License : Freeware                                           *
- * Version : 1.6                                                    *
- * Release : 12.02.2019                                             *
+ * Version : 1.6 -> 1.7                                                   *
+ * Release : 12.02.2019 -> 07.05.2020                                            *
  *-------------------------------------------------------------------
    Helper library is an include file for Hollywood that adds several
  common task functions.
@@ -14,6 +14,14 @@
  
 
 ---- LATEST CHANGES ------------------------------------------------
+UNRELEASED / UNDOCUMENTED
+04/07/2020
+  ADD : HL.Capitalize(txt)
+17/06/2020
+  ADD : HL.NBWait(ms)
+06/05/2020
+  ADD : HL.RoundBig(value, decimals)
+--------------------------------------------------------------------
 23/02/2019
   ADD : Added 761 Amopersands symbols
 12.02/2019
@@ -318,6 +326,25 @@ Const #HL_AUTO      = 9
 
 ;---[ FUNCTIONS ]--------------------------------------------------------------
 
+Function HL.Capitalize(t)
+  If StrLen(t) = 1
+    Return(UpperStr(t))
+  EndIf
+  
+  Local f = UpperStr(LeftStr(t, 1))
+  Local l = LowerStr(RightStr(t, StrLen(t)-1))
+  Return(f..l)
+EndFunction
+
+Function HL.NBWait(ms)
+  ; Non blocking wait
+  Local tid = StartTimer(Nil)
+  While GetTimer(tid) <= ms
+    CheckEvent()
+    Wait(5, #MILLISECONDS)
+  Wend
+EndFunction
+
 Function HL.IsNil(value) ; OBSOLETE
 /******************************************************************************
 result = HL.IsNil(value)  
@@ -339,6 +366,37 @@ OUTPUT
 
 EndFunction
 
+Function HL.RoundBig(value, decimals)
+/********************************************************************
+rounded = HL.RoundBug(value, decimals)
+
+Round a value to the given decimals, this function is needed to avoid
+errors like this:
+  DebugPrint(Int(40268.33971372/100000)*100000)
+  > -21474.83648
+  
+INPUT
+  value : value to convert
+  decimals : how many decimals you want
+OUTPUT
+  rounded : rounded value with the specified decimals
+********************************************************************/
+  Local rounded    = Val(value)
+  Local sign       = IIf(rounded<0, -1, 1)
+  Local multiplier = 10^decimals
+  Local intPart    = Int(rounded)
+  rounded = rounded-intPart
+  rounded = Cast(Abs(rounded)*multiplier+0.5, False, #INTEGER)
+  rounded = intPart + (rounded)/(multiplier*sign)
+  Return(rounded)
+EndFunction
+/*
+Local v = "9511.262466530"
+DebugPrint("VALUE:", FormatStr("%.10f", v))
+DebugPrint("RESUL:", FormatStr("%.10f", HL.RoundBig(v, 8)))
+DebugPrint("       0.123456789")
+DebugPrompt("?")
+*/
 
 HL.LineHook = {}
 HL.LineHook.Counter = 0
@@ -601,7 +659,9 @@ OUTPUT
   EndIf
 
   ; 100:x = Total:value
-  Return((Value-Range[0]+1)/(Range[1] - Range[0]+1))
+  
+  If (Range[1] - Range[0]) = 0 Then Return(0)
+  Return((Value-Range[0])/(Range[1] - Range[0]))
 
 EndFunction
 
@@ -1503,3 +1563,4 @@ OUTPUT
   Return(-1, -1)
 
 EndFunction
+
