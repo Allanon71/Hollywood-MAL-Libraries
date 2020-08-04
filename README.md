@@ -28,6 +28,44 @@ All you have to do is:
  
  Tables library is an include file for Hollywood with several functions to manipulate tables, including comparisons, merge, set, sort, push, shift and many others. Please have a look at the file **tables.md** for more informations.
  
+# Lib-Debug
+ **Hollywood-MAL Debug Library**
+ 
+ Debug library is a library developed to help debugging session, it can be used to
+ generate debug output to the console or to a one or more files, both debug output can use ANSI colors or plain text.
+ 
+ Debug library can manage one or more debug channels so that you are able to switch
+ on or off single channels and reduce the amount of output to analyze, this is very useful for complex programs involving several includes or libraries.
+ 
+ If you have an ANSI capable terminal debug messages can be colored to help
+ you identify errors and warning in no time.
+ 
+ Debug library has the ability to show nested messages, this is incredibly useful
+ when you have recursive functions and external library calls: without a proper
+ output formatting a standard debug session could become a pain.
+ 
+ You can output tables too, and they are formatted and idented properly to let
+ you look easily at their contents.
+ 
+# Lib-ANSI
+ **Hollywood-MAL ANSI Library**
+ 
+   Ansi library is an include file for Hollywood that will help you to 
+ manage ANSI escape codes so you can print colored text in the console 
+ of your host system.
+ 
+   I’ve developed this library to have an invaluable help while I’m 
+ debugging applications because this way I’m able to spot on the fly 
+ errors and/or warning messages that are hilighted from the rest of the
+ messages.
+ 
+   Of course you need that your host system console is able to understand
+ ANSI ascape codes, but almost any OS is able to do that… except 
+ Windows! 
+ For the Windows OS you need to install any thirdy party 
+ application to accomplish the task, on my development machine, running
+ Windows 10, I’m using **ansicon** program to make use of ANSI codes.
+
  ---
  Latest update: 04/08/2020
  ---
