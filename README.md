@@ -71,6 +71,10 @@ All you have to do is:
  
    GFX library is an include file for Hollywood that helps with common
  graphical-related operations.
+
+   It features a complete skinning system, brush shifting & scroll,
+ font object with its own methods, images manipulation, safe output
+ device tracking and some example functions.
  
 # Lib-FS
 **Hollywood-MAL FS Library**
