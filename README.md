@@ -66,6 +66,18 @@ All you have to do is:
  application to accomplish the task, on my development machine, running
  Windows 10, I’m using **ansicon** program to make use of ANSI codes.
 
+# Lib-GFX
+ **Hollywood-MAL GFX Library**
+ 
+   GFX library is an include file for Hollywood that helps with common
+ graphical-related operations.
+ 
+# Lib-FS
+**Hollywood-MAL FS Library**
+
+  FS is a library developed to help with common file system related
+ operations.
+
  ---
  Latest update: 04/08/2020
  ---
