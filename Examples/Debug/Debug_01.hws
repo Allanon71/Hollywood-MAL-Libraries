@@ -1,0 +1,81 @@
+/* ****************************************************************************
+   * Debug Module Example 01 : Debug Log to the console                       *
+   *  · DBG.Console.Enable()                                                  *
+   *  · DBG.Console.AddChannel()                                              *
+   *  · DBG.Console.RemoveChannel()                                           *
+   *  · DBG.Console.Out()                                                     *
+   *  · DBG.Console.Disable()                                                 *
+   *  · DBG.Console.SkipNormalLevel()                                         *
+   ****************************************************************************/
+
+;:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+;::: This example will show how to use the <Debug> module to log program    ::::
+;::: messages to the console.                                               ::::
+;:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+;::: First of all you have to include the module into your application,     ::::
+;::: please adjust the @INCLUDE a according to the location where you have  ::::
+;::: stored the <Debug> module.                                             ::::
+;::: This module requires two additional modules <Helpers> and <Tables>,    ::::
+;::: so you have to adjust these paths into <Debug.hws> too.                ::::
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_DEBUG
+
+;::: Let's switch the system on                                             ::::
+;::: Setting the <timing> parameter to <true> will add to every logged line ::::
+;::: a timestamp expressed in milliseconds.                                 ::::
+DBG.Console.Enable(True)
+
+;::: Another things to do is to create one debug channel where we can send  ::::
+;::: our messages, splitting the messages in various channels is useful     ::::
+;::: because you can shout down a channel simply not defining it or using   ::::
+;::: DBG.RemoveChannel() to shut down it at runtime.                        ::::
+;::: You can reactivate it at runtime using DBG.AddChannel() again.         ::::
+DBG.Console.AddChannel("testings")
+
+;::: Now we will create one dummy function just to check how the logging    ::::
+;::: system works.                                                          ::::
+Function f1(a, b)
+   ;::: See how we should correctly log a function call, this is needed to  ::::
+   ;::: have a nice formatted text with identation in our output log.       ::::
+   DBG.Console.Out("Function f1() has been called", DBG.OpenFunc, "testings")
+   DBG.Console.Out("a = " .. HL.Safe(a) .. ", b = " .. HL.Safe(b))
+
+   ;::: let's create some conditions to have different logging modes.       ::::
+   If a < 0
+      DBG.Console.Out("<a> can't be < 0!", DBG.Error, "testings")
+      ;::: remember to match the <DBG.OpenFunc> before exiting functions!   ::::
+      DBG.Console.Out("", DBG.CloseFunc, "testings")
+      Return()
+   EndIf
+
+   If b < 0
+      DBG.Console.Out("<b> can't be < 0! Corrected to 1", DBG.Warning, "testings")
+      b = 1
+   EndIf
+
+   ;::: As said above, remember to match any <DBG.OpenFunc> before exiting  ::::
+   ;::: the function otherwise the identation will be a mess.               ::::
+   DBG.Console.Out("Exiting function...", DBG.CloseFunc, "testings")
+   Return(a, b)
+EndFunction
+
+;::: Let's call the <f1()> func to see how the produced log is.             ::::
+f1(1,1)     ;::: Nothing strange here                                       ::::
+f1(-1,1)    ;::: An error should be produced                                ::::
+f1(1,-1)    ;::: A warning should be produced                               ::::
+
+;::: Before ending the show let's see how a table will be dumped to the     ::::
+;::: console.                                                               ::::
+Local sample_table = { "hello" , key1 = 1, key2 = 2, subtable = { "some", "nested", "stuff" }}
+DBG.Console.Out("--- TESTING TABLE DUMP ---", Nil, "testings")
+DBG.Console.Out(sample_table, Nil, "testings")
+DBG.Console.Out("----------- DONE ---------", Nil, "testings")
+
+DBG.Console.Out("Exiting from the program! BYE BYE!", Nil, "testings")
+
+;::: The following command is optional since we are at the end of our test. ::::
+DBG.Console.Disable()
+
+NPrint("--- Left Mouse Click to Quit ---")
+WaitLeftMouse()

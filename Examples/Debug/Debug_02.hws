@@ -1,0 +1,83 @@
+/* ****************************************************************************
+   * Debug Module Example 02 : Debug Log to a file                            *
+   *  · DBG.Log.Enable()                                                      *
+   *  · DBG.Log.Out()                                                         *
+   *  · DBG.Log.Disable()                                                     *
+   ****************************************************************************/
+
+;:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+;::: This example will show how to use the <Debug> module to log program    ::::
+;::: messages to a file.                                                    ::::
+;::: Remember that only one log file at a time is handled by the system.    ::::
+;:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+;::: First of all you have to include the module into your application,     ::::
+;::: please adjust the @INCLUDE a according to the location where you have  ::::
+;::: stored the <Debug> module.                                             ::::
+;::: This module requires two additional modules <Helpers> and <Tables>,    ::::
+;::: so you have to adjust these paths into <Debug.hws> too.                ::::
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_DEBUG
+
+;::: Let's switch the system on                                             ::::
+;::: The first argument is the file name where we want to log our messages. ::::
+;::: The second argument is used to preserve existing copies of the file    ::::
+;::: we are going to write, setting this parameter to <true> will backup    ::::
+;::: the file we are going to overwrite, if a copy already exists it will   ::::
+;::: be deleted.                                                            ::::
+DBG.Log.Enable("SampleLog.txt", True)
+
+;::: You can easily log some special content using the following special    ::::
+;::: messages:
+DBG.Log.Out("--- Here are some infos about the current system ---")
+DBG.Log.Out("#SYSINFO#", Nil)
+DBG.Log.Out("--- Command line arguments ---")
+DBG.Log.Out("#COMMANDLINE#", Nil)
+
+;::: Now we will create one dummy function just to check how the logging    ::::
+;::: system works.                                                          ::::
+Function f1(a, b)
+   ;::: See how we should correctly log a function call, this is needed to  ::::
+   ;::: have a nice formatted text with identation in our output log.       ::::
+   DBG.Log.Out("Function f1() has been called", DBG.OpenFunc, "testings")
+   DBG.Log.Out("a = " .. HL.Safe(a) .. ", b = " .. HL.Safe(b))
+
+   ;::: let's create some conditions to have different logging modes.       ::::
+   If a < 0
+      DBG.Log.Out("<a> can't be < 0!", DBG.Error, "testings")
+      ;::: remember to match the <DBG.OpenFunc> before exiting functions!   ::::
+      DBG.Log.Out("", DBG.CloseFunc, "testings")
+      Return()
+   EndIf
+
+   If b < 0
+      DBG.Log.Out("<b> can't be < 0! Corrected to 1", DBG.Warning, "testings")
+      b = 1
+   EndIf
+
+   ;::: As said above, remember to match any <DBG.OpenFunc> before exiting  ::::
+   ;::: the function otherwise the identation will be a mess.               ::::
+   DBG.Log.Out("Exiting function...", DBG.CloseFunc, "testings")
+   Return(a, b)
+EndFunction
+
+;::: Let's call the <f1()> func to see how the produced log.                ::::
+f1(1,1)     ;::: Nothing strange here                                       ::::
+f1(-1,1)    ;::: An error should be produced                                ::::
+f1(1,-1)    ;::: A warning should be produced                               ::::
+
+;::: Before ending the show let's see how a table will be dumped to the     ::::
+;::: console.                                                               ::::
+Local sample_table = { "hello" , key1 = 1, key2 = 2, subtable = { "some", "nested", "stuff" }}
+DBG.Log.Out("--- TESTING TABLE DUMP ---", Nil, "testings")
+DBG.Log.Out(sample_table, Nil, "testings")
+DBG.Log.Out("----------- DONE ---------", Nil, "testings")
+
+DBG.Log.Out("Exiting from the program! BYE BYE!", Nil, "testings")
+
+;::: The following command is optional since we are at the end of our test  ::::
+;::: but you should use it to correctly close the output file.              ::::
+DBG.Log.Disable()
+
+Print("Left Mouse Button to quit...")
+WaitLeftMouse()
