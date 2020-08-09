@@ -9,17 +9,54 @@
    GFX library is an include file for Hollywood that helps with common
  graphical-related operations.
  
-   It features a complete skinning system, brush shifting & scroll,
- font object with its own methods, images manipulation, safe output
- device tracking and some example functions.
+   
+ CONTENTS
+ --------
+ :: BACKGROUND UTILITIES ::
+ - GFX.BG.Setup()
+ - GFX.BG.Show()
+ - GFX.BG.Free()
+
+ :: BRUSH UTILITIES ::
+ - GFX.Brush.HShift()
+ - GFX.Brush.VShift()
+
+ :: DISPLAY UTILITIES ::
+ - GFX.DisplayExists()
+ - GFX.GetHostSize()
+ - GFX.SafeClipRegion()
  
- NEW
-  - Added to Scale the BorderColor parameter
-  - Added new functions in GFX.BG
-  - Fix in GFX.SafeClipRegion()
-  - Changed how transparency is managed in GFX.ImageFX.Reflex()
-  - Changed WordWrap to allow handling of double <\n> characters
-  - Added Gray parameter in GFX.Image:Clone(ClonedName, TintParams, Gray)
+ :: OUTPUT DEVICE UTILITIES ::
+ - GFX.OutputDevice.EndSelect()
+ - GFX.OutputDevice.Select()
+ - GFX.OutputDevice.GetCurrent()
+ 
+ :: FONT OBJECT ::
+ - GFX.Font:New()
+ - GFX.Font:Save()
+ - GFX.Font:Load()
+ - GFX.Font:Apply()
+ - GFX.Font:Set()
+ 
+ :: IMAGE OBJECT ::
+ - GFX.Image:Add()
+ - GFX.Image:Clone()
+ - GFX.Image:Draw()
+ - GFX.Image:NewLayer()
+ - GFX.Image:Reload()
+ - GFX.Image:Remove()
+ - GFX.Image:Resize()
+ - GFX.Image.Get()
+ - GFX.Image.List()
+ 
+ :: IMAGE FX UTILITIES ::
+ - GFX.ImageFX.AddFrame()
+ - GFX.ImageFX.Reflex()
+ - GFX.ImageFX.Scale()
+  
+ CHANGE LOG
+ ----------
+ 
  *********************************************************************/
 
 @INCLUDE "+Includes.hws"
@@ -112,95 +149,124 @@ Setup a background picture from the source table or file with the given
 id.
 ---------------------------------------------------------------------
 INPUT
-  source => Source table or definition file
-  id => Optional BG id
+  source : Source table or definition file
+  id     : Optional BG id
+
 OUTPUT
-  id => Background id
+  id     : Background id
+  
 NOTE
   You can build several background type depending on the 'type' field:
   
-  width = BG width
-  height = BG Height
-  enterfx = fx (optional)
-  enterspeed = speed (optional)
-  enterparam = param (optional)
+  Source must have the following fields
+    width     : BG width
+    height    : BG Height
+    enterfx   : fx constant (optional)
+    enterspeed: entering speed (optional)
+    enterparam: entering additional param (optional)
 
+    type      : solid | gradient | picture | texture
   
-  type = solid | gradient | picture | texture
+  Additional fields depending on the specified type:
+  type = solid
+    color     : background color
   
-  SOLID
-  color = background color
+  type = gradient
+    colors    : { color1, color2 }
+    gradient_type : #LINEAR | #CONICAL | #RADIAL
+    angle     : gradient angle
+    --- additional optional parameters ---
+    params =
+      { centerx = 0.0-1.0,
+        centery = 0.0-1.0,
+        border  = 0.0-1.0,
+        balance = 0.0-1.0,
+        colors = { color, step, color, step, ... }
+        }
   
-  GRADIENT
-  colors = { color1, color2 }
-  gradient_type = #LINEAR | #CONICAL | #RADIAL
-  angle = gradient angle
-  ---optional---
-  params =
-    { centerx = 0.0-1.0,
-      centery = 0.0-1.0,
-      border  = 0.0-1.0,
-      balance = 0.0-1.0,
-      colors = { color, step, color, step, ... }
-      }
+  type = picture
+    file      : image to load
+    maximize  : True | False
+    border_color : bands_color
   
-  PICTURE
-  file = image to load
-  maximize = True | False
-  border_color = bands_color
-  
-  TEXTURE
-  file = image to load as a tile
+  type = texture
+    file      : image to load as a tile
   
 *****************************************************************************/
   Local background, bgid = source, id
 
+  ; If source is a string a file name has been specified
   If GetType(source) = #STRING
     If Exists(source)
+      ; Load the definition file
       background = FS.Config.Load(source)
 
+      ; If the type is not specified set the solid color
       If TB.Item.IsNil(background, "type")
         background = { type = "solid", color = $00FFFF }
         Local host_x, host_y = GFX.GetHostSize()
-        background.width = host_x
+        background.width  = host_x
         background.height = host_y
       EndIf
+      
     EndIf
+    
   EndIf
 
+  ; Setup the background depending on the 'type'
   Switch background.type
+  
     Case "solid"
+    ;-----------
       If IsNil(bgid)
         bgid = CreateBGPic(Nil, background.width, background.height, background.color)
+        
       Else
         CreateBGPic(bgid, background.width, background.height, background.color)
+        
       EndIf
       
+      
     Case "gradient"
+    ;--------------
       Local args = {}
-      If TB.Item.Exists(background, "params") Then args = background.params
+      If TB.Item.Exists(background, "params")
+        args = background.params
+        
+      EndIf
+      
       If IsNil(bgid)
         bgid = CreateGradientBGPic(Nil, background.gradient_type, background.colors[0], background.colors[1], background.width, background.height, background.angle, args)
+        
       Else
         CreateGradientBGPic(bgid, background.gradient_type, background.colors[0], background.colors[1], background.width, background.height, background.angle, args)
+        
       EndIf
     
+    
     Case "picture"
+    ;-------------
       Local bid = LoadBrush(Nil, background.file)
       Local bid = GFX.ImageFX.Scale(bid, background.width, background.height, False, background.Maximize, True, False, background.Border_Color)  
       If IsNil(bgid)
         bgid = BrushToBGPic(bid, Nil)
+        
       Else
         BrushToBGPic(bid, bgid)
+        
       EndIf
       FreeBrush(bid)
       
+      
     Case "texture"
+    ;-------------
       Local bid = LoadBrush(Nil, background.file)
       If IsNil(bgid)
         bgid = CreateTexturedBGPic(Nil, bid, background.width, background.height)
+        
       Else
         CreateTexturedBGPic(bgid, bid, background.width, background.height)
+        
       EndIf
       FreeBrush(bid)
       
@@ -212,19 +278,56 @@ NOTE
   
 EndFunction
 
+Function GFX.BG.Free(infos)
+/*****************************************************************************
+GFX.BG.Free(infos)
+
+Free a background picture.
+---------------------------------------------------------------------
+INPUT
+  infos  : The table returned by GFX.BG.Setup()
+
+OUTPUT
+  -
+*****************************************************************************/
+  FreeBGPic(infos.bgid)
+
+  infos = Nil
+  
+EndFunction
+
 Function GFX.BG.Show(infos)
+/*****************************************************************************
+GFX.BG.Show(infos)
+
+Using the table returned by GFX.BG.Setup() you can show the background
+on your display.
+---------------------------------------------------------------------
+INPUT
+  infos  : The table returned by GFX.BG.Setup()
+
+OUTPUT
+  -
+*****************************************************************************/
+
   If TB.Item.Exists(infos, "enterfx")
     If GetType(infos.enterfx) <> #STRING
       If TB.Item.Exists(infos, "enterparam")
         DisplayTransitionFX(infos.bgid, { type = infos.enterfx, speed = infos.enterspeed, parameter = infos.enterparam })
+        
       Else
         DisplayTransitionFX(infos.bgid, { type = infos.enterfx, speed = infos.enterspeed })
+        
       EndIf
+      
     Else
       DisplayBGPic(infos.bgid)
+      
     EndIf
+    
   Else
     DisplayBGPic(infos.bgid)
+    
   EndIf
 
 EndFunction
@@ -861,10 +964,10 @@ result = GFX.Brush.HShift(brush, x)
 Shift horizontally the given 'brush' by 'x' pixels.
 ---------------------------------------------------------------------
 INPUT
-  brush => Brush to shift
-  x => Shift amount in pixels
+  brush  : Brush to shift
+  x      : Shift amount in pixels
 OUTPUT
-  result => True if the brush was successfully shifted
+  result : True if the brush was successfully shifted
 ******************************************************************************/
   ; Check if the shift is really needed
   If x = 0 Then Return(False)
@@ -889,9 +992,14 @@ OUTPUT
   FreeBrush(t)
 
   Return(True)
+  
 EndFunction
 
 Function GFX.Brush.VScroll(brush, y)
+  ; --------------------------------------
+  ; --- REPLACED BY HGX.Brush.HShift() ---
+  ; --------------------------------------
+  
   ; Check if the shift is really needed
   If y = 0 Then Return(False)
   
@@ -926,10 +1034,10 @@ result = GFX.Brush.VShift(brush, x)
 Shift vertically the given <brush> by <y> pixels.
 ---------------------------------------------------------------------
 INPUT
-  brush => Brush to shift
-  y => Shift amount in pixels
+  brush  : Brush to shift
+  y      : Shift amount in pixels
 OUTPUT
-  result => True if the brush was successfully shifted
+  result : True if the brush was successfully shifted
 ******************************************************************************/
   ; Check if the shift is really needed
   If y = 0 Then Return(False)
@@ -954,6 +1062,7 @@ OUTPUT
   FreeBrush(t)
 
   Return(True)
+
 EndFunction
 
 Function GFX.OutputDevice.GetCurrent()
@@ -1138,20 +1247,25 @@ Create a ClipRegion and adjust coordinates to prevent illegal values, for
 example to prevent clip areas defined out of the current display region.
 ---------------------------------------------------------------------
 INPUT
-  ClipID => Clip region ID or Nil
-  Shape => Clip region shape (see Hollywood docs)
-  xStart => Starting X
-  yStart => Starting y
-  Width => Area width
-  Height => Area height
+  ClipID  : Clip region ID to create or Nil
+  Shape   : Clip region shape (see Hollywood docs)
+  xStart  : Starting X
+  yStart  : Starting y
+  Width   : Area width
+  Height  : Area height
+  
 OUTPUT
-  clipID => Clip region id
+  clipID  : Created clip region id
 ******************************************************************************/
+  ; Coords cannot be negative
   If xStart < 0 Then xStart = 0
   If yStart < 0 Then yStart = 0
 
+  ; Retrieve the current output device
   Local Output, Id = GetAttribute(#DISPLAY, 0, #ATTROUTPUTDEVICE)
 
+  ; Check if we are in doublebuffer mode and retrieve
+  ; the current output device size
   If Output = #DOUBLEBUFFER Then Output = #DISPLAY
   Local ScreenW = GetAttribute(Output, Id, #ATTRWIDTH) + 1
   Local ScreenH = GetAttribute(Output, Id, #ATTRHEIGHT) + 1
@@ -1160,26 +1274,32 @@ OUTPUT
   If (xStart + Width)  > ScreenW Then Width  = ScreenW - xStart - 1
   If (yStart + Height) > ScreenH Then Height = ScreenH - yStart - 1
 
+  ; Adjust the clip region sizes
   If ((xStart + Width) =< 0)
     xStart = 0
     Width  = 1
   EndIf
+  
   If ((yStart + Height) =< 0)
     yStart = 0
     Height = 1
   EndIf
-  If Int(Width)  = 0
+  
+  If Int(Width) = 0
     Width  = 1
 	  xStart = xStart - 1
     If xStart < 0 Then xStart = 0
 	EndIf
+  
   If Int(Height) = 0
 	  Height = 1
 	  yStart = yStart - 1
     If yStart < 0 Then yStart = 0
 	EndIf
 
+  ; Create the clip region and returns its id
   Return(CreateClipRegion(ClipID, Shape, xStart, yStart, Width, Height))
+  
 EndFunction
 
 Function GFX.Text.DeTagger(txt)
@@ -1933,11 +2053,14 @@ width, height = GFX.GetHostSize()
 
 In a single call returns the current host width & host height.
 ---------------------------------------------------------------------
+INPUT
+
 OUTPUT
-  width => Host screen width
-  height => Host screen height
+  width  : Host screen width
+  height : Host screen height
 ******************************************************************************/
    Return(GetAttribute(#DISPLAY, 0, #ATTRHOSTWIDTH), GetAttribute(#DISPLAY, 0, #ATTRHOSTHEIGHT))
+   
 EndFunction
 
 Function GFX.DisplayExists(dispID)
@@ -1946,18 +2069,32 @@ result = GFX.DisplayExists(dispID)
 
 Returns TRUE if the given display exists otherwise returns FALSE.
 ---------------------------------------------------------------------
+INPUT
+  dispID  : The display id to check
+
 OUTPUT
-  result => True if the display id exists, otherwise False will be returned,
+  result  : True if the display id exists, otherwise False will be returned,
 ******************************************************************************/
+  
+  ; Retrieve all the existing displays
   Local tbl, cnt = GetObjects(#DISPLAY)
+  
+  ; Check until we found the one we are searching for
   For Local i = 0 To cnt-1
     If GetType(dispID) = GetType(tbl[i])
       If tbl[i] = dispID
+        ; Found!
         Return(True)
+        
       EndIf
+      
     EndIf
+    
   Next
+  
+  ; Not found!
   Return(False)
+  
 EndFunction
 
 Function GFX.Smooting(Mode) ; OBSOLETE
@@ -2100,9 +2237,15 @@ GFX.Test_ImageObjects()
 
 This function demonstrates how Image objects can be used.
 ******************************************************************************/
+  Local winSize = { w = 1024, h = 720 }   ; Window Size
 
+  ; Setup the display
+  SetDisplayAttributes({ Width = winSize.w, Height = winSize.h })
+  
   Local menu = Function()
                   Cls
+                  SetFont(#MONOSPACE, 18)
+                  SetFontStyle(#ANTIALIAS)
                   Locate(0, 0)
                   NPrint("------------------------")
                   NPrint("::: ImageObject TEST :::")
@@ -2154,6 +2297,7 @@ This function demonstrates how Image objects can be used.
 
                       Else
                         SystemRequest("WARNING!", "The selected image does not exists!", "Ok", #REQICON_ERROR)
+                        
                       EndIf
                       
                     Case 2 ; --------------------------------------------------
@@ -2167,6 +2311,7 @@ This function demonstrates how Image objects can be used.
                       If count = 0
                         ; Nothing to clone
                         SystemRequest("WARNING!", "Nothing to clone, create some objects first.", "Ok", #REQICON_WARNING)
+                        
                       Else
                         ; The object list is indexed with the object name, we must
                         ; convert the table to use the ListRequest() function.
@@ -2231,6 +2376,7 @@ This function demonstrates how Image objects can be used.
                         Local a = InKeyStr(#ALL)
                       EndIf
                     
+                    
                     Case 4 ; --------------------------------------------------
                       ;::::::::::::::::::::::::::::::::
                       ;::: DRAW ALL EXISTING IMAGES :::
@@ -2244,7 +2390,7 @@ This function demonstrates how Image objects can be used.
                         NPrint("Drawing image '" .. v.name .. "' at " .. xp .. ", " .. yp)
                         v:Draw({ x = xp, y = yp })
                         xp = xp + v.Size.w
-                        If xp >= 640
+                        If xp >= winSize.w
                           xp = 0
                           yp = yp + 50
                         EndIf
@@ -2254,6 +2400,7 @@ This function demonstrates how Image objects can be used.
                       NPrint("Hit Enter...")
                       Local a = InKeyStr(#ALL)
 
+                      
                     Case 5 ; --------------------------------------------------
                       ;::::::::::::::::::::::::::::::
                       ;::: RESIZE AN IMAGE OBJECT :::
@@ -2265,6 +2412,7 @@ This function demonstrates how Image objects can be used.
                       If count = 0
                         ; Nothing to resize
                         SystemRequest("WARNING!", "Nothing to resize, create some objects first.", "Ok", #REQICON_WARNING)
+                        
                       Else
                         ; The object list is indexed with the object name, we must
                         ; convert the table to use the ListRequest() function.
@@ -2291,6 +2439,7 @@ This function demonstrates how Image objects can be used.
                         
                       EndIf
 
+                      
                     Case 6 ; ----------------------------------------------
                       ;:::::::::::::::::::::::::::::
                       ;::: RELOAD IMAGE RESOURCE :::
@@ -2307,6 +2456,7 @@ This function demonstrates how Image objects can be used.
                       NPrint("Hit Enter...")
                       Local a = InKeyStr(#ALL)
 
+                      
                     Case 7 ; ----------------------------------------------
                       ;::::::::::::::::::::::::::::::
                       ;::: REMOVE AN IMAGE OBJECT :::
@@ -2336,6 +2486,7 @@ This function demonstrates how Image objects can be used.
                         EndIf
                       EndIf
                       
+                      
                     Case 8 ; ------------------------------------------------
                       ;::::::::::::::::::::::::::::::
                       ;::: LIST ALL IMAGE OBJECTS :::
@@ -2355,6 +2506,7 @@ This function demonstrates how Image objects can be used.
                     Case 99 ; -----------------------------------------------
                       End
                     
+                    
                     Default
                       NPrint("*** COMMAND NOT RECOGNIZED ***")
                       NPrint("")
@@ -2365,6 +2517,7 @@ This function demonstrates how Image objects can be used.
 
                 EndFunction
                   
+  ; Main Loop
   Local loop = True
   While loop
     menu()
@@ -2377,14 +2530,20 @@ Function GFX.Test_Reflection()
 GFX.Test_Reflection()
 
 This function shows how you can generate picture reflections.
+
+Last Update: 04/08/2020
 ******************************************************************************/
+  Local winSize = { w = 1024, h = 720 }   ; Window Size
+  Local bruSize = { w =  320, h = 240 }   ; Brush Size
+  
+  ; Setup the display
+  SetDisplayAttributes({ Width = winSize.w, Height = winSize.h })
 
   ; Load a background picture...
   Local bg, bgBrush = FileRequest("Select an image to use as background picture...")
   If Exists(bg)
-    LoadBGPic(1, bg)
-    DisplayBGPic(1)
     bgBrush = LoadBrush(Nil, bg)
+    ScaleBrush(bgBrush, winSize.w, #KEEPASPRAT, True)
   EndIf
   
   ; Load an image to test the reflection generation...
@@ -2393,83 +2552,100 @@ This function shows how you can generate picture reflections.
   If Exists(image)
     source = LoadBrush(Nil, image)
     ; Resize this brush...
-    ScaleBrush(source, 320, 240, True)
-    DisplayBrush(source, #CENTER, #CENTER)
+    ScaleBrush(source, bruSize.w, #KEEPASPRAT, True)
   EndIf
   
+  ; A list of options available using a list requester
   Local subtests = { "Show Possible Directions...",
                      "Show Scale parameter...",
                      "Show Color and Color Strenght parameters...",
                      "Show Alpha parameter...",
                      "QUIT."}
   
+  ; Setup font properties for the header draw
+  SetFont(#SANS, 16)
+  SetFontColor(#WHITE)
+  SetFontStyle(#ANTIALIAS+#BOLD)
+  
+  ; Setup a function to draw the static stuff which are
+  ; the background and the header
+  Local drawStatic = 
+    Function(txt)
+      ; Draw the background
+      DisplayBrush(bgBrush, 0, 0)
+      
+      ; Draw the header
+      SetFillStyle(#FILLCOLOR)
+      Box(0, 0, winSize.w, 20, $AA000000)
+      TextOut(10, 2, txt)
+      
+    EndFunction
+  
   Local answer = 0
   While answer <> -1 And answer <> 4
-    answer = ListRequest("SELECT A SUBTEST", "Please select one of the available option...", subtests)
+    answer = ListRequest("SELECT A TEST", "Please select one of the available option...", subtests)
   
     Switch answer
-      Case 0 ; --------------------------------------------------------
+      Case 0
         ;::::::::::::::::::::::::::::
         ;::: REFLECTION DIRECTION :::
         ;::::::::::::::::::::::::::::
-        SetFillStyle(#FILLCOLOR)
+       
+        ; 1:reflection at the Bottom
+        drawStatic("Reflex at the bottom, LMB to continue...")
         
-        ; Reflex Bottom
-        Cls
-        Box(0, 0, 640, 14, #RED)
-        Locate(0, 0)
-        NPrint("PRESS LEFT MOUSE BUTTON TO CONTINUE...")
+        ; Generate the reflex, show it and free the generated brush
         Local rb = GFX.ImageFX.Reflex(source, #GFX_REFLEXBOTTOM, Nil, Nil, Nil, Nil, False)
         DisplayBrush(rb, #CENTER, #CENTER)
         FreeBrush(rb)
         WaitLeftMouse()
         
-        ; Reflex Top
-        Cls
-        Box(0, 0, 640, 14, #RED)
-        Locate(0, 0)
-        NPrint("PRESS LEFT MOUSE BUTTON TO CONTINUE...")
+        
+        ; 2:reflection at the Top
+        drawStatic("Reflex at the top, LMB to continue...")
+        
+        ; Generate the reflex, show it and free the generated brush
         rb = GFX.ImageFX.Reflex(source, #GFX_REFLEXTOP, Nil, Nil, Nil, Nil, False)
         DisplayBrush(rb, #CENTER, #CENTER)
         FreeBrush(rb)
         WaitLeftMouse()
         
-        ; Reflex Left
-        Cls
-        Box(0, 0, 640, 14, #RED)
-        Locate(0, 0)
-        NPrint("PRESS LEFT MOUSE BUTTON TO CONTINUE...")
+        
+        ; 3:reflection at the Left
+        drawStatic("Reflex at the left, LMB to continue...")
+        
+        ; Generate the reflex, show it and free the generated brush
         rb = GFX.ImageFX.Reflex(source, #GFX_REFLEXLEFT, Nil, Nil, Nil, Nil, False)
         DisplayBrush(rb, #CENTER, #CENTER)
         FreeBrush(rb)
         WaitLeftMouse()
         
-        ; Reflex Right
-        Cls
-        Box(0, 0, 640, 14, #RED)
-        Locate(0, 0)
-        NPrint("PRESS LEFT MOUSE BUTTON TO CONTINUE...")
+        ; 3:reflection at the Right
+        drawStatic("Reflex at the right, LMB to continue...")
+        
+        ; Generate the reflex, show it and free the generated brush
         rb = GFX.ImageFX.Reflex(source, #GFX_REFLEXRIGHT, Nil, Nil, Nil, Nil, False)
         DisplayBrush(rb, #CENTER, #CENTER)
         FreeBrush(rb)
         WaitLeftMouse()
         
-      Case 1 ; --------------------------------------------------------
+        
+        
+      Case 1
         ;::::::::::::::::::::::
         ;::: SCALE ARGUMENT :::
         ;::::::::::::::::::::::
         SetFillStyle(#FILLCOLOR)
         
-        Local scale, var, loop = 0.01, 0.01, True
+        Local scale, var, loop = 0.01, 0.005, True
         
         BeginDoubleBuffer()
         While loop
-          DisplayBrush(bgBrush, 0, 0)
-          Box(0, 0, 640, 14, #RED)
-          Locate(0, 0)
-          NPrint("Scale=" .. scale .. " - PRESS LEFT MOUSE BUTTON TO QUIT")
+          drawStatic("LMB to stop, Scale : " .. scale)
+        
+          ; Generate, show & free the reflection
           Local rb = GFX.ImageFX.Reflex(source, #GFX_REFLEXBOTTOM, Scale, Nil, Nil, Nil, False)
-          DisplayBrush(rb, #CENTER, #CENTER)
+          DisplayBrush(rb, #CENTER, 100)
           FreeBrush(rb)
           
           If IsLeftMouse() Then loop = False
@@ -2477,26 +2653,25 @@ This function shows how you can generate picture reflections.
           
           scale = scale + var
           If scale > 1 Or scale < 0.01 Then var = -var
+          
         Wend
         EndDoubleBuffer()
-        WaitLeftMouse()
+
         
-      Case 2 ; --------------------------------------------------------
+      Case 2
         ;:::::::::::::::::::::::::::::::::
         ;::: COLOR & STRENGHT ARGUMENT :::
         ;:::::::::::::::::::::::::::::::::
-        SetFillStyle(#FILLCOLOR)
         
-        Local r, g, b, s = 0, 0, 0, 0
-        Local s1, s2, s3, s4 = 1, 2, 3, 1
+        Local s1, s2, s3, s4 = 0.5, 1.25, 2.55, 0.8
+        Local r, g, b, s = Rnd(256), Rnd(256), Rnd(256), Rnd(256)
         Local loop = True
         
         BeginDoubleBuffer()
         While loop
-          DisplayBrush(bgBrush, 0, 0)
-          Box(0, 0, 640, 14, #RED)
-          Locate(0, 0)
-          NPrint("R:" .. r .. " G:" .. g .. " B:" .. b .. " S:" .. s .. " - PRESS LEFT MOUSE BUTTON TO QUIT")
+          drawStatic("Press LMB to stop, R:" .. r .. " G:" .. g .. " B:" .. b .. " S:" .. s)
+
+          ; BìGenerate the reflection
           Local color = RGB(r, g, b)
           Local rb = GFX.ImageFX.Reflex(source, #GFX_REFLEXBOTTOM, 0.5, color, s, Nil, False)
           DisplayBrush(rb, #CENTER, #CENTER)
@@ -2505,20 +2680,33 @@ This function shows how you can generate picture reflections.
           If IsLeftMouse() Then loop = False
           Flip(True)
           
+          ; Change the reflection color
           r = r + s1
           g = g + s2
           b = b + s3
           s = s + s4
-          If r > 254 Or r < 1 Then s1 = -s1
-          If g > 253 Or g < 2 Then s2 = -s2
-          If b > 252 Or b < 3 Then s3 = -s3
-          If s > 254 Or s < 1 Then s4 = -s4
+          If r > 255 Or r <= 0
+            s1 = -s1
+            r = r + s1
+          EndIf
+          If g > 255 Or g <= 0
+            s2 = -s2
+            g = g + s2
+          EndIf
+          If b >= 255 Or b <= 0
+            s3 = -s3
+            b = b + s3
+          EndIf
+          If s >= 255 Or s <= 0
+            s4 = -s4  
+            s = s + s4
+          EndIf
           
         Wend
         EndDoubleBuffer()
-        WaitLeftMouse()
+
         
-      Case 3 ; --------------------------------------------------------
+      Case 3
         ;::::::::::::::::::::::
         ;::: ALPHA ARGUMENT :::
         ;::::::::::::::::::::::
@@ -2529,10 +2717,8 @@ This function shows how you can generate picture reflections.
         
         BeginDoubleBuffer()
         While loop
-          DisplayBrush(bgBrush, 0, 0)
-          Box(0, 0, 640, 14, #RED)
-          Locate(0, 0)
-          NPrint("Alpha: " .. alpha .. " - PRESS LEFT MOUSE BUTTON TO QUIT")
+          drawStatic("Press LMB to stop, Alpha:" .. alpha)
+          
           Local rb = GFX.ImageFX.Reflex(source, #GFX_REFLEXBOTTOM, 0.5, #BLACK, 128, alpha, False)
           DisplayBrush(rb, #CENTER, #CENTER)
           FreeBrush(rb)
@@ -2542,11 +2728,15 @@ This function shows how you can generate picture reflections.
           
           alpha = alpha + as
 
-          If alpha > 254 Or alpha < 1 Then as = -as
+          If alpha > 255 Or alpha < 0
+            as = -as
+            alpha = alpha + as
+          EndIf
           
         Wend
         EndDoubleBuffer()
-        WaitLeftMouse()
+        
+        
     EndSwitch
     
   Wend
@@ -2557,17 +2747,37 @@ Function GFX.Test_PhotoFrame()
 /******************************************************************************
 GFX.Test_PhotoFrame()
 
-Show how to use the GFX.Test_PhotoFrame() function.
-******************************************************************************/
-  ; Setup a font object with default values
-  Local fnt = GFX.Font:New({ Color = $88FFFF, Edge = True, Bold = True })
-  
+Show how to use the GFX.ImageFX.AddFrame() function.
+
+Last Update: 04/08/2020
+****************************!**************************************************/
+  Local winSize = { w = 1024, h = 720 }   ; Window Size
+  Local bruSize = { w =  320, h = 240 }   ; Brush Size
+
+  ; Setup the display
+  SetDisplayAttributes({ Width = winSize.w, Height = winSize.h })
+
+  ; Setup a font object for the photo frame
+  Local fnt = GFX.Font:New({ Color        = $FFFFFF, 
+                             Edge         = True, 
+                             EdgeColor    = $44000000,
+                             EdgeThikness = 2,
+                             Bold         = True,
+                             Antialias    = True
+                             })
+
+  ; Setup a font object for the hekp text
+  Local hfnt = GFX.Font:New({ Color       = $FFFFFF, 
+                             Edge         = False, 
+                             Bold         = True,
+                             Antialias    = True
+                             })
+                             
   ; Ask the user to select a background
   Local bg, bgBrush = FileRequest("Select an image to use as background picture...")
   If Exists(bg)
-    LoadBGPic(1, bg)
-    DisplayBGPic(1)
     bgBrush = LoadBrush(Nil, bg)
+    ScaleBrush(bgBrush, winSize.w, #KEEPASPRAT, True)
   EndIf
   
   ; Load an image to test the photo-frame generation...
@@ -2575,6 +2785,7 @@ Show how to use the GFX.Test_PhotoFrame() function.
   Local source = -1
   If Exists(image)
     source = LoadBrush(Nil, image)
+    ScaleBrush(source, bruSize.w, #KEEPASPRAT, True)
   EndIf
   
   ; The variable used to control the main loop
@@ -2582,63 +2793,81 @@ Show how to use the GFX.Test_PhotoFrame() function.
   
   ; Define the function's input arguments
   Local border =     
-    { width = 10, 
+    { width  = 10, 
       bottom = 40,
-      color = $FFFFFF,
-      alpha = 200
-      }
+      color  = $FFFFFF,
+      alpha  = 200 }
+      
   Local shadow = 
-    { active = True,
-      offset = { x = 8, y = 8 },
+    { active    = True,
+      offset    = { x = 8, y = 8 },
       separated = False,
-      alpha = 200,
-      color = $444444
-      }
+      alpha     = 200,
+      color     = $444444 }
+      
   Local infos =
-    { row1left = "Left side, row 1",
+    { row1left  = "Left side, row 1",
       row1right = "Right side, row 1",
-      row2left = "Left side, row 2",
-      font = fnt,
-      separated = False
-      }
+      row2left  = "Left side, row 2",
+      font      = fnt,
+      separated = False }
+      
   Local size = 
-    { width = 480,
+    { width  = 480,
       height = 360 }
+
   Local roundLevel = 0
 
   ; Generate a photo-frame
-  Local photo = GFX.ImageFX.AddFrame(source, border, shadow, infos, size, roundLevel)
+  Local photo = GFX.ImageFX.AddFrame(
+    source, ; The source brush
+    border, ; The destination border
+    shadow, ; THe destination shadow
+    infos,  ; The destination texts
+    size,   ; The destination size
+    roundLevel ; The corners rounding
+    )
   
   ; Define some variables used to move the photo-frame around
   Local x, y = 0, 0
   Local sx, sy = 1, 1
   
+  ; Setup a function to draw the static stuff which are
+  ; the background and the header
+  Local drawStatic = 
+    Function()
+      ; Draw the background
+      DisplayBrush(bgBrush, 0, 0)
+      
+      ; Draw the header
+      hfnt:Apply()
+      SetFillStyle(#FILLCOLOR)
+      Box(0, 0, winSize.w, 20, $88000000)
+      TextOut(10, 2, "KEYS: b:Border, s:Shadow, r:Round Level, LMB:QUIT")
+      
+    EndFunction
+  
   BeginDoubleBuffer()
   While loop
-    ; Backgound
-    DisplayBrush(bgBrush, 0, 0)
+    ; Draw the static stuff
+    drawStatic()
     
-    SetFillStyle(#FILLCOLOR)
-    Box(0, 0, 640, 16, #WHITE)
-    Locate(0, 0)
-    NPrint("KEYS: B=Border, S=Shadow, R=Round Level - PRESS LEFT MOUSE BUTTON TO QUIT")
-    
-    ; Keyboard check
+    ; Check if there are pressed keys
     If IsKeyDown("b")
-      ; Border
+      ; Regenerate the Border
       FreeBrush(photo)
       FreeBrush(source)
-      border.width = Rnd(50)+5
-      border.bottom = Rnd(50)+20
-      border.color = GetRandomColor()
-      border.alpha = Rnd(255)
-      infos.row1left = "BORDER CHANGED"
-      infos.row2left = "Width:" .. border.width .. ", Bottom:" .. border.bottom .. ", alpha:" .. border.alpha
+      border.width    = Rnd(50)+5
+      border.bottom   = Rnd(50)+20
+      border.color    = GetRandomColor()
+      border.alpha    = Rnd(255)
+      infos.row1left  = "BORDER CHANGED"
+      infos.row2left  = "Width:" .. border.width .. ", Bottom:" .. border.bottom .. ", alpha:" .. border.alpha
       infos.row1right = GetDate(True)
 
       ; Reloading & Regeneration
       source = LoadBrush(Nil, image)
-      photo = GFX.ImageFX.AddFrame(source, border, shadow, infos, size, roundLevel)
+      photo  = GFX.ImageFX.AddFrame(source, border, shadow, infos, size, roundLevel)
       
       ; Wait release
       While IsKeyDown("b")
@@ -2646,20 +2875,20 @@ Show how to use the GFX.Test_PhotoFrame() function.
       Wend
       
     ElseIf IsKeyDown("s")
-      ; Shadow
+      ; Regenerate the Shadow
       FreeBrush(photo)
       FreeBrush(source)
-      shadow.active = Rnd(2)
-      shadow.offset = { x = Rnd(32), y = Rnd(32) }
-      shadow.color = GetRandomColor()
-      shadow.alpha = Rnd(255)
-      infos.row1left = "SHADOW CHANGED"
-      infos.row2left = "Active:" .. Shadow.active .. ", Offset:" .. Shadow.offset.x .. "," .. Shadow.offset.y .. ", alpha:" .. shadow.alpha
+      shadow.active   = Rnd(2)
+      shadow.offset   = { x = Rnd(32), y = Rnd(32) }
+      shadow.color    = GetRandomColor()
+      shadow.alpha    = Rnd(255)
+      infos.row1left  = "SHADOW CHANGED"
+      infos.row2left  = "Active:" .. Shadow.active .. ", Offset:" .. Shadow.offset.x .. "," .. Shadow.offset.y .. ", alpha:" .. shadow.alpha
       infos.row1right = GetDate(True)
 
       ; Reloading & Regeneration
       source = LoadBrush(Nil, image)
-      photo = GFX.ImageFX.AddFrame(source, border, shadow, infos, size, roundLevel)
+      photo  = GFX.ImageFX.AddFrame(source, border, shadow, infos, size, roundLevel)
       
       ; Wait release
       While IsKeyDown("s")
@@ -2667,17 +2896,17 @@ Show how to use the GFX.Test_PhotoFrame() function.
       Wend
 
     ElseIf IsKeyDown("r")
-      ; Round Level
+      ; Change the Round Level
       FreeBrush(photo)
       FreeBrush(source)
-      roundLevel = Rnd(border.width)
-      infos.row1left = "ROUNDING CHANGED"
-      infos.row2left = "Round Level:" .. roundLevel
+      roundLevel      = Rnd(border.width)
+      infos.row1left  = "ROUNDING CHANGED"
+      infos.row2left  = "Round Level:" .. roundLevel
       infos.row1right = GetDate(True)
 
       ; Reloading & Regeneration
       source = LoadBrush(Nil, image)
-      photo = GFX.ImageFX.AddFrame(source, border, shadow, infos, size, roundLevel)
+      photo  = GFX.ImageFX.AddFrame(source, border, shadow, infos, size, roundLevel)
       
       ; Wait release
       While IsKeyDown("r")
@@ -2686,7 +2915,7 @@ Show how to use the GFX.Test_PhotoFrame() function.
 
     EndIf
     
-    ; Source
+    ; Display the generated image
     DisplayBrush(photo, x, y)
     
     x = x + sx
@@ -2699,8 +2928,7 @@ Show how to use the GFX.Test_PhotoFrame() function.
     
   Wend
   EndDoubleBuffer()
-  WaitLeftMouse()
-  
+    
 EndFunction
 
 Function GFX.Test_BrushShift()
@@ -2708,118 +2936,365 @@ Function GFX.Test_BrushShift()
 GFX.Test_BrushShift()
 
 Show how to use the GFX.Brush.HShift() and GFX.Brush.VShift() functions.
+
+Last Update: 04/08/2020
 ******************************************************************************/
-  ; Ask the user to select a background
+  Local winSize = { w = 1024, h = 720 }   ; Window Size
+  Local bruSize = { w =  320, h = 240 }   ; Brush Size
+  
+  ; Setup the display
+  SetDisplayAttributes({ Width = winSize.w, Height = winSize.h })
+  
+  ; Ask the user to select a background picture
   Local bg, bgBrush = FileRequest("Select an image to use as background picture...")
   If Exists(bg)
-    LoadBGPic(1, bg)
-    DisplayBGPic(1)
     bgBrush = LoadBrush(Nil, bg)
+    ScaleBrush(bgBrush, winSize.w, #KEEPASPRAT, True)
   EndIf
   
-  ; Load an image to test the photo-frame generation...
-  Local image = FileRequest("Select an image to use as testing picture...")
+  ; Load an image we will use to test the shifting functions
+  Local image  = FileRequest("Select an image to use as testing picture...")
   Local source = -1
   If Exists(image)
     source = LoadBrush(Nil, image)
-    ScaleBrush(source, 320, 240, True)
+    ScaleBrush(source, bruSize.w, #KEEPASPRAT, True)
   EndIf
 
   ; The variable used to control the main loop
-  Local sx, sy = 1, 1
-  Local dx, dy = 2, 2
+  Local sx, sy = 1, 1 ; These are the coordinates used to move around
+                      ; the testing picture
+  Local dx, dy = 2, 2 ; These are the steps we are using to test the
+                      ; shift functions
   Local loop = True
   
+  ; Setup font properties for the header draw
+  SetFont(#SANS, 16)
+  SetFontColor(#WHITE)
+  SetFontStyle(#ANTIALIAS+#BOLD)
+  
+  ; Setup a function to draw the static stuff which are
+  ; the background and the header
+  Local drawStatic = 
+    Function()
+      ; Draw the background
+      DisplayBrush(bgBrush, 0, 0)
+      
+      ; Draw the header
+      SetFillStyle(#FILLCOLOR)
+      Box(0, 0, winSize.w, 20, $88000000)
+      TextOut(10, 2, "KEYS: d:+Horiz, s:+Vert, a:-Horiz, w:-Vert, LMB:QUIT")
+      
+    EndFunction
+    
   BeginDoubleBuffer()
   While loop
-    ; Backgound
-    DisplayBrush(bgBrush, 0, 0)
+    ; Renders the static stuff
+    drawStatic()
     
-    SetFillStyle(#FILLCOLOR)
-    Box(0, 0, 640, 16, #RED)
-    Locate(0, 0)
-    NPrint("KEYS: H:Horizontal, V:Vertical - PRESS LEFT MOUSE BUTTON TO QUIT")
-  
-    ; Source
-    If IsKeyDown("h")
+    ; Check if there are pressed keys
+    If IsKeyDown("d")
       GFX.Brush.HShift(source, dx)
-    ElseIf IsKeyDown("v")
+      
+    ElseIf IsKeyDown("a")
+      GFX.Brush.HShift(source, -dx)
+      
+    ElseIf IsKeyDown("s")
       GFX.Brush.VShift(source, dy)
+      
+    ElseIf IsKeyDown("w")
+      GFX.Brush.VShift(source, -dy)
+      
     EndIf
     
+    ; Display the test picture
     DisplayBrush(source, x, y)
     
+    ; Increase coordinates and check boundaries
     x = x + sx
     y = y + sy
-    If x > 320 Or x < -160 Then sx = -sx
-    If y > 240 Or y < -120 Then sy = -sy
+    If x > winSize.w-bruSize.w Or x < 0 Then sx = -sx
+    If y > winSize.h-bruSize.h Or y < 0 Then sy = -sy
     
     If IsLeftMouse() Then loop = False
     Flip(True)
     
   Wend
   EndDoubleBuffer()
+  
+EndFunction
+
+Function GFX.Test_BG_Handlers()
+/******************************************************************************
+This example shows how to use the BG Handling routines to manage your window
+backgrounds easily:
+
+- GFX.BG.Setup()
+- GFX.BG.Show()
+- GFX.BG.Free()
+
+Last Update: 04/08/2020
+******************************************************************************/
+  Local winSize = { w = 1024, h = 720 }   ; Window Size
+  
+  ; Ask the user to select a background picture
+  Local bgFile = FileRequest("Select an image to use as background picture...")
+  Local bgTile = FileRequest("Select an image to use as bg tile...")
+  
+  ; Setup font properties for the header draw
+  SetFont(#SANS, 16)
+  SetFontColor(#WHITE)
+  SetFontStyle(#ANTIALIAS+#BOLD)
+  
+  ; Setup a function for the user's feedback
+  Local drawHeader = 
+    Function()
+      SetFillStyle(#FILLCOLOR)
+      Box(0, 0, winSize.w, 20, $88000000)
+      TextOut(10, 2, "Transition ended, LMB to continue...")
+  
+      WaitLeftMouse()
+      
+    EndFunction
+    
+  ; Setup a bunch of backgrounds
+  
+  ; Picture as background
+  pictureBG = GFX.BG.Setup(
+    { width = winSize.w, 
+      height = winSize.h, 
+      enterFx = #CROSSFADE,
+      enterSpeed = 1,
+      type = "picture",
+        file = bgFile,
+        maximize = True,
+        border_color = #WHITE }, 
+    Nil)
+  
+  ; Tiled background
+  textureBG = GFX.BG.Setup(
+    { width = winSize.w, 
+      height = winSize.h, 
+      enterFx = #PIXELZOOM2,
+      enterSpeed = 1,
+      type = "texture",
+        file = bgTile }, 
+    Nil)
+
+  ; Solid Color background
+  solidBG = GFX.BG.Setup(
+    { width = winSize.w, 
+      height = winSize.h, 
+      enterFx = #CROSSFADE,
+      enterSpeed = 1,
+      type = "solid",
+        color = $FF0000 }, 
+    Nil)
+
+  ; Gradient background
+  gradientBG = GFX.BG.Setup(
+    { width = winSize.w, 
+      height = winSize.h, 
+      enterFx = #CROSSFADE,
+      enterSpeed = 1,
+      type = "gradient",
+        colors = { $0000FF, $00FF00 },
+        gradient_type = #LINEAR,
+        angle = 45 }, 
+    Nil)
+
+  ; Show the background pictures
+  GFX.BG.Show(pictureBG)
+  drawHeader()
+
+  GFX.BG.Show(textureBG)
+  drawHeader()
+
+  GFX.BG.Show(solidBG)
+  drawHeader()
+
+  GFX.BG.Show(gradientBG)
+  drawHeader()
+
+  ; Free the background pictures
+  GFX.BG.Free(pictureBG)
+  GFX.BG.Free(textureBG)
+  GFX.BG.Free(solidBG)
+  GFX.BG.Free(gradientBG)
+  
+EndFunction
+
+Function GFX.Test_OutputDevice()
+/* OutputDevice functions are usefull if you are using a lot of libraries which
+   change the current output device, with these function you can track every change
+   and return to the original output device.
+   
+   Here is a sample which illustrate out it works and why it is useful even if the
+   exemple is pretty useless.
+*/
+
+  Local createBackground =
+    Function()
+      ; Create a brush for the background
+      Local brush = CreateBrush(Nil, 8, 8, #BLACK, { AlphaChannel = True, Clear = True })
+      
+      ; Select it to draw some lines
+      GFX.OutputDevice.Select(#BRUSH, brush, #SELMODE_COMBO)
+        For Local x = 0 To 8 Step 2
+          Line(x, 0, x, 8, GetRandomColor())
+        Next
+      GFX.OutputDevice.EndSelect()
+      
+      Return(brush)
+      
+    EndFunction
+    
+  Local createSmallBrush =
+    Function()
+      ; Create a small brush
+      Local brush = CreateBrush(Nil, 16, 16, #BLACK, { AlphaChannel = True, Clear = True })
+      
+      ; Draw inside this brush a random number
+      GFX.OutputDevice.Select(#BRUSH, brush, #SELMODE_COMBO)
+        ; Now lets call a function that changes the output device to build a background
+        Local bg = createBackground()
+        DisplayBrush(bg, 0, 0)
+        DisplayBrush(bg, 9, 0)
+        DisplayBrush(bg, 0, 9)
+        DisplayBrush(bg, 9, 9)
+        
+        ; And print a random number
+        TextOut(#CENTER, #CENTER, Rnd(10))
+      GFX.OutputDevice.EndSelect()
+      
+      Return(brush)
+      
+    EndFunction
+    
+  Local createPatternBrush =
+    Function()
+      ; Create a brush and fill it with smaller brushes
+      Local brush = CreateBrush(Nil, 640, 480, #GREEN)
+      
+      ; Select this brush and fill it with some lines
+      GFX.OutputDevice.Select(#BRUSH, brush)
+        For Local x = 0 To 640 Step 18
+          For Local y = 0 To 480 Step 16
+            Line(0, y, 640, y, #RED)
+            
+            ; Now call another function that will change the output device
+            Local smallBrush = createSmallBrush()
+            
+            ; And show it
+            DisplayBrush(smallBrush, x, y)
+            
+            FreeBrush(smallBrush)
+          Next
+        Next
+      GFX.OutputDevice.EndSelect()
+      
+      Return(brush)
+      
+    EndFunction
+    
+  Local b = createPatternBrush()
+  
+  DisplayBrush(b, #CENTER, #CENTER)
+  
+  SetFillStyle(#FILLCOLOR)
+  Box(0, 220, 640, 40, $55000000)
+  SetFont(#SANS, 30)
+  SetFontColor($FFFF00)
+  SetFontStyle(#ANTIALIAS+#BOLD)
+  TextOut(#CENTER, #CENTER, "--- PRESS LMB TO QUIT ---")
+  
   WaitLeftMouse()
   
 EndFunction
 
-;GFX.Test_BrushShift()
-;GFX.Test_PhotoFrame()
-;GFX.Test_Reflection()
-;GFX.Test_ImageObjects()
+Function GFX.Test_FontObject()
+/* When you work often with fonts and text it is very tedious to type everytime
+   the same stuff, I mean SetFont(), SetFontColor(), etc... so I built this
+   object to create and store several font settings which I can apply with a
+   single call, here is an example.
+   
+   Each object can stores the following settings:
+    -> Name : Font name or inbuilt constant, default = #SANS
+    -> Size : Font size, default = 16
+    -> Color : Font color, default = $FFFFFF
+    -> Bold : Bold switch, default = False
+    -> Italic : Italic switch, default = False
+    -> Underline : Underline switch, default = False
+    -> Antialias : Antialias switch, default = True
+    -> Shadow : Shadow switch, default = False
+    -> ShadowColor : Shadow color, default = $555555
+    -> ShadowDirection : Shadow direction, default #SHDWSOUTHWEST
+    -> ShadowDistance : Shadow distance, default = 1
+    -> Edge : Edge rendering switch, default = False
+    -> EdgeColor : Edges color, default = $000000
+    -> EdgeThikness : Edges thikness, default = 1
+    -> Encoding : Text encoding, default = #ENCODING_ISO8859_1
+    -> Engine : Text engine, default = #FONTENGINE_INBUILT
+    -> Cache : Cache text symbols? Default = True
+   
+  */
+  
+  ; We are going to create 3 font objects
+  Local fo1 = GFX.Font:New(
+    { name = #SANS,
+      size = 14,
+      color = $FFFF00,
+      antialias = True,
+      shadow = True
+      })
 
+  Local fo2 = GFX.Font:New(
+    { name = #MONOSPACE,
+      size = 18,
+      color = $FF00FF,
+      antialias = True,
+      edge = True
+      })
+
+  Local fo3 = GFX.Font:New(
+    { name = #SERIF,
+      size = 24,
+      color = $666666,
+      antialias = True,
+      underline = True
+      })
+
+  ; And now a loop to print some text switching font settings
+  Local l = { fo1, fo2, fo3 }
+  For Local i = 0 To 500
+    Local f = Rnd(3)    ; A random font object
+    Local x = Rnd(640)
+    Local y = Rnd(480)
+    l[f]:Set({ color = GetRandomColor() }) ; Change the setting with a random color
+    l[f]:Apply() ; Set the font properties!
+    TextOut(x, y, "HELLO!")
+  Next
+  
+  SetFillStyle(#FILLCOLOR)
+  Box(0, 220, 640, 40, $55000000)
+  SetFont(#SANS, 30)
+  SetFontColor($FFFF00)
+  SetFontStyle(#ANTIALIAS+#BOLD)
+  TextOut(#CENTER, #CENTER, "--- PRESS LMB TO QUIT ---")
+  
+  WaitLeftMouse()
+  
+EndFunction
+
+/* TEST AREA
+   =========
+   Uncomment the test function you want to run */
+   
+  ;GFX.Test_BrushShift()
+  ;GFX.Test_PhotoFrame()
+  ;GFX.Test_Reflection()
+  ;GFX.Test_ImageObjects()
+  ;GFX.Test_BG_Handlers()
+  ;GFX.Test_OutputDevice()
+  ;GFX.Test_FontObject()
+  
 /*
-t = [[blablablablablablablablablablablablablablablablablablablaCiao
-[b]a tutti [edge=$ff4400,2]questo è un semplicissimo[/edge] test[/b] per [color=$ff0000]verificare il corretto [color=#GREEN]funziomanento[/color] della funzione[/color] di wordwrap, [shadow=$666666,4,#SHDWSOUTHEAST]chissà [b]se[/b] funziona...[/shadow]
-[b]Il problema[/b] risiede [b]nella corretta[/b] rilevazione [i]delle [b]tag di formattazione[/i] di[/b] Hollywood.
-
-[b]S[/b]o[b]p[/b][color=$ff0000]r[b]a[/b][/color] [b]ho[/b][b] l[/b][b]a[/b]s[b]c[/b]i[b]a[/b]t[b]o [/b][b]u n[/b]a riga intenzionalmente vuota.]]
-SetFont(#SANS, 20)
-l = 240
-;tl = GFX.Text.WordWrap(t, l)
-tl = Gfx.Text.WordWrap(t, l)
-Line(0, 1, l, 1, #RED)
-Line(l, 1, l, 400, #RED)
-For i = 0 To ListItems(tl)-1
-  NPrint(tl[i])
-Next
-
-WaitLeftMouse()
-*/
-
-
-/*
-Local st = "weila [b]CIAO![b]ciccio[/b] come[/b] va? [b] bene [/b]"
-NPrint(GFX.Text.GetWidth(st))
-NPrint(GFX.Text.GetWidth("CIAO!"))
-
-WaitLeftMouse()
-*/
-
-
-
-/*
-  18.11.2016
-    NEW : GFX.Test_PhotoFrame() test added
-    NEW : GFX.Test_BrushShift() test added
-  17.11.2016
-    NEW : GFX.Test_Reflection() test program added
-    NEW : GFX.Test_ImageObjects() test program added
-    NEW : GFX.Image:Reload() method added
-    NEW : GFX.Image.List() function added
-  14.11.2016
-    NEW : GFX.Text.WordWrap(txt, length)
-*/
-
-/*
-t =
-[[[shadow=ciccio, pippo,1]titolo|sotto titolo|descrizione breve||descrizione lunga
-con linee molteplici, come si vede quasta è una linea lunghissima
-
-fine[/shadow] ]]
-Local l = GFX.Text.WordWrap(t, 300, "|")
-For i = 0 To ListItems(l)-1
-  l[i]=ReplaceStr(l[i], "\n", "")
-  DebugPrint(l[i])
-Next
-DebugPrompt("?") */

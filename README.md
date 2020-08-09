@@ -67,15 +67,60 @@ All you have to do is:
  Windows 10, I’m using **ansicon** program to make use of ANSI codes.
 
 # Lib-GFX
- **Hollywood-MAL GFX Library**
+**Hollywood-MAL GFX Library**
  
-   GFX library is an include file for Hollywood that helps with common
- graphical-related operations.
+  GFX library is an include file for Hollywood that helps with common
+graphical-related operations. Some example are provided inside the library as functions, look at the bottom of the source code.
 
-   It features a complete skinning system, brush shifting & scroll,
- font object with its own methods, images manipulation, safe output
- device tracking and some example functions.
+ **CONTENTS**
+ ```plaintext
+ :: BACKGROUND UTILITIES ::
+ - GFX.BG.Setup()
+ - GFX.BG.Show()
+ - GFX.BG.Free()
+
+ :: BRUSH UTILITIES ::
+ - GFX.Brush.HShift()
+ - GFX.Brush.VShift()
+
+ :: DISPLAY UTILITIES ::
+ - GFX.DisplayExists()
+ - GFX.GetHostSize()
+ - GFX.SafeClipRegion()
  
+ :: OUTPUT DEVICE UTILITIES ::
+ - GFX.OutputDevice.EndSelect()
+ - GFX.OutputDevice.Select()
+ - GFX.OutputDevice.GetCurrent()
+ 
+ :: FONT OBJECT ::
+ - GFX.Font:New()
+ - GFX.Font:Save()
+ - GFX.Font:Load()
+ - GFX.Font:Apply()
+ - GFX.Font:Set()
+ 
+ :: IMAGE OBJECT ::
+ - GFX.Image:Add()
+ - GFX.Image:Clone()
+ - GFX.Image:Draw()
+ - GFX.Image:NewLayer()
+ - GFX.Image:Reload()
+ - GFX.Image:Remove()
+ - GFX.Image:Resize()
+ - GFX.Image.Get()
+ - GFX.Image.List()
+ 
+ :: IMAGE FX UTILITIES ::
+ - GFX.ImageFX.AddFrame()
+ - GFX.ImageFX.Reflex()
+ - GFX.ImageFX.Scale()
+
+ :: TEXT UTILITIES ::
+ - GFX.Text.DeTagger()
+ - GFX.Text.GetWidth()
+ - GFX.Text.WordWrap()
+```
 # Lib-FS
 **Hollywood-MAL FS Library**
 
@@ -83,5 +128,5 @@ All you have to do is:
  operations.
 
  ---
- Latest update: 04/08/2020
+ Latest update: 09/08/2020
  ---
