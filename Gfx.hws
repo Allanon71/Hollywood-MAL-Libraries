@@ -53,7 +53,11 @@
  - GFX.ImageFX.AddFrame()
  - GFX.ImageFX.Reflex()
  - GFX.ImageFX.Scale()
-  
+ :: TEXT UTILITIES ::
+ - GFX.Text.DeTagger()
+ - GFX.Text.GetWidth()
+ - GFX.Text.WordWrap()
+ 
  CHANGE LOG
  ----------
  
@@ -3297,4 +3301,3 @@ EndFunction
   ;GFX.Test_OutputDevice()
   ;GFX.Test_FontObject()
   
-/*
