@@ -15,6 +15,25 @@
  output formatting a standard debug session could become a pain.
  You can output tables too, and they are formatted and idented properly to let
  you look easily at the contents.
+ 
+ CONTENTS
+ ========
+ :: CONSOLE DEBUG ::
+ DBG.Console.AddChannel()
+ DBG.Console.Disable()
+ DBG.Console.Enable()
+ DBG.Console.Out()
+ DBG.Console.RemoveChannel()
+ DBG.Console.SkipNormalLevel()
+ 
+ :: FILE DEBUG ::
+ DBG.Log.Disable()
+ DBG.Log.Enable()
+ DBG.Log.Out()
+ 
+ :: MISC ::
+ DBG.DumpTable()
+ 
  */
 
 @INCLUDE "+Includes.hws"

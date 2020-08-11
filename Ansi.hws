@@ -8,6 +8,59 @@
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
  --------------------------------------------------------------------
+ 
+ CONTENTS
+ ========
+ :: ANSI ::
+ Ansi.GetClearCharacters()
+ Ansi.GetCursorDown()
+ Ansi.GetCursorLeft()
+ Ansi.GetCursorMove()
+ Ansi.GetCursorRight()
+ Ansi.GetCursorUp()
+ Ansi.GetDeleteCharacters()
+ Ansi.GetDeleteLines()
+ Ansi.GetInsertBlankLines()
+ Ansi.GetRndBGColor()
+ Ansi.GetRndFGColor()
+ Ansi.Set()
+ 
+ :: TERM OBJECT ::
+ Term.App:ClearInfo()
+ Term.App:ClearStatus()
+ Term.App:ClearWarning()
+ Term.App:GridView()
+ Term.App:MenuAdd()
+ Term.App:New()
+ Term.App:Progress()
+ Term.App:SetInfo()
+ Term.App:SetStatus()
+ Term.App:SetWarning()
+ Term.App:ShowInput()
+ Term.App:ShowMenu()
+ Term.App:ShowMessage()
+ Term.App:Start()
+ Term.App:alignNumber()
+ 
+ :: TERM FUNCTIONS ::
+ Term.CTLine()
+ Term.Clear()
+ Term.GetSize()
+ Term.Input()
+ Term.Line()
+ Term.Print()
+ Term.PrintAt()
+ Term.SetTermSize()
+ 
+ :: TERM DRAWING ::
+ Term.Draw.Box()
+ Term.Draw.FBox()
+ Term.Draw.HLine()
+ Term.Draw.VLine()
+ 
+ 
+ CHANGE LOG
+ ----------
  1.3
     Several improvements in terminal functions
 

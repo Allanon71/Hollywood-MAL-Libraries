@@ -11,10 +11,68 @@
    This include objects and methods to handle efficiently strings,
  colors, some basic functions to handle HTML code and many more.
  
- 
+CONTENTS
+========
+:: BUFFERED STRING OBJECT ::
+HL.BufferedString:AddChar()
+HL.BufferedString:AddString()
+HL.BufferedString:Get()
+HL.BufferedString:New()
+HL.BufferedString:PrepareForRead()
+HL.BufferedString:Read()
+HL.BufferedString:Set()
+
+:: COLOR OBJECT ::
+HL.Color:Brighten()
+HL.Color:Clone()
+HL.Color:Darken()
+HL.Color:New()
+HL.Color:fromARGB()
+HL.Color:fromValue()
+HL.Color:toARGB()
+HL.Color:toRGB()
+HL.GetRndColor()
+
+:: STRINGS ::
+HL.Capitalize()
+HL.CutBetweenLimits()
+HL.CutStringLeft()
+HL.CutStringRight()
+HL.GetBetweenLimits()
+HL.GetReversedDateTime()
+HL.GetRndName()
+HL.SizeString()
+
+:: NUMBERS ::
+HL.RoundBig()
+HL.Value2Perc()
+
+:: CONVERSIONS ::
+HL.Convert.BytesTo()
+HL.Convert.ForTextout()
+HL.Convert.HTML2Hollywood()
+HL.Convert.HTMLAmper2UTF8()
+HL.Convert.HTMLTag2HollywoodTag()
+HL.Convert.Unicode2UTF8()
+
+:: INPUT ::
+HL.Input.CheckJoystick()
+HL.Input.CheckKeyboard()
+HL.WaitForAction()
+
+:: MISC ::
+HL.IsNil()
+HL.IsNotNil()
+HL.LineHook.Enable()
+HL.LineHook.Disable()
+HL.NBWait()
+HL.ParseRunArgs()
+HL.RestartApp()
 
 ---- LATEST CHANGES ------------------------------------------------
-UNRELEASED / UNDOCUMENTED
+--------------------------------------------------------------------
+07/08/2020
+  ADD : HL.RestartApp()
 04/07/2020
   ADD : HL.Capitalize(txt)
 17/06/2020
@@ -23,7 +81,7 @@ UNRELEASED / UNDOCUMENTED
   ADD : HL.RoundBig(value, decimals)
 --------------------------------------------------------------------
 23/02/2019
-  ADD : Added 761 Amopersands symbols
+  ADD : Added 761 Ampersands symbols
 12.02/2019
   FIX : Fixed a bug in HL.Convert.HTMLAmper2UTF8() function
 02.06.2018
@@ -363,6 +421,50 @@ OUTPUT
   Else 
     Return(False)
   EndIf
+
+EndFunction
+
+Function HL.RestartApp()
+/********************************************************************
+HL.RestartApp()
+
+Used to restart the current HW running application.
+  
+INPUT
+  -
+OUTPUT
+  -
+NOTES
+  Tested only on Windows systems, the hws extension must be associated
+  with Hollywood.exe to work with scripts.
+********************************************************************/
+  ; Retrive plaform informations
+  Local v = GetVersion()
+  If v.Platform <> "Win32"
+    DebugPrompt("At this time only Windows systems are supported!")
+    Return()
+
+  EndIf
+
+  ; Retrieve the current app name
+  Local type, exeName = GetProgramInfo()
+  Local dq = "\""
+  
+  Switch type
+    Case #PRGTYPE_SCRIPT
+      ; Restart the script
+      Local scriptFull = exeName
+      Run(dq .. scriptFull .. dq)
+      
+    Case #PRGTYPE_PROGRAM
+      ; Restart the executable
+      Local programFull = exeName
+      Run(dq .. programFull .. dq)
+      
+    Default
+      ; Applets are not supported
+      
+  EndSwitch
 
 EndFunction
 

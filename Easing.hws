@@ -27,6 +27,10 @@
  * Easing Functions
  *   All Easing related functions are mapped on the tween table.
  * 
+ 
+ CONTENTS
+ ========
+ 
  *********************************************************************/
 
 Global tween = {}

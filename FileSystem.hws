@@ -9,6 +9,76 @@
  
    FS Library has been developed to help with file system related 
  functions.
+ 
+ CONTENTS
+ ========
+ :: MISC ::
+ FS.AppDataLocation()
+ FS.CutLastFolder()
+ FS.OpenFolder()
+ FS.ParseFilename()
+ 
+ :: TASKS ::
+ FS.Task.IsRunning()
+ FS.Task.Kill()
+ 
+ :: SCRIPTS ::
+ FS.Build_Script()
+ FS.ExecuteSynch_SCript()
+ FS:Execute_Script()
+ 
+ :: CONFIG FILES ::
+ FS.Config.Add()
+ FS.Config.Load()
+ FS.Config.Remove()
+ FS.Config.Set()
+ FS.Config.Write()
+ 
+ :: FILES ::
+ FS.Files.ChangeExistingName()
+ FS.Files.CheckLastChar()
+ FS.Files.ClearCache()
+ FS.Files.Delete()
+ FS.Files.ExtractFromZip()
+ FS.Files.Find()
+ FS.Files.FindByCRC32()
+ FS.Files.GetDirectories()
+ FS.Files.GetExtention()
+ FS.Files.GetLastLine()
+ FS.Files.GoDirectoryUp()
+ FS.Files.IsAvailable()
+ FS.Files.IsPathRelative()
+ FS.Files.LoadToTable()
+ FS.Files.Open()
+ FS.Files.ReadFloat()
+ FS.Files.ReadString()
+ FS.Files.ReadTable()
+ FS.Files.RemoveExtention()
+ FS.Files.SaveFromTable()
+ FS.Files.Script_Build()
+ FS.Files.Search()
+ FS.Files.ToTable()
+ FS.Files.Validate()
+ FS.Files.WriteInt()
+ FS.Files.WriteString()
+ FS.Files.WriteTable()
+ FS.Files.applyQuotes()
+ 
+ :: INI FILES ::
+ FS.Ini.ReadValue()
+ 
+ :: TEXT FILES ::
+ FS.TxtFiles.InsertBefore()
+ 
+ :: VOLUMES ::
+ FS.Volumes.ClearCache()
+ FS.Volumes.Get()
+ FS.Volumes.GetPart()
+ FS.Volumes.IsAvailable()
+ FS.Volumes.Monitor_Check()
+ FS.Volumes.Monitor_Start()
+ FS.Volumes.Monitor_Stop()
+ 
  */
 
 @INCLUDE "+Includes.hws"

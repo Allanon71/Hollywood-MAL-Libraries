@@ -11,6 +11,43 @@
  *
  *   Tables library is an include file for Hollywood with many
  * functions suited to handle tables and their data.
+
+
+  CONTENTS
+ --------
+ :: TABLE COMPARISONS ::
+ TB.Compare()
+ TB.CompareScore()
+ TB.Item.Comapare()
+ TB.Item.Exists()
+ TB.Item.Find()
+ TB.Item.IsNil()
+ 
+ :: TABLE CONVERSIONS ::
+ TB.Convert.String2Table()
+ TB.Convert.Table2String()
+ TB.Serialize()
+ TB.Deserialize()
+ 
+ :: TABLE HANDLING ::
+ TB.Fill()
+ TB.Interpolate()
+ TB.Join()
+ TB.Merge()
+ TB.PushDown()
+ TB.PushDown()
+ TB.Reindex()
+ TB.ReplaceChars()
+ TB.Set()
+ TB.ShiftDown()
+ TB.ShiftUp()
+ TB.Sort()
+ 
+ :: MISC ::
+ TB.Copy()
+ TB.Count()
+ 
+ 
  *********************************************************************/
 
 @INCLUDE "+Includes.hws"
@@ -2050,6 +2087,11 @@ Function TB.TEST_Serialization()
   
   DebugPrompt("== HIT ENTER TO QUIT ==")
 EndFunction
+
+
+/* TEST AREA
+   =========
+   Uncomment the test function you want to run */
 
 ;TB.TEST_Serialization()
 ;TB.TEST_Interpolate()
