@@ -1,6 +1,13 @@
 # HOLLYWOOD-MAL Libraries
 **This is a collection of libraries I coded to help myself with my projects**
 
+> Author  : Fabio Falcucci (Allanon)  
+> Contact : info@a-mc.biz  
+> License : Freeware  
+
+If you like my work and you want to buy me a coffee you can support me on Patreon https://www.patreon.com/Allanon71  or with PayPal to mailto:hijoe@tin.it   
+:D
+
 # IMPORTANT NOTE
 From now (04/08/2020) I'm putting libraries using a global include file called **+Includes.hws** where all library names are defined along with their path, in order to run the examples you need to setup the variable **#INC_PATH** with the absolute path where you have saved/cloned the libraries, if you do this you will be able to run all the examples with a double click, for example let's suppose you have cloned the entire repository into the following path : `C:/MyHollywoodStuff/Libs/`  
 All you have to do is:  
@@ -17,17 +24,123 @@ All you have to do is:
  
  This library includes a collection of common utility functions and methods, please refer to the **helpers.html** file fo a detailed description.
 
+CONTENTS
+```plaintext
+:: BUFFERED STRING OBJECT ::
+HL.BufferedString:AddChar()
+HL.BufferedString:AddString()
+HL.BufferedString:Get()
+HL.BufferedString:New()
+HL.BufferedString:PrepareForRead()
+HL.BufferedString:Read()
+HL.BufferedString:Set()
+
+:: COLOR OBJECT ::
+HL.Color:Brighten()
+HL.Color:Clone()
+HL.Color:Darken()
+HL.Color:New()
+HL.Color:fromARGB()
+HL.Color:fromValue()
+HL.Color:toARGB()
+HL.Color:toRGB()
+HL.GetRndColor()
+
+:: STRINGS ::
+HL.Capitalize()
+HL.CutBetweenLimits()
+HL.CutStringLeft()
+HL.CutStringRight()
+HL.GetBetweenLimits()
+HL.GetReversedDateTime()
+HL.GetRndName()
+HL.SizeString()
+
+:: NUMBERS ::
+HL.RoundBig()
+HL.Value2Perc()
+
+:: CONVERSIONS ::
+HL.Convert.BytesTo()
+HL.Convert.ForTextout()
+HL.Convert.HTML2Hollywood()
+HL.Convert.HTMLAmper2UTF8()
+HL.Convert.HTMLTag2HollywoodTag()
+HL.Convert.Unicode2UTF8()
+
+:: INPUT ::
+HL.Input.CheckJoystick()
+HL.Input.CheckKeyboard()
+HL.WaitForAction()
+
+:: MISC ::
+HL.IsNil()
+HL.IsNotNil()
+HL.LineHook.Enable()
+HL.LineHook.Disable()
+HL.NBWait()
+HL.ParseRunArgs()
+HL.RestartApp()
+ ```
+ 
 # Lib-Easing
  **Hollywood-MAL Easing Library**
  
  Easing library is an include file for Hollywood able to create very smooth transitions between values so you can use it to animate almost anything like: graphical objects, colors, values, and any value you  need to be smoothly changed into another value.
  For detailed informations have a look at **easing.md** file.
  
+CONTENTS
+```plaintext
+tween.start(time, subject, target, easing, callback, ...)
+tween.reset(id)
+tween.resetAll()
+tween.update(dt)
+tween.stop(id, callback)
+tween.stopAll(callback)
+tween.count()
+tween.TEST()
+```
+
 # Lib-Tables  
  **Hollywood-MAL Tables Library**
  
  Tables library is an include file for Hollywood with several functions to manipulate tables, including comparisons, merge, set, sort, push, shift and many others. Please have a look at the file **tables.md** for more informations.
  
+ CONTENTS
+ ```plaintext
+ :: TABLE COMPARISONS ::
+ TB.Compare()
+ TB.CompareScore()
+ TB.Item.Comapare()
+ TB.Item.Exists()
+ TB.Item.Find()
+ TB.Item.IsNil()
+ 
+ :: TABLE CONVERSIONS ::
+ TB.Convert.String2Table()
+ TB.Convert.Table2String()
+ TB.Serialize()
+ TB.Deserialize()
+ 
+ :: TABLE HANDLING ::
+ TB.Fill()
+ TB.Interpolate()
+ TB.Join()
+ TB.Merge()
+ TB.PushDown()
+ TB.PushDown()
+ TB.Reindex()
+ TB.ReplaceChars()
+ TB.Set()
+ TB.ShiftDown()
+ TB.ShiftUp()
+ TB.Sort()
+ 
+ :: MISC ::
+ TB.Copy()
+ TB.Count()
+```
+
 # Lib-Debug
  **Hollywood-MAL Debug Library**
  
@@ -47,6 +160,25 @@ All you have to do is:
  You can output tables too, and they are formatted and idented properly to let
  you look easily at their contents.
  
+CONTENTS
+```plaintext
+ :: CONSOLE DEBUG ::
+ DBG.Console.AddChannel()
+ DBG.Console.Disable()
+ DBG.Console.Enable()
+ DBG.Console.Out()
+ DBG.Console.RemoveChannel()
+ DBG.Console.SkipNormalLevel()
+ 
+ :: FILE DEBUG ::
+ DBG.Log.Disable()
+ DBG.Log.Enable()
+ DBG.Log.Out()
+ 
+ :: MISC ::
+ DBG.DumpTable()
+```
+
 # Lib-ANSI
  **Hollywood-MAL ANSI Library**
  
@@ -65,6 +197,56 @@ All you have to do is:
  For the Windows OS you need to install any thirdy party 
  application to accomplish the task, on my development machine, running
  Windows 10, I’m using **ansicon** program to make use of ANSI codes.
+
+CONTENTS
+```plaintext
+ :: ANSI ::
+ Ansi.GetClearCharacters()
+ Ansi.GetCursorDown()
+ Ansi.GetCursorLeft()
+ Ansi.GetCursorMove()
+ Ansi.GetCursorRight()
+ Ansi.GetCursorUp()
+ Ansi.GetDeleteCharacters()
+ Ansi.GetDeleteLines()
+ Ansi.GetInsertBlankLines()
+ Ansi.GetRndBGColor()
+ Ansi.GetRndFGColor()
+ Ansi.Set()
+ 
+ :: TERM OBJECT ::
+ Term.App:ClearInfo()
+ Term.App:ClearStatus()
+ Term.App:ClearWarning()
+ Term.App:GridView()
+ Term.App:MenuAdd()
+ Term.App:New()
+ Term.App:Progress()
+ Term.App:SetInfo()
+ Term.App:SetStatus()
+ Term.App:SetWarning()
+ Term.App:ShowInput()
+ Term.App:ShowMenu()
+ Term.App:ShowMessage()
+ Term.App:Start()
+ Term.App:alignNumber()
+ 
+ :: TERM FUNCTIONS ::
+ Term.CTLine()
+ Term.Clear()
+ Term.GetSize()
+ Term.Input()
+ Term.Line()
+ Term.Print()
+ Term.PrintAt()
+ Term.SetTermSize()
+ 
+ :: TERM DRAWING ::
+ Term.Draw.Box()
+ Term.Draw.FBox()
+ Term.Draw.HLine()
+ Term.Draw.VLine()
+```
 
 # Lib-GFX
 **Hollywood-MAL GFX Library**
@@ -127,6 +309,76 @@ graphical-related operations. Some example are provided inside the library as fu
   FS is a library developed to help with common file system related
  operations.
 
+**CONTENTS**
+```plaintext
+ :: MISC ::
+ FS.AppDataLocation()
+ FS.CutLastFolder()
+ FS.OpenFolder()
+ FS.ParseFilename()
+ 
+ :: TASKS ::
+ FS.Task.IsRunning()
+ FS.Task.Kill()
+ 
+ :: SCRIPTS ::
+ FS.Build_Script()
+ FS.ExecuteSynch_SCript()
+ FS:Execute_Script()
+ 
+ :: CONFIG FILES ::
+ FS.Config.Add()
+ FS.Config.Load()
+ FS.Config.Remove()
+ FS.Config.Set()
+ FS.Config.Write()
+ 
+ :: FILES ::
+ FS.Files.ChangeExistingName()
+ FS.Files.CheckLastChar()
+ FS.Files.ClearCache()
+ FS.Files.Delete()
+ FS.Files.ExtractFromZip()
+ FS.Files.Find()
+ FS.Files.FindByCRC32()
+ FS.Files.GetDirectories()
+ FS.Files.GetExtention()
+ FS.Files.GetLastLine()
+ FS.Files.GoDirectoryUp()
+ FS.Files.IsAvailable()
+ FS.Files.IsPathRelative()
+ FS.Files.LoadToTable()
+ FS.Files.Open()
+ FS.Files.ReadFloat()
+ FS.Files.ReadString()
+ FS.Files.ReadTable()
+ FS.Files.RemoveExtention()
+ FS.Files.SaveFromTable()
+ FS.Files.Script_Build()
+ FS.Files.Search()
+ FS.Files.ToTable()
+ FS.Files.Validate()
+ FS.Files.WriteInt()
+ FS.Files.WriteString()
+ FS.Files.WriteTable()
+ FS.Files.applyQuotes()
+ 
+ :: INI FILES ::
+ FS.Ini.ReadValue()
+ 
+ :: TEXT FILES ::
+ FS.TxtFiles.InsertBefore()
+ 
+ :: VOLUMES ::
+ FS.Volumes.ClearCache()
+ FS.Volumes.Get()
+ FS.Volumes.GetPart()
+ FS.Volumes.IsAvailable()
+ FS.Volumes.Monitor_Check()
+ FS.Volumes.Monitor_Start()
+ FS.Volumes.Monitor_Stop()
+```
+  
  ---
- Latest update: 09/08/2020
+ Latest update: 11/08/2020
  ---
