@@ -378,7 +378,64 @@ graphical-related operations. Some example are provided inside the library as fu
  FS.Volumes.Monitor_Start()
  FS.Volumes.Monitor_Stop()
 ```
-  
+ 
+# Lib-G2D
+ **Hollywood-MAL G2D Library**
+ 
+ G2D Library is an include file for Hollywood that helps with graphics
+ related objects and functions, it also has a full-featured skinning 
+ system.
+ 
+CONTENTS
+```plaintext
+ :: POINT 2D OBJECT ::
+ G2D.Point:New()
+ G2D.Point:Distance()
+ G2D.Point:DotProduct()
+ G2D.Point:MidPoint()
+ G2D.Point:Normal2D()
+ G2D.Point:Normalize()
+ G2D.Point:Rotate()
+ G2D.Point:Scale()
+ 
+ :: POLYGON OBJECT ::
+ G2D.Poly:New()
+ G2D.Poly:Collide()
+ G2D.Poly:Draw()
+ G2D.Poly:Project()
+ G2D.Poly:SetAnchor()
+ G2D.Poly:SetAngle()
+ G2D.Poly:SetScale()
+ G2D.Poly:Translate()
+ 
+ :: AREA OBJECT ::
+ G2D.Area:New()
+ G2D.Area:Box()
+ G2D.Area:FillColor()
+ G2D.Area:FillPattern()
+ G2D.Area:Move()
+ G2D.Area:Scale()
+ G2D.Area:SkinBevel()
+ G2D.Area:SkinColor()
+ G2D.Area:SkinFitMax()
+ G2D.Area:SkinFitMin()
+ G2D.Area:SkinGradient()
+ G2D.Area:SkinHPattern()
+ G2D.Area:SkinHPattern3S()
+ G2D.Area:SkinMulti()
+ G2D.Area:SkinPattern()
+ G2D.Area:SkinPattern9S()
+ G2D.Area:SkinQuick()
+ G2D.Area:SkinShades()
+ G2D.Area:SkinStretch()
+ G2D.Area:SkinVPattern()
+ G2D.Area:SkinVPattern3S()
+ G2D.Area:Snapshot()
+ 
+ :: BG Picture ::
+ G2D.BGPic.CreateSkinned()
+``` 
+
  ---
  Latest update: 11/08/2020
  ---
