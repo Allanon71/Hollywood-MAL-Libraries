@@ -1,0 +1,55 @@
+/* ****************************************************************************
+   * G2D : Area:skinMulti -> 2 Shades Layers.                                 *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 400, 300)
+
+;-------------------------------------------------------------------------------
+
+Local layers =
+   { { Type   = GFX.SkinType_Shades,                ;| FIRST LAYER
+       Params =                                     ;| Skin parameters
+          { ColorList =
+            { { Color = $FF0000, Weight = 50, Alpha = 0 },
+              { Color = $00FF00, Weight = 50, Alpha = 0 },
+              { Color = $0000FF, Weight =  0, Alpha = 0 } },
+            Angle  = 90 } },
+     { Type   = GFX.SkinType_Shades,                ;| SECOND LAYER
+       Params =
+          { ColorList =
+            { { Color = $FFFF00, Weight = 10, Alpha = 0 },
+              { Color = $00FFFF, Weight = 30, Alpha = 0 },
+              { Color = $FF00FF, Weight = 20, Alpha = 0 },
+              { Color = $FFFFFF, Weight = 30, Alpha = 255 },
+              { Color = $F433FF, Weight = 10, Alpha = 0 },
+              { Color = $0000FF, Weight =  0, Alpha = 0 } },
+            Angle  = 0 } }
+   }
+
+
+Local a = 1
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+   Cls
+
+   layers[1].Params.ColorList[2].alpha = layers[1].Params.ColorList[2].alpha + a
+   layers[1].Params.ColorList[4].alpha = layers[1].Params.ColorList[4].alpha + a
+   layers[1].Params.ColorList[3].alpha = layers[1].Params.ColorList[3].alpha - a
+
+   If layers[1].Params.ColorList[2].alpha < 1 Or layers[1].Params.ColorList[2].alpha > 254 Then a = -a
+
+   area1:skinMulti(layers)
+
+   ; Area marker
+   area1:box($FFFFFF, 1)
+
+   Flip()
+
+Wend
+

@@ -1,0 +1,887 @@
+/* ****************************************************************************
+   * G2D : Area Object & Skin system tests.     
+   * Last updated : 13/08/2020
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+@DISPLAY { width = 800, height = 600 }
+
+; We are going to use a table to define the menu
+Global tests =
+  { "Area:New(), :Move() and quick skinning modes.",
+    "Area:SkinBevel()      - Skin with Bevel Boxes",
+    "Area:SkinColor()      - Skin with Solid Colors",
+    "Area:SkinFitMax()     - Skin with whole Images",
+    "Area:SkinFitMin()     - Skin with whole images",
+    "Area:SkinGradient()   - Skin with 2 color Gradient",
+    "Area:SkinHPattern()   - Skin using an Image as Horizontal Pattern",
+    "Area:SkinHPattern3S() - Skin using a 3-Sectors Horizontal Pattern",
+    "Area:SkinPattern()    - Skin using an image as a tile",
+    "Area:SkinPattern9S()  - Skin using a 9-sectors image",
+    "Area:SkinShades()     - Skin using multicolor shades"
+    }
+
+; All test functions will be mapped into the <funcs> table
+Global funcs = {}
+
+SetFont(#MONOSPACE, 16, { Engine = #FONTENGINE_INBUILT })
+SetFontStyle(#ANTIALIAS)
+
+; Load a brush to use as a background picture
+LoadBrush(1, "resources/background.jpg")
+
+; -------------------------------------------------------------------
+; TEST 0 : Area creation and quick skinning mode
+; -------------------------------------------------------------------
+;   This test show how you can use the :QuickSkin() method to apply
+;   simple skins to an area object, :QuickSkin() hides most of the
+;   parameters of the extended skinning methods to allow you to
+;   quickly fill area objects.
+; -------------------------------------------------------------------
+funcs[0] = 
+  Function()
+    ; Variables
+    ; ---------
+    ; AREA 1 : Position & Size
+    Local a1x, a1y, a1w, a1h = 100, 100, 400, 150
+    
+    ; AREA 2 : Position & Size
+    Local a2x, a2y, a2w, a2h = 50, 300, 505, 55
+    
+    
+    Cls()
+    Locate(0, 0)
+    NPrint("[b]PART 1 : Area:New()[/b]")
+    NPrint("  Create Area1 @ x=" .. a1x .. ", y=" .. a1y .. ", w=" .. a1w .. ", h=" .. a1h)
+    NPrint("  Create Area2 @ x=" .. a2x .. ", y=" .. a2y .. ", w=" .. a2w .. ", h=" .. a2h .. "\n")
+
+    ; Here is how an area object is created, the creation does not draw anything,
+    ; it just create the object.
+    Local area1 = G2D.Area:new(a1x, a1y, a1w, a1h)
+    Local area2 = G2D.Area:new(a2x, a2y, a2w, a2h)
+
+    ; Now we will use the :FillPattern() method to fill the Area1 object
+    NPrint("[b]PART 2 : Area:FillPattern()[/b]")
+    NPrint("  Load a brush and use it for fillPattern() on area1.")
+    Local brush1 = LoadBrush(Nil, "Resources/pattern1.png")
+    
+    ; Show the source brush we will use to skin the area
+    DisplayBrush(brush1, 650, 0)
+    Locate(400, 0)
+    NPrint("[b]This is the brush used to skin =>[/b]")
+    
+    ; Now we use the :FillPattern() method to fill the
+    ; area1 Object using the loaded brush <brush1>
+    area1:FillPattern(brush1)
+
+    ; We are going to use the QuickSkin method to fill the area2
+    Locate(0, 250)
+    NPrint("[b]PART 3 : Area:SkinQuick()[/b]")
+    NPrint("  Uses the previous loaded brush to skin the Area2 object, the result is the same as the previous one.")
+    NPrint("  Used Mode: Pattern")
+    area2:SkinQuick(brush1, GFX.SkinMode_Pattern)
+    
+    ; Using again the QuickSink method but with the mode set to Image, before
+    ; drawing the area we will move it down so it do not overlap with the previous
+    ; rendering.
+    Locate(0, 360)
+    NPrint("[b]PART 4 : Area:SkinQuick()[/b]")
+    NPrint("  Uses the previous loaded brush to skin the Area2")
+    NPrint("  The area will be also moved down. Mode: Image")
+    area2:Move(Nil, 110)  ; x does not change, y is moved by 110 pixels
+    area2:SkinQuick(brush1, GFX.SkinMode_Image)
+    
+    ; Again QuickSkin, but mode is set to Skin9S (9S stands for nine sectors), again
+    ; we are going to move down the area2 a bit.
+    Locate(0, 470)
+    NPrint("[b]PART 5 : Area:SkinQuick()[/b]")
+    NPrint("  Load a pattern-test brush to skin the Area2")
+    NPrint("  The area will be moved down. Mode: Skin9S (9 Sectors)")
+    ; We are goin to use another brush to see in details how it works
+    Local brush2 = LoadBrush(Nil, "Resources/grid9S.png")
+    ; Show the source brush we will use to skin the area
+    DisplayBrush(brush2, 650, 500)
+    Locate(400, 500)
+    NPrint("[b]This is the brush used to skin =>[/b]")
+    
+    area2:Move(Nil, 110)
+    area2:SkinQuick(brush2, GFX.SkinMode_Skin9S)
+
+    Locate(0, 580)
+    NPrint("[color=#YELLOW]-- [b]click to continue[/b] --[/color]")
+    WaitLeftMouse()
+
+    area1, area2 = Nil, Nil
+    FreeBrush(brush1)
+    FreeBrush(brush2)
+  EndFunction
+
+; -------------------------------------------------------------------
+; TEST 1 : Test Skin Bevel
+;   This test shows how to use the :SkinBevel() method to apply a
+;   bevel skin to an area object.
+; -------------------------------------------------------------------
+funcs[1] =
+  Function()
+    ; Creates 3 areas that will be animated and...
+    Local area1 = G2D.Area:new( 50,  50, 300, 250)
+    Local area2 = G2D.Area:new(150, 150, 400, 250)
+    Local area3 = G2D.Area:new(250, 200, 250, 250)
+
+    ; ...5 Static areas to show all possible options
+    Local area4 = G2D.Area:new(50, 500, 100, 50)
+    Local area5 = G2D.Area:new(200, 500, 100, 50)
+    Local area6 = G2D.Area:new(350, 500, 100, 50)
+    Local area7 = G2D.Area:new(500, 500, 100, 50)
+    Local area8 = G2D.Area:new(650, 500, 100, 50)
+
+    ; Let's define the bevel box attributes...
+    colors1 = { light =   $DDDDDD, dark =   $444444, middle =   $777777 }
+    colors2 = { light = $77DD6600, dark = $77555500, middle = $77770000 }
+    colors3 = { light =   $00DD00, dark =   $004400 }
+
+    aspect1 = { fx = GFX.BevelFx_Raised,   height = 4, type = GFX.BevelType_Standard }
+    aspect2 = { fx = GFX.BevelFx_Recessed, height = 3, type = GFX.BevelType_Sunken }
+    aspect3 = { fx = GFX.BevelFx_Flat,     height = 1, type = GFX.BevelType_Standard }
+    
+    ; We hate flickering screens, let's use doublebuffer...
+    BeginDoubleBuffer()
+  
+    ; Rendering loop
+    Local stp1, stp2 = 1, 1
+    
+    ; Repeat this loop until the LMB is pressed
+    While Not(IsLeftMouse())
+      ; Changes the height of the bevel height in aspect1 & 3
+      aspect1.height = aspect1.height + stp1
+      aspect3.height = aspect3.height + stp2
+      If aspect1.height > 10 Or aspect1.height < 2 Then stp1 = -stp1
+      If aspect3.height > 25 Or aspect3.height < 1 Then stp2 = -stp2
+      
+      ; Clear the screen with the background brush and draw the areas
+      ; using the :SkinBevel() method
+      DisplayBrush(1, 0, 0)
+      Locate(0, 0)
+      NPrint("[b]:SkinBevel()[/b] : Filling the areas changing parameters on the fly")
+      
+      ; Change with some random colors
+      colors1.middle = GetRandomColor()
+      colors2.middle = ARGB(Rnd(255), GetRandomColor())
+      colors3.dark   = GetRandomColor()
+      
+      ; Apply the skin to the areas
+      area1:skinBevel(colors1, aspect1)
+      area2:skinBevel(colors2, aspect2)
+      area3:skinBevel(colors3, aspect3)
+      
+      ; At the bottom we are drawing some of the possible effects we can
+      ; achieve with the :skinBevel() method.
+      SetFillStyle(#FILLCOLOR)
+      Box(30, 490, 740, 70, $aaaaaa)
+      
+      area4:skinBevel(
+        { light = $DDDDDD, dark = $444444, middle = $777777 },
+        { fx = GFX.BevelFx_Raised, height = 2, type = GFX.BevelType_Standard })
+        
+      area5:skinBevel(
+        { light = $DDDDDD, dark = $444444, middle = $777777 },
+        { fx = GFX.BevelFx_Recessed, height = 2, type = GFX.BevelType_Standard })
+
+      area6:skinBevel(
+        { light = $DDDDDD, dark = $444444, middle = $777777 },
+        { fx = GFX.BevelFx_Raised, height = 2, type = GFX.BevelType_Sunken })
+        
+      area7:skinBevel(
+        { light = $DDDDDD, dark = $444444, middle = $777777 },
+        { fx = GFX.BevelFx_Recessed, height = 2, type = GFX.BevelType_Sunken })
+
+      area8:skinBevel(
+        { light = $000000, dark = $000000, middle = $777777 },
+        { fx = GFX.BevelFx_Flat, height = 2, type = GFX.BevelType_Standard })
+
+      Locate(0, 470)
+      NPrint("[b]:SkinBevel()[/b] : Some possible rendering options")
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+    
+      Locate(50, 30)
+      NPrint("Raised, Standard")
+      
+      Locate(450, 130)
+      NPrint("Recessed, Sunken")
+      
+      Locate(250, 450)
+      NPrint("Flat, Standard")
+      
+      Wait(100, #MILLISECONDS) ; We need to slowdown the cycle a bit
+      Flip(True)
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+    area4, area5, area6, area7, area8 = Nil, Nil, Nil, Nil, Nil
+
+  EndFunction
+  
+; -------------------------------------------------------------------
+; TEST 2 : Skin Color
+;   This test shows how to fill an area object with a single color.
+; -------------------------------------------------------------------
+funcs[2] =
+  Function()
+    ; Creates a array of area objects for our test
+    Local areas = {}
+    For i = 0 To 600 Step 30
+      InsertItem(areas, G2D.Area:New(i, i, 100, 100))
+    Next
+    
+    ; We love smooth graphics
+    BeginDoubleBuffer()
+    
+    ; Initialize the color variables
+    Local r, g, b, a = Rnd(255), Rnd(255), Rnd(255), Rnd(255)
+    
+    ; Rendering loop
+    While Not(IsLeftMouse())
+      ; Use the background brush to clear the screen
+      DisplayBrush(1, 0, 0)
+      
+      ; Fill all the defined area obejcts
+      For i, area In Pairs(areas)  
+      
+        If i <= 5
+          ; The first 5 areas will be filled fìwith a random color + transparency
+          TextOut(area.x + area.w, area.y, " Area " .. i .. " (random color + alpha)")
+          area:SkinColor(GetRandomColor(), 275-255/(i+1))
+
+        ElseIf i = 6
+          ; The 6th area is filled with a random color without transparency
+          TextOut(area.x + area.w, area.y, " Area " .. i .. " (random color, no alpha)")
+          area:SkinColor(GetRandomColor(), #NONE)
+          
+        Else
+          ; All the other areas uses the r, g, b, a variable to smoothly change
+          ; colors
+          area:SkinColor(RGB(r, g, b), a)
+          TextOut(area.x + area.w, area.y, " Area " .. i .. " (" ..r..", "..g..", "..b..", "..a.. ")")
+
+          ; Add & Remove values to smoothly change the color & transparency
+          r = Wrap(r-2, 0, 255)
+          g = Wrap(g+3, 0, 255)
+          b = Wrap(b+4, 0, 255)
+          a = Wrap(a+10, 0, 255)
+          
+        EndIf
+        
+      Next
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+      
+      Wait(100, #MILLISECONDS)  ; Slow down the loop
+      Flip(True)
+
+    Wend
+    
+    EndDoubleBuffer()
+    
+    areas = Nil
+    
+  EndFunction
+
+; -------------------------------------------------------------------
+; TEST 3 : Skin FitMax
+;   This test shows how to use the :skinFitMax() method and the
+;   offset parameter.
+;   As the name says FitMax() will enlarge the image to cover the entire
+;   area, is th aspect is kept some image parts can be cutted out.
+; -------------------------------------------------------------------
+funcs[3] = 
+  Function()
+    ; Creates 3 areas
+    Local area1 = G2D.Area:new( 50,  50, 400, 350)
+    Local area2 = G2D.Area:new(100, 100, 300, 250)
+    Local area3 = G2D.Area:new(200, 200, 300, 250)
+    
+    ; Setup some variables to add animations
+    Local offset1 = { x = 0, y = 0 }
+    Local offset2 = { x = 0, y = 0 }
+    Local alpha1  = 0
+    Local alpha2  = 255
+
+    Local a1 =  1
+    Local a2 = -1
+
+    ; Load 2 brushes we will use for skinning
+    Local brush1 = LoadBrush(Nil, "Resources/image1.jpg")
+    Local brush2 = LoadBrush(Nil, "Resources/pattern1.png")
+
+    ; Rendering loop
+    BeginDoubleBuffer()
+    
+    SetFillStyle(#FILLCOLOR)
+    While Not(IsLeftMouse())
+      ; Clear the screen with the brush 1
+      DisplayBrush(1, 0, 0)
+      
+      Locate(0, 0)
+      NPrint("[b]SkinFitMax() in action...[/b]")
+      NPrint("The source image will be scaled to cover the area, the aspect ration is kept and because of this a portion of the image could")
+      NPrint("be cutted out. This example shows also the 'offset' usage.")
+      
+      offset1.x = offset1.x + 0.5
+      offset2.x = offset2.x - 1
+      offset2.y = offset2.y - 1
+
+      alpha1 = alpha1 + a1
+      alpha2 = alpha2 + a2
+
+      If alpha1 > 254 Or alpha1 < 1 Then a1 = -a1
+      If alpha2 > 254 Or alpha2 < 1 Then a2 = -a2
+
+      TextOut(area1.x + area1.w, area1.y, "Centered Skin, Offset = " .. offset1.x .. "," .. offset1.y)
+      area1:skinFitMax(brush1, offset1, alpha1, #CENTER)
+      
+      TextOut(area2.x + area2.w, area2.y, "Right alignment, Offset = " .. offset2.x .. "," .. offset2.y)      
+      area2:skinFitMax(brush2, offset2, alpha2, #RIGHT)
+      
+      TextOut(area3.x + area3.w, area3.y, "Left alignment, Offset = fixed, no alpha")      
+      area3:skinFitMax(brush1, { x = 0, y = 0 }, #NONE, #LEFT)
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+      Flip(True)
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+    FreeBrush(brush1)
+    FreeBrush(brush2)
+
+  EndFunction
+ 
+
+; -------------------------------------------------------------------
+; TEST 4 : Skin FitMin
+;    Shows how to use the :skinFitMin() method.
+;    FitMin will try to cover the area enlarging the image but keeping
+;    it all visible, specially if aspect is kept. It may produce
+;    some colored side bars.
+; -------------------------------------------------------------------
+funcs[4] = 
+  Function()
+    ; Creates 3 areas
+    Local area1 = G2D.Area:new( 50,  50, 400, 350)
+    Local area2 = G2D.Area:new(100, 100, 300, 250)
+    Local area3 = G2D.Area:new(200, 200, 300, 250)
+    
+    ; Setup some variables to add animations
+    Local offset1 = { x = 0, y = 0 }
+    Local offset2 = { x = 0, y = 0 }
+    Local alpha1 =   0
+    Local alpha2 = 255
+
+    Local a1 =  1
+    Local a2 = -1
+
+    ; Load 2 brushes for skinning
+    Local brush1 = LoadBrush(Nil, "Resources/image1.jpg")
+    Local brush2 = LoadBrush(Nil, "Resources/pattern1.png")
+
+    ; Rendering loop
+    BeginDoubleBuffer()
+    
+    SetFillStyle(#FILLCOLOR)
+    While Not(IsLeftMouse())
+      ; Clear the screen with the brush 1
+      DisplayBrush(1, 0, 0)
+      
+      Locate(0, 0)
+      NPrint("[b]SkinFitMin() in action...[/b]")
+      NPrint("The source image will be scaled to fit the whole image, the aspect ration is kept and because of this empty")
+      NPrint("bars could be visible. Side bars can be customized. This example shows also the 'offset' usage.")
+      
+      offset1.x = offset1.x + 0.5
+      offset2.x = offset2.x - 1
+      offset2.y = offset2.y - 1
+
+      alpha1 = alpha1 + a1
+      alpha2 = alpha2 + a2
+
+      If alpha1 > 254 Or alpha1 < 1 Then a1 = -a1
+      If alpha2 > 254 Or alpha2 < 1 Then a2 = -a2
+
+      TextOut(area1.x + area1.w, area1.y, "Centered Skin, Offset = " .. offset1.x .. "," .. offset1.y)
+      area1:skinFitMin(brush1, offset1, alpha1, #CENTER, #RED)
+      
+      TextOut(area2.x + area2.w, area2.y, "Right alignment, Offset = " .. offset2.x .. "," .. offset2.y)      
+      area2:skinFitMin(brush2, offset2, alpha2, #RIGHT, $88FFFF00)
+      
+      TextOut(area3.x + area3.w, area3.y, "Top alignment, Offset = fixed, no alpha")      
+      area3:skinFitMin(brush1, { x = 0, y = 0 }, #NONE, #TOP, $8800FF00)
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+      Flip()
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+    FreeBrush(brush1)
+    FreeBrush(brush2)
+
+  EndFunction
+
+; -------------------------------------------------------------------
+; TEST 5 : Skin Gradient
+;   This test shows how to use the :skinGradient() method.
+;   A 2 colors gradient will be used to fill the area.
+; -------------------------------------------------------------------
+funcs[5] = 
+  Function()
+    ; Creates 3 areas
+    Local area1 = G2D.Area:new( 50,  50, 400, 350)
+    Local area2 = G2D.Area:new(100, 100, 300, 250)
+    Local area3 = G2D.Area:new(200, 200, 300, 250)
+    
+    ; Setup some variables to add animations
+    Local angle1 = 0
+    Local alpha2 = 0
+    Local alpha3 = 255
+    Local a1 = 1
+
+    ; Rendering loop
+    BeginDoubleBuffer()
+    
+    While Not(IsLeftMouse())
+
+      ; Clear the screen with a brush
+      DisplayBrush(1, 0, 0)
+      
+      Locate(0, 0)
+      NPrint("[b]SkinGradient() in action...[/b]")
+      NPrint("The areas are skinned using a 2 color gradient, they are animated to show how it works.")
+      
+      angle1 = angle1 + 1
+      alpha2 = alpha2 + a1
+      alpha3 = alpha3 - a1
+      If alpha2 > 254 Or alpha2 < 1 Then a1 = -a1
+
+      TextOut(area1.x + area1.w - 40, area1.y - 20, "Color 1 : $0000FF, Color 2 : $FF0000, Angle : " .. angle1)
+      area1:skinGradient($0000FF, $FF0000, #NONE, angle1)
+      
+      TextOut(area2.x + area2.w - 40, area2.y - 20, "Color 1 : $FFFF00, Color 2 : $FF00FF, Alpha : " .. alpha2)
+      area2:skinGradient($FFFF00, $FF00FF, alpha2)
+      
+      TextOut(area3.x + area3.w - 120, area3.y - 20, "Color 1 : $006600, Color 2 : $FFFFFF, Angle : " .. Int(-angle1/2) .. ", Alpha : " .. alpha3)
+      area3:skinGradient($006600, $FFFFFF, alpha3, -angle1/2)
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+      Flip(True)
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+
+  EndFunction
+  
+; -------------------------------------------------------------------
+; TEST 6 : Skin HPattern
+;    :skinHPattern() is a method to skin using horizontal patterns
+;    The source brush is first stretched to the area height and then
+;    used to fill the area horizontally.
+; -------------------------------------------------------------------
+funcs[6] = 
+  Function()
+    ; Creates 3 areas
+    Local area1 = G2D.Area:new( 50,  50, 700, 100)
+    Local area2 = G2D.Area:new( 20, 100, 760, 250)
+    Local area3 = G2D.Area:new( 70, 250, 730, 150)
+    
+    ; Load the needed brushes
+    Local brush1 = LoadBrush(Nil, "Resources/pattern1.png")
+    Local brush2 = LoadBrush(Nil, "Resources/pattern2.jpg")
+
+    Local alpha = 100
+    Local a = 1
+    Local offset1 = { x = 0, y = 0 }
+    Local offset2 = { x = 0, y = 0 }
+    
+    ; Rendering loop
+    BeginDoubleBuffer()
+    
+    While Not(IsLeftMouse())
+
+      ; Clear the screen with a brush
+      DisplayBrush(1, 0, 0)
+      
+      Locate(0, 0)
+      NPrint("[b]SkinHPattern() in action...[/b]")
+      NPrint("The image is first stretched to the area height and then used as an horizontal pattern.")
+      NPrint("In the example you can see how offset and alpha parameters can be used.")
+
+      alpha = alpha + a
+      offset1.x = offset1.x + 1
+      offset1.y = offset1.y + 1
+      offset2.x = offset2.x - 1
+
+      If alpha > 254 Or alpha < 1 Then a = -a
+
+      area1:skinHPattern(brush1, offset1, 255-alpha)
+      area2:skinHPattern(brush2, offset2, alpha/2+100)
+      area3:skinHPattern(brush1, offset1, 255-alpha)
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+      Flip(True)
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+
+  EndFunction
+
+; -------------------------------------------------------------------
+; TEST 7 : Skin HPattern3S
+;   The source image is divided into 3 horizontal parts, the leftmost
+;   and rightmost are used for the area left & right sides while the
+;   middle part is used to fill the area in the middle.
+; -------------------------------------------------------------------
+funcs[7] = 
+  Function()
+    ; Creates 3 areas
+    Local area1 = G2D.Area:new( 50,  90, 400, 150)
+    Local area2 = G2D.Area:new(100, 240, 300, 100)
+    Local area3 = G2D.Area:new(50, 400, 600, 50)
+    
+    ; Load the needed brushe
+    Local brush1 = LoadBrush(Nil, "Resources/h3s.png", { LoadAlpha = True })
+
+    ; Setup up how the sectors are defined in the source brush
+    Local sectors =
+      { left   = { start =  0, size = 20 },
+        middle = { start = 30, size = 60 },
+        right  = { start = 90, size = 37 }
+      }
+    
+    ; Rendering loop
+    BeginDoubleBuffer()
+    
+    While Not(IsLeftMouse())
+
+      DisplayBrush(1, 0, 0)
+      
+      Locate(0, 0)
+      NPrint("[b]SkinHPattern3S() in action...[/b]")
+      NPrint("The image is splitted in 3 sectors, one for the left side, one for the right side and one for the middle.")
+      NPrint("The middle sector can be used as a tile or can be stretched to fill the area to skin.")
+
+      
+      TextOut(130, 55, "<== The original brush")
+      DisplayBrush(brush1, 0, 50)
+      
+      TextOut(area1.x + 100, area1.y - 10, "Area 1, stretched middle section")
+      area1:skinHPattern3S(brush1, sectors, #NONE, True)
+      
+      TextOut(area2.x + 100, area2.y - 12, "Area 2, stretched middle section")
+      area2:skinHPattern3S(brush1, sectors, #NONE, True)
+      
+      TextOut(area3.x + 100, area3.y - 14, "Area 3, tiled middle section")
+      area3:skinHPattern3S(brush1, sectors, #NONE, False)
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+      Flip(True)
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+
+  EndFunction
+
+; -------------------------------------------------------------------
+; TEST 8 : Skin Pattern
+;    With the :skinPattern() method an image is used as a tile to
+;    file the area, tile size can be freely adjusted.
+;    In this test we will also use the :Box() method.
+; -------------------------------------------------------------------
+funcs[8] = 
+  Function()
+    ; Creates 3 areas
+    Local area1 = G2D.Area:new(150, 290, 400, 150)
+    Local area2 = G2D.Area:new(200, 400, 300, 100)
+    Local area3 = G2D.Area:new(150, 480, 600, 50)
+    
+    ; Load the needed brush
+    Local brush1 = LoadBrush(Nil, "Resources/pattern1.png")
+    Local brush2 = LoadBrush(Nil, "Resources/pattern2.jpg")
+
+    ; Setup some variable for animation
+    Local offset1 = { x = 0, y = 0 }
+    Local offset2 = { x = 0, y = 0 }
+    Local alpha1 = 0
+    Local alpha2 = 255
+    Local tile1 = { w = 64, h = 64 }
+    Local tile2 = { w = 128, h = 128 }
+    Local a1 = 1
+    Local a2 = -1
+      
+    ; Rendering loop
+    BeginDoubleBuffer()
+    
+    While Not(IsLeftMouse())
+
+      DisplayBrush(1, 0, 0)
+      
+      Locate(0, 0)
+      NPrint("[b]SkinPattern()[/b] : An image is used as a tile to skin the area.")
+      NPrint("The tile's size can be freely adjusted.")
+      
+      TextOut(100, 55, "The original brush 1")
+      DisplayBrush(brush1, 0, 50)
+      
+      TextOut(300, 35, "The original brush 2")
+      DisplayBrush(brush2, 300, 50)
+
+      offset1.x = offset1.x + 1
+      offset2.x = offset2.x - 1
+      offset2.y = offset2.y - 1
+
+      alpha1 = alpha1 + a1
+      alpha2 = alpha2 + a2
+
+      tile1.w = tile1.w + 0.5
+      tile1.h = tile1.h + 0.5
+      tile2.w = tile2.w - 0.5
+      tile2.h = tile2.h + 1
+
+      If alpha1 > 254 Or alpha1 < 1 Then a1 = -a1
+      If alpha2 > 254 Or alpha2 < 1 Then a2 = -a2
+
+      If tile1.w > 256 Then tile1.w = 64
+      If tile1.h > 256 Then tile1.h = 64
+      If tile2.w < 8 Then tile2.w = 128
+      If tile2.h > 128 Then tile2.h = 128
+
+      area1:skinPattern(brush1, offset1, alpha1, tile1)
+      area1:box($FFFFFF, 2) ; <= Here we are using another skin method :)
+      area2:skinPattern(brush2, offset2, alpha2, tile2)
+      area3:skinPattern(brush1, offset1, alpha1, tile2)
+
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+      Flip(True)
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+
+  EndFunction
+
+; -------------------------------------------------------------------
+; TEST 9 : Skin Pattern9S
+;   The :skinPattern9S() is very powerful, it let you use an image as
+;   source and subdivide it in 9 sectors that will be used to cover
+;   the area. The sectors are:
+;     top-left, top-middle, top-right
+;     mid-left, mid-middle, mid-right
+;     bot-left, bot-middle, bot-right
+; -------------------------------------------------------------------
+funcs[9] = 
+  Function()
+    ; Creates 3 areas
+    Local area1 = G2D.Area:new(50, 200, 400, 150)
+    Local area2 = G2D.Area:new(100, 300, 300, 300)
+    Local area3 = G2D.Area:new(150, 380, 600, 50)
+    Local area4 = G2D.Area:new(450, 500, 300, 100)
+    
+    ; Load the needed brush
+    Local brush1 = LoadBrush(Nil, "Resources/9s-a.png", { LoadAlpha = True })
+    Local brush2 = LoadBrush(Nil, "Resources/9s-b.png", { LoadAlpha = True })
+
+    ; Define the brush sectors (in this case they are the same for both images)
+    Local sectors =
+       { top     = { start =   0, size = 26 },
+         vmiddle = { start =  26, size = 76 },
+         bottom  = { start = 102, size = 26 },
+         left    = { start =   0, size = 26 },
+         hmiddle = { start =  26, size = 76 },
+         right   = { start = 102, size = 26 }
+       }
+      
+
+    DisplayBrush(1, 0, 0)
+    
+    Locate(0, 0)
+    NPrint("[b]SkinPattern9S() in action...[/b]")
+    NPrint("An image is subdivided in 9 sectors and each sector is used to skin the given area.")
+    NPrint("The middle sectors can be repeated or stretched to fill the area.")
+
+    TextOut(0, 55, "The original brush 1")
+    DisplayBrush(brush1, 0, 70)
+    
+    TextOut(300, 55, "The original brush 2")
+    DisplayBrush(brush2, 300, 70)
+
+    area1:skinPattern9S(brush1, sectors, #NONE, False)
+    TextOut(area1.x+30, area1.y+10, "Brush 1 : tiled middle parts")
+    
+    area2:skinPattern9S(brush2, sectors, #NONE, True)
+    TextOut(area2.x+30, area2.y+10, "Brush 2 : stretched middle parts")
+    
+    area3:skinPattern9S(brush1, sectors, #NONE, False)
+    TextOut(area3.x+30, area3.y+10, "Brush 1 : tiled middle parts")
+    
+    area4:skinPattern9S(brush2, sectors, #NONE, False)
+    TextOut(area4.x+30, area4.y+10, "Brush 1 : tiled middle parts")
+    
+    Locate(0, 580)
+    NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+    WaitLeftMouse()
+    
+    area1, area2, area3 = Nil, Nil, Nil
+
+  EndFunction
+  
+; -------------------------------------------------------------------
+; TEST 10 : Skin Shades
+;   Use the :skinShades() method to fill the area, a shade is a table
+;   of colors used to generate a smooth color transition.
+; -------------------------------------------------------------------
+funcs[10] = 
+  Function()
+    ; Creates 2 areas
+    Local area1 = G2D.Area:new(50, 200, 400, 350)
+    Local area2 = G2D.Area:new(100, 230, 500, 300)
+    
+    ; Define the shades of each area, so we can animated them
+    Local shade1 =
+       { { color = $000000, weight = 50, alpha = 100 },
+         { color = $FF00FF, weight = 50, alpha =  50 },
+         { color = $0000FF, weight =  0, alpha = 100 }
+       }
+
+    Local shade2 =
+       { { color = $FF0000, weight = 10, alpha =   0 },
+         { color = $00FF00, weight = 20, alpha =  20 },
+         { color = $0000FF, weight = 20, alpha = 100 },
+         { color = $FF00FF, weight = 40, alpha = 150 },
+         { color = $00FFFF, weight = 10, alpha =  50 },
+         { color = $FFFF00, weight =  0, alpha =   0 }
+       }
+
+    Local a, cs = 1, 1
+
+    ; Rendering loop
+    BeginDoubleBuffer()
+    
+    Local i = 0.1
+    While Not(IsLeftMouse())
+
+      DisplayBrush(1, 0, 0)
+      
+      Locate(0, 0)
+      NPrint("[b]SkinShades() in action...[/b]")
+      NPrint("A multicolor gradient is ised to skin the image.")
+      NPrint("Angle and color weights can be configured..")
+
+      ; Animate a bit the shades
+      shade2[2].weight = shade2[2].weight+i
+      shade2[3].weight = shade2[3].weight-i
+      If shade2[2].weight >= 40 Or shade2[2].weight =< 20
+        i = -i
+      EndIf
+        
+      shade2[3].alpha = shade2[3].alpha + a
+      
+      If shade2[3].alpha < 100 Or shade2[3].alpha > 254 Then a = -a
+      shade1[1].alpha = 255 - shade2[3].alpha
+      shade2[1].alpha = 255 - shade2[3].alpha
+      
+      Local c = HL.Color:New()
+      c:fromValue(shade1[0].Color) 
+    
+      c.r = c.r + cs
+      If c.r > 254 Or c.r < 1 Then cs = -cs
+        
+      shade1[0].Color = c:toRGBValue()
+
+      area1:skinShades(shade1, 0)
+      TextOut(area1.x+30, area1.y+10, "Gradient 1")
+      area2:skinShades(shade2, 90)
+      TextOut(area2.x+30, area2.y+10, "Gradient 2")
+      
+      Locate(0, 580)
+      NPrint("[color=#YELLOW]-- [b]hold left mouse button[/b] --[/color]")
+
+      Flip(True)
+
+    Wend
+
+    EndDoubleBuffer()
+    
+    area1, area2 = Nil, Nil
+
+  EndFunction
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+; MENU LOOP
+SetFillStyle(#FILLCOLOR)
+Local loop = True
+While loop
+  Box(0, 0, 800, 640, $003311)
+  Locate(0, 0)
+  NPrint("AREA TEST MENU")
+  NPrint("==============")
+  For i = 0 To ListItems(tests)-1
+    NPrint(PadNum(i, 2) .. " : " .. tests[i])
+  Next
+  NPrint("-------------")
+  NPrint("99 : Quit")
+  Local choice = Val(InKeyStr(#ALL))
+  
+  If choice = 99 Then End
+  
+  If TB.Item.Exists(funcs, choice) Then funcs[choice]()
+  
+Wend
+

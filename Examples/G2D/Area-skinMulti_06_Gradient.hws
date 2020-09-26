@@ -1,0 +1,50 @@
+/* ****************************************************************************
+   * G2D : Area:skinMulti -> 2 Gradient Layers.                               *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 400, 300)
+
+;-------------------------------------------------------------------------------
+
+Local layers =
+   { { Type   = GFX.SkinType_Gradient,              ;| FIRST LAYER
+       Params =                                     ;| Skin parameters
+          { Color1 = $FF0000,
+            Color2 = $FFFF00,
+            Alpha  = #NONE,
+            Angle  = 0 } },
+     { Type   = GFX.SkinType_Gradient,              ;| SECOND LAYER
+       Params =
+          { Color1 = $0000FF,
+            Color2 = $00FFFF,
+            Alpha  = 100,
+            Angle  = 0 } },
+   }
+
+
+Local a = 1
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+   Cls
+
+   layers[0].Params.angle = layers[0].Params.angle - Abs(a)
+   layers[1].Params.alpha = layers[1].Params.alpha + a
+   layers[1].Params.angle = layers[1].Params.angle + Abs(a)
+
+   If layers[1].Params.alpha < 1 Or layers[1].Params.alpha > 254 Then a = -a
+
+   area1:skinMulti(layers)
+
+   ; Area marker
+   area1:box($FFFFFF, 1)
+
+   Flip()
+
+Wend
+

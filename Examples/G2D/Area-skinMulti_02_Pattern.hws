@@ -1,0 +1,47 @@
+/* ****************************************************************************
+   * G2D : Area:skinMulti -> 2 Pattern Layers.                                *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 300, 300)
+
+;-------------------------------------------------------------------------------
+
+Local layers =
+   { { Type   = GFX.SkinType_Pattern,               ;| FIRST LAYER
+       Area   = { x = -15, y = -15, w = 0, h = 0 }, ;| Area offsets
+       Params =                                     ;| Skin parameters
+          { Brush  = "Resources/grid9S+a.png",
+            Offset = { x = 0, y = 0 },
+            Alpha  = #NONE } },
+     { Type   = GFX.SkinType_Pattern,               ;| SECOND LAYER
+       Area   = { x = 15, y = 15, w = 0, h = 0 },
+       Params =
+          { Brush  = "Resources/grid9S+a.png",
+            Offset = { x = 0, y = 0 },
+            Alpha  = #NONE,
+            Size   = { w = 64, h = 64 } } },        ;| Change the source pattern size
+   }
+
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+   Cls
+
+   ; Make the layer1 and layer2 skin shift
+   layers[0].Params.Offset.x = layers[0].Params.Offset.x - 0.5
+   layers[1].Params.Offset.x = layers[1].Params.Offset.x + 0.5
+
+   area1:skinMulti(layers)
+
+   ; Area marker
+   area1:box($FFFFFF, 1)
+
+   Flip()
+
+Wend
+

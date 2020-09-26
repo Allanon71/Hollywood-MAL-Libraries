@@ -1,0 +1,76 @@
+/* In this example I show you how a complex skin can be rendered
+   using multiple layers */
+
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+   
+; Let's build a multilayer button, <layers> will hold all our
+; layers.
+Local layers =
+  { ; LAYER 0 : The first to be rendered
+    ; We want a shadow, so let's define a filled box
+    { Type = GFX.SkinType_Color,    ; Filled Color Skin
+      Area =                        ; This layer must be moved to achieve the shadow fx
+        { x = 8, y = 8, w = 0, h = 0 },
+      Params =
+        { Color = $000000,          ; The shadow color
+          Alpha = 80                ; Transparency
+          }
+        },
+    ; LAYER 1 : The second to be rendered
+    ; We want a gradient as background
+    { Type = GFX.SkinType_Gradient, ; 2 Color Gradient Skin
+      Params =
+        { Color1 = $BBBBBB,
+          Color2 = $333333,
+          Alpha  = #NONE,
+          Angle  = 0
+          }
+        },
+    ; LAYER 2 : The third layer to be rendered
+    { Type = GFX.SkinType_Bevel  , ; On top we want an empty bevel box
+      Params =
+        { Colors =
+          { Light = $FFFFFF,       ; Bright Edges
+            Dark  = $111111,       ; Dark Edges
+            Middle= Nil },         ; Middle Area
+          Aspect =
+            { Fx = GFX.BevelFx_Raised,      ; Box 3D Effect
+              Height = 4,                   ; Box Height
+              Type = GFX.BevelType_Standard ; Box Style
+              }
+          }
+        },
+    ; LAYER 3 : Finally we want to add another bevel in the
+    ;           middle.
+    { Type = GFX.SkinType_Bevel  , ; Another bevel box
+      Area = { x = 30, y = 30, w = -60, h = -60 }, ; Adjust where we wwant this layer
+      Params =
+        { Colors =
+          { Light = $FFFF00,       ; Bright Edges
+            Dark  = $222200,       ; Dark Edges
+            Middle= $DDFFFF00 },   ; Middle Area
+          Aspect =
+            { Fx = GFX.BevelFx_Recessed,    ; Box 3D Effect
+              Height = 2,                   ; Box Height
+              Type = GFX.BevelType_Sunken   ; Box Style
+              }
+          }
+        },
+    
+    }
+    
+; Here is where the area to skin is defined
+Local area = G2D.Area:new( 50,  50, 400, 300)
+
+; Clear the screen
+SetFillStyle(#FILLCOLOR)
+Box(0, 0, 800, 640, $003311)
+
+; And finellay here is where it is rendered
+area:skinMulti(layers)
+
+; Hit LMB to quit
+Print("--- LMB To Quit ---")
+
+WaitLeftMouse()

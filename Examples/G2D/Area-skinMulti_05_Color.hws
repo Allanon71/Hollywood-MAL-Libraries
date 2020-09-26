@@ -1,0 +1,46 @@
+/* ****************************************************************************
+   * G2D : Area:skinMulti -> 2 Color Layers.                                  *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 400, 300)
+
+;-------------------------------------------------------------------------------
+
+Local layers =
+   { { Type   = GFX.SkinType_Color,                 ;| FIRST LAYER
+       Area   = { x = -15, y = -15, w = 0, h = 0 }, ;| Area offsets
+       Params =                                     ;| Skin parameters
+          { Color  = $FF0000,
+            Alpha  = #NONE } },
+     { Type   = GFX.SkinType_Color,                 ;| SECOND LAYER
+       Area   = { x = 15, y = 15, w = 0, h = 0 },
+       Params =
+          { Color  = $00FFFF,
+            Alpha  = 100 } },
+   }
+
+
+Local a = 1
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+   Cls
+
+   ; Make the layer2 skin change transparency
+   layers[1].Params.alpha = layers[1].Params.alpha + a
+   If layers[1].Params.alpha < 1 Or layers[1].Params.alpha > 254 Then a = -a
+
+   area1:skinMulti(layers)
+
+   ; Area marker
+   area1:box($FFFFFF, 1)
+
+   Flip()
+
+Wend
+

@@ -1,0 +1,48 @@
+/* ****************************************************************************
+   * G2D : Area:skinMulti -> 2 FitMin Layers.                                *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 400, 300)
+
+;-------------------------------------------------------------------------------
+
+Local layers =
+   { { Type   = GFX.SkinType_FitMin,                ;| FIRST LAYER
+       Area   = { x = -15, y = -15, w = 0, h = 0 }, ;| Area offsets
+       Params =                                     ;| Skin parameters
+          { Brush  = "Resources/grid9S+a.png",
+            Offset = { x = 0, y = 0 },
+            Alpha  = #NONE,
+            Border = $006600 } },
+     { Type   = GFX.SkinType_FitMin,                ;| SECOND LAYER
+       Area   = { x = 15, y = 15, w = 0, h = 0 },
+       Params =
+          { Brush  = "Resources/grid9S+a.png",
+            Offset = { x = 0, y = 0 },
+            Alpha  = 100,
+            Align  = #CENTER,
+            Border = $22770000 } },
+   }
+
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+   Cls
+
+   ; Make the layer2 skin shift
+   layers[1].Params.Offset.x = layers[1].Params.Offset.x + 0.5
+
+   area1:skinMulti(layers)
+
+   ; Area marker
+   area1:box($FFFFFF, 1)
+
+   Flip()
+
+Wend
+
