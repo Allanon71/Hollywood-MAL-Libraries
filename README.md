@@ -436,6 +436,28 @@ CONTENTS
  G2D.BGPic.CreateSkinned()
 ``` 
 
+# Lib-JSON
+ **Hollywood-MAL JSON Decoder Library**
+ 
+ JSON Lib is an include file with the unique purpose to decode JSON strings into
+ Hollywood tables.
+ 
+CONTENTS
+```plaintext
+:: Main Functions ::
+ JSON.Decode()
+ 
+ :: Support Functions ::
+ JSON._IsArrayEnded()
+ JSON._IsObjectEnded()
+ JSON._ReadArray()
+ JSON._ReadNumber()
+ JSON._ReadObject()
+ JSON._ReadPair()
+ JSON._ReadString()
+ JSON._ReadValue()
+``` 
+
  ---
- Latest update: 11/08/2020
+ Latest update: 26/09/2020
  ---
