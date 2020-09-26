@@ -1,0 +1,500 @@
+/********************************************************************
+ * JSON LIBRARY                                             *
+ * Author  : Fabio Falcucci (Allanon)                               *
+ * License : Donationware                                           *
+ * Version : 1.2                                                    *
+ * Release : 26.09.2020                                             *
+ * Dependancies : Debug Lib                                                 *
+ * PayPal Support : hijoe@tin.it                                    *
+ * Support me on Patreon!         https://www.patreon.com/Allanon71 *
+ --------------------------------------------------------------------
+ DESCRIPTION
+ ===========
+ A library with the unique purpose to decode JSON strings into
+ Hollywood tables.
+ 
+ CONTENTS
+ ========
+ :: Main Functions ::
+ JSON.Decode()
+ 
+ :: Support Functions ::
+ JSON._IsArrayEnded()
+ JSON._IsObjectEnded()
+ JSON._ReadArray()
+ JSON._ReadNumber()
+ JSON._ReadObject()
+ JSON._ReadPair()
+ JSON._ReadString()
+ JSON._ReadValue()
+ 
+ CHANGE LOG
+ ----------
+ 1.2
+    Initial Release
+    
+*/
+@INCLUDE "+Includes.hws"
+@INCLUDE #INC_DEBUG
+
+ ; 08/05/2018 : Added support fr escaped UTF-8 characters that uses
+ ;              the \uXXXX escape sequence.
+ ;              During the decoding the sequence will be converted
+ ;              into a proper UTF-8 character.
+ ; 28/08/2019 : Fixed a nasty bug in _:ReadObject(), I was setting position as local
+ ;              variable...
+ 
+Local JSON = {}
+JSON.DebugChannel  = "JSON"
+JSON.ErrorDecoding = False
+
+Function JSON._ReadObject(source, position)
+   ;::: Legge il primo oggetto che trova a partire dalla posizione data, un  :::
+   ;::: oggetto è delimitato dalle parentesi graffe.                         :::
+
+;--   DBG.Console.Out("._ReadObject @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+   Local result = {}
+   Local source_len = StrLen(source)
+
+   While MidStr(source, position, 1) <> "{"
+      position = position + 1
+      If position > source_len
+         DBG.Console.Out("Cannot found the opening marker '{'", DBG.Error, JSON.DebugChannel)
+;--         DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+         Return(result, position)
+      EndIf
+   Wend
+
+   ;::: Adesso cerco l'inizio della chiave delimitata da doppi apici.        :::
+;--   DBG.Console.Out("Reading the first key:value pair...", Nil, JSON.DebugChannel)
+
+   Local looping = True
+   While looping
+      key, value, position = JSON._ReadPair(source, position)
+      If key = Nil Then looping = False
+
+      result[key] = value
+
+      ;::: Check for another pair or the object end (look for ',' and '}')   :::
+      Local r
+      r, position = JSON._IsObjectEnded(source, position)
+
+      If r
+         ;::: Object is ended :::
+         looping = False
+         position = position + 1
+;--         DBG.Console.Out("Object ended.", Nil, JSON.DebugChannel)
+      Else
+         ;::: There is another pair? :::
+         If MidStr(source, position, 1) = ","
+;--            DBG.Console.Out("Detected another pair.", Nil, JSON.DebugChannel)
+            position = position + 1
+         EndIf
+      EndIf
+   Wend
+
+;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(result, position) ;<-- Mi sembra strano questo +1 ma in caso contrario non funge
+                            ; FIXED : Rendevo locale position su local r, position, nessuno
+                            ; sa come a fatto a funzionare fino ad ora (28/08/2019)
+
+EndFunction
+
+Function JSON._ReadArray(source, position)
+;--   DBG.Console.Out("._ReadArray @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+   Local values = {}
+   Local index = 0
+   Local r, value
+
+   ;::: Starting
+   Local qpos = FindStr(source, "[", True, position)
+   If qpos = -1
+      DBG.Console.Out("Missing array start [ marker", DBG.Error, JSON.DebugChannel)
+;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(Nil, position)
+   EndIf
+
+   position = qpos + 1
+
+   ; Check for empty array
+   Local r, position = JSON._IsArrayEnded(source, position)
+   If r 
+     ; DBG.Console.Out("Detected empty array...", Nil, JSON.DebugChannel)
+     Return({}, position+1)
+    EndIf
+    
+   Local looping = True
+   While looping
+
+      value, position = JSON._ReadValue(source, position)
+
+      If GetType(value) = #NIL
+         looping = False
+      Else
+         values[index] = value
+         index = index + 1
+      EndIf
+
+      ;::: Check for another value or the array end (look for ',' and ']')   :::
+      r, position = JSON._IsArrayEnded(source, position)
+
+      If r
+         ;::: Array is ended :::
+         looping = False
+         position = position + 1
+      Else
+         ;::: There is another value? :::
+         If MidStr(source, position, 1) = ","
+;--            DBG.Console.Out("Detected another value.", Nil, JSON.DebugChannel)
+            position = position + 1
+         EndIf
+      EndIf
+
+   Wend
+
+
+;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(values, position)
+
+EndFunction
+
+Function JSON._ReadString(source, position)
+;--   DBG.Console.Out("._ReadString @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+   ;::: Cerca i doppi apici :::
+   Local qpos1 = FindStr(source, "\"", True, position)
+
+   If qpos1 = -1
+      DBG.Console.Out("Starting double-quotes not found.", DBG.Error, JSON.DebugChannel)
+;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(Nil)
+   EndIf
+
+   ;::: Cerca la chiusura degli apici :::
+   Local qpos2 = FindStr(source, "\"", True, qpos1+1)
+
+   If qpos2 = -1
+      DBG.Console.Out("Ending double-quotes not found.", DBG.Error, JSON.DebugChannel)
+;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(Nil, StrLen(source))
+   Else
+      ; Verifica se è veramente un fine campo oppure degli apici all'interno
+      ; della stringa
+      If MidStr(source, qpos2-1, 1) = Chr(92)
+         Local loop = True
+         While loop
+            qpos2 = FindStr(source, "\"", True, qpos2+1)
+            If qpos2 = -1
+               DBG.Console.Out("Ending double-quotes not found.", DBG.Error, JSON.DebugChannel)
+;--               DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+               Return(Nil)
+            Else
+               If MidStr(source, qpos2-1, 1) <> Chr(92)
+                  loop = False
+               Else
+                  qpos2 = qpos2+1
+               EndIf
+            EndIf
+        Wend
+     EndIf
+
+   EndIf
+
+   ;::: Estrazione della stringa :::
+   Local key = MidStr(source, qpos1+1, qpos2-qpos1-1)
+
+;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(key, qpos2+1)
+
+EndFunction
+
+Function JSON._ReadNumber(source, position)
+;--   DBG.Console.Out("._ReadNumber @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+   ;::: Cerca il primo carattere fra +-.0123456789 :::
+   Local qpos1, qpos2 = -1, -1
+   Local slen = StrLen(source)
+   Local chars = "-+.0123456789"
+   Local looping = True
+
+   While looping
+      c = MidStr(source, position, 1)
+      If FindStr(chars, c, True) <> -1
+         looping = False
+         qpos1 = position
+      Else
+         position = position + 1
+         If position > slen
+            DBG.Console.Out("Number beginning not found!", DBG.Error, JSON.DebugChannel)
+;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+            Return(Nil, position)
+         EndIf
+      EndIf
+   Wend
+
+   ;::: Cerca la fine del numero :::
+   looping = True
+   While looping
+      c = MidStr(source, position, 1)
+      If FindStr("+-.0123456789eE", c, True) = -1
+         looping = False
+         qpos2 = position
+      Else
+         position = position + 1
+         If position > slen
+            DBG.Console.Out("Number ending not found!", DBG.Error, JSON.DebugChannel)
+;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+            Return(Nil, position)
+         EndIf
+      EndIf
+   Wend
+
+   ;::: Estrazione della stringa :::
+   Local value = MidStr(source, qpos1, qpos2-qpos1)
+
+;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(ToNumber(value), qpos2)
+
+EndFunction
+
+Function JSON._ReadValue(source, position)
+;--   DBG.Console.Out("._ReadValue @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+   Local value
+
+   ;::: Salta manualmente gli spazi e altri caratteri speciali :::
+   While MidStr(source, position, 1) = " " Or
+         MidStr(source, position, 1) = "\n" Or
+         MidStr(source, position, 1) = "\r" Or
+         MidStr(source, position, 1) = "\t"
+      position = position + 1
+   Wend
+
+   ;::: Verifica il tipo di valore che dobbiamo estrarre :::
+   Local c = MidStr(source, position, 1)
+
+   If c = "\""
+      ;::: STRINGA :::
+      value, position = JSON._ReadString(source, position)
+;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(value, position)
+
+   ElseIf FindStr("+-.0123456789", c, True) <> -1
+      ;::: NUMERO :::
+      value, position = JSON._ReadNumber(source, position)
+;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(value, position)
+
+   ElseIf c = "["
+      ;::: ARRAY :::
+      value, position = JSON._ReadArray(source, position)
+;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(value, position)
+
+   ElseIf c = "{"
+      ;::: OGGETTO :::
+      value, position = JSON._ReadObject(source, position)
+;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(value, position)
+
+   ElseIf LowerStr(c) = "t"
+      ;::: TRUE? :::
+      If LowerStr(MidStr(source, position, 4)) = "true"
+         value = True
+         position = position + 4
+      Else
+         value = Nil
+         DBG.Console.Out("Expected TRUE @ " .. position, DBG.Error, JSON.DebugChannel)
+      EndIf
+;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(value, position)
+
+   ElseIf LowerStr(c) = "f"
+      ;::: FALSE? :::
+      If LowerStr(MidStr(source, position, 5)) = "false"
+         value = False
+         position = position + 5
+      Else
+         value = Nil
+         DBG.Console.Out("Expected FALSE @ " .. position, DBG.Error, JSON.DebugChannel)
+      EndIf
+;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(value, position)
+
+   ElseIf LowerStr(c) = "n"
+      ;::: NULL? :::
+      If LowerStr(MidStr(source, position, 4)) = "null"
+         value = "*NULL*"
+         position = position + 4
+      Else
+         value = Nil
+         DBG.Console.Out("Expected NULL @ " .. position, DBG.Error, JSON.DebugChannel)
+      EndIf
+;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(value, position)
+
+   Else
+      DBG.Console.Out("Value type unrecognized! @ " .. position .. "-> " .. MidStr(source, position, 8) .. "...", DBG.Error, JSON.DebugChannel)
+;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      position = position + 1
+      Return(Nil, position)
+   EndIf
+
+;--   DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+
+EndFunction
+
+Function JSON._ReadPair(source, position)
+;--   DBG.Console.Out("._ReadPair @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+   Local key, value
+
+   ;::: Cerco la stringa/chiave :::
+   key, position = JSON._ReadString(source, position)
+
+   ;::: Cerca il separatore :::
+   position = FindStr(source, ":", True, position)
+   If position = -1
+;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(Nil, Nil, position)
+   Else
+      position = position + 1
+   EndIf
+
+   ;::: Cerco il valore :::
+   value, position = JSON._ReadValue(source, position)
+
+;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(key, value, position)
+
+EndFunction
+
+Function JSON._IsObjectEnded(source, position)
+   ;::: An object ends when we encounter the } skipping spaces.              :::
+;--   DBG.Console.Out("._IsObjectEnded?", DBG.OpenFunc, JSON.DebugChannel)
+
+   Local ended = False
+   Local slen  = StrLen(source)
+
+   While MidStr(source, position, 1) <> "}"
+      Local c = MidStr(source, position, 1)
+
+      If c = " " Or c = "\n" Or c = "\r" Or c = "\t"
+         position = position + 1
+         If position > slen
+            DBG.Console.Out("Ending object marker } missing.", DBG.Error, JSON.DebugChannel)
+;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+            Return(True, position)
+         EndIf
+      Else
+;--         DBG.Console.Out("Object is not yet ended", DBG.CloseFunc, JSON.DebugChannel)
+         Return(False, position)
+      EndIf
+   Wend
+
+;--   DBG.Console.Out("Object ended", Nil, JSON.DebugChannel)
+;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(True, position)
+
+EndFunction
+
+Function JSON._IsArrayEnded(source, position)
+   ;::: An array ends when we encounter the ] skipping spaces.              :::
+;--   DBG.Console.Out("._IsArrayEnded?", DBG.OpenFunc, JSON.DebugChannel)
+
+   Local ended = False
+   Local slen  = StrLen(source)
+
+   While MidStr(source, position, 1) <> "]"
+      Local c = MidStr(source, position, 1)
+
+      If c = " " Or c = "\n" Or c = "\r" Or c = "\t"
+         position = position + 1
+         If position > slen
+            DBG.Console.Out("Ending array marker ] missing.", DBG.Error, JSON.DebugChannel)
+;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+            Return(True, position)
+         EndIf
+      Else
+;--         DBG.Console.Out("Array is not yet ended", DBG.CloseFunc, JSON.DebugChannel)
+         Return(False, position)
+      EndIf
+   Wend
+
+;--   DBG.Console.Out("Array ended", Nil, JSON.DebugChannel)
+;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(True, position)
+
+EndFunction
+
+Function JSON.decode(source)
+   DBG.Console.Out(".decode", DBG.OpenFunc, JSON.DebugChannel)
+   DBG.Console.Out("SOURCE TO DECODE:", Nil, JSON.DebugChannel)
+   DBG.Console.Out(source, Nil, JSON.DebugChannel)
+   
+   Local result = {}
+
+   ;::: Check if <source> is a string :::
+   If GetType(source) <> #STRING
+      DBG.Console.Out("Source must be a string!", DBG.Error, JSON.DebugChannel)
+      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(result, "Source must be a string!")
+   EndIf
+
+   ;::: Clean Up : Remove starting and ending spaces :::
+   source = TrimStr(source, " ", False)
+   source = TrimStr(source, " ", True)
+
+   ;::: Clean Up : Remove starting and ending CR & LF :::
+   source = TrimStr(source, "\n", False)
+   source = TrimStr(source, "\n", True)
+   source = TrimStr(source, "\r", False)
+   source = TrimStr(source, "\r", True)
+   
+   ;::: Clean Up : Convert all escaped UTF-8 characters
+   ; This loop will search for backslashes used to escape
+   ; UTF-8 characters.
+   Local bsPosition = 0
+   Local bs = "\\u"
+   source = ReplaceStr(source, "\\u0000", "NULL", False)
+   
+   Local bsPosition = FindStr(source, bs, True, 0)
+   
+   ; Questo loop prosegue fino a che ci sono \u in giro...
+   While bsPosition <> -1
+     ; Leggo il codice di 4 caratteri a destra
+     Local code = MidStr(source, bsPosition+2, 4)
+     If ToNumber(LeftStr(code, 1)) <> 0 Or
+        (ToNumber(LeftStr(code, 1)) = 0 And LeftStr(code, 1) = "0")
+       ;DebugPrint(code)
+       ; Estraggo il carattere reale
+       ;DebugPrint("Converting code : " .. code)     
+       Local char = Chr(ToNumber("$" .. code))
+       ;DebugPrint("Converted char  : " .. char .. "\n")
+       ; Sostituisco tutte queste istanze nella stringa
+       source = ReplaceStr(source, bs .. code, char)
+      EndIf
+      
+       ; Vedo se ci sono altre sequenze da convertire
+       bsPosition = FindStr(source, bs, True, bsPosition+2)
+
+   Wend
+     
+
+   ;::: THE FIRST ITEM MUST BE AN OBJECT OR AN ARRAY, CHECK IT :::
+   ;::: OR A PLAIN VALUE
+   If LeftStr(source, 1) = "{"
+      result = JSON._ReadObject(source, 0)
+   ElseIf LeftStr(source, 1) = "["
+      result = JSON._ReadArray(source, 0)
+   Else
+      result = { source }
+   EndIf
+
+   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+   Return(result)
+
+EndFunction
+
