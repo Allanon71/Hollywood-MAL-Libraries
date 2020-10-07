@@ -442,7 +442,7 @@ CONTENTS
  JSON Lib is an include file with the unique purpose to decode JSON strings into
  Hollywood tables.
  
-CONTENTS
+**CONTENTS**
 ```plaintext
 :: Main Functions ::
  JSON.Decode()
@@ -458,6 +458,35 @@ CONTENTS
  JSON._ReadValue()
 ``` 
 
+# Lib-SLT
+ **Hollywood-MAL Sliding Text Library**
+ 
+The aim of this library is to handle scrolling texts using layers, this will enable the coder to use layer's advanced features without the need to process the scrolling text graphics.
+The library supports many events that are triggered in various situation and can be used to produce great visuals, for example it supports the **OnBeforeUpdate** and **OnAfterUpdate** that can be used to manage a background and a foreground with the scrolling text in the middle.
+Have a look at the TEST 02 to see how it works, TEST 01 instead shows why it is nice to render the scrolling text into layers.
+
+**CONTENTS**
+```plaintext
+:: FUNCTIONS ::
+- SLT.Init()
+- SLT.Update()
+- SLT.Free()
+- SLT.Pause()
+- SLT.Resume()
+ 
+:: TASK CLASS ::
+- SLT.TaskObject:New()
+- SLT.TaskObject:Draw()
+- SLT.TaskObject:Update()
+- SLT.TaskObject:Pause()
+- SLT.TaskObject:Resume()
+- SLT.TaskObject:Remove()
+
+:: EXAMPLES/TESTS ::
+- SLT.TEST_01()
+- SLT.TEST_02()
+``` 
+
  ---
- Latest update: 29/09/2020
+ Latest update: 07/10/2020
  ---

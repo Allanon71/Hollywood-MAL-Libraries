@@ -1,0 +1,1730 @@
+ /******************************************************************************
+  * SlidingText Library
+  * Author : Fabio Falcucci (Allanon)
+  * License : Donationware
+  * Version : 2.1
+  * Release : 05.10.2020
+  * Dependancies : TABLES, DEBUG, GFX
+  *-------------------------------------------------------------------
+  The aim of this library is to handle scrolling texts using layers,
+  this will enable the coder to used layers advanced features without
+  the need to process the scrolling text.
+  The library supports many events that are triggered in various
+  situation and can be used to produce great visuals.
+ 
+ CONTENTS
+ --------
+ :: FUNCTIONS ::
+ - SLT.Init()
+ - SLT.Update()
+ - SLT.Free()
+ - SLT.Pause()
+ - SLT.Resume()
+ 
+ :: TASK CLASS ::
+ - SLT.TaskObject:New()
+ - SLT.TaskObject:Draw()
+ - SLT.TaskObject:Update()
+ - SLT.TaskObject:Pause()
+ - SLT.TaskObject:Resume()
+ - SLT.TaskObject:Remove()
+
+ :: EXAMPLES/TESTS ::
+ - SLT.TEST_01()
+ - SLT.TEST_02()
+ 
+ */
+
+
+@INCLUDE "+Includes.hws"
+@INCLUDE #INC_TABLES
+@INCLUDE #INC_DEBUG
+@INCLUDE #INC_GFX
+
+
+; CONSTANTS
+Const #SLT_STATE_RUNNING      = 1
+Const #SLT_STATE_PAUSED       = 2
+
+Const #SLT_TASKSTATE_RUNNING  = 1
+Const #SLT_TASKSTATE_PAUSED   = 2
+Const #SLT_TASKSTATE_ENDED    = 3
+
+Const #SLT_DIR_VERTICAL       = 1
+Const #SLT_DIR_HORIZONTAL     = 2
+
+Const #SLT_RENDERMODE_PRECALC = 1
+Const #SLT_RENDERMODE_DIRECT  = 2
+
+Const #SLT_START_BEGIN        = 1
+Const #SLT_START_END          = 2
+
+Const #SLT_ALIGN_LEFT         = 1
+Const #SLT_ALIGN_HCENTER      = 2
+Const #SLT_ALIGN_RIGHT        = 3
+Const #SLT_ALIGN_TOP          = 1
+Const #SLT_ALIGN_VCENTER      = 2
+Const #SLT_ALIGN_BOTTOM       = 3
+
+; DATA STRUCTURES
+Global SLT = {}
+       SLT.Stats = {}
+       SLT.Stats.RenderTime_Mid   = 0           ; Rendering mid-time every 100 frames
+       SLT.Stats.RenderTime_Frame = 0           ; Rendering time, last frame
+       SLT.DebugChannel = "SLT"                 ; Debug channel
+       SLT.Tasks = {}                           ; Defined tasks list
+       SLT.Data  = {}                           ; Engine data
+       SLT.Data.Upd_Freq = 5                    ; Update frequency (milliseconds)
+       SLT.Data.RenderMode = #SLT_RENDERMODE_PRECALC ; Rendering mode: _PRECALC, _DIRECT
+       SLT.State      = #SLT_STATE_RUNNING      ; Engine state
+       SLT.TasksCount = -1                      ; Tasks counter
+       SLT.OnNoTasks  = Function() EndFunction  ; Function to call when all tasks ended
+       SLT.TimerID    = Nil                     ; Timer id used to update the tasks
+       SLT.UpdaterID  = Nil                     ; Interval ID for the updater
+
+       SLT.Build = {
+	       Date       = "03/10/2020",           ; Build date
+	       Version    = "2.1"                   ; Build version
+         }
+
+
+Function SLT.Init(params)
+/******************************************************************************
+SLT.Init(params)
+
+Initialize the Sliding Text Engine with the specified parameters.
+---------------------------------------------------------------------
+INPUT
+  params : A table with the following optional fields
+    upd_freq : Sets the default update frequency in milliseconds. You
+               can use a negative value to specify that you don't want
+               the automatic updates, in this case you will need to
+               call the function 'SLT.Update()' by yourself.
+               Default is 20 (50fps).
+    rendermode : You can select the rendering mode using one of
+                 the following constants:
+                 - #SLT_RENDERMODE_DIRECT : Outputs the text directly at each
+                                            refresh.                                                   *
+                 - #SLT_RENDERMODE_PRECALC : The scrolling text will be
+                                             buffered into a brush.
+    onnotasks : Specify here a function that will be called each time
+                there are no more tasks active. After it has been called, if new
+                tasks are added, the trigger will be reset.
+******************************************************************************/
+  DBG.Console.Out("SLT.Init()", DBG.OpenFunc, SLT.DebugChannel)
+
+  ; Free all active tasks, if any
+  SLT.Free()
+
+  ;---[ Parse parameters ]-----------------------------------------------------
+  ; Default Update Frequency
+  If TB.Item.Exists(params, "upd_freq") Then SLT.Data.Upd_Freq = params.Upd_Freq
+
+  ; RenderMode
+  If TB.Item.Exists(params, "rendermode") Then SLT.Data.RenderMode = Params.RenderMode
+
+  ; 'OnNoTasks' event
+  If TB.Item.Exists(params, "onnotasks")
+    SLT.Data.OnNoTasks = params.OnNoTasks
+  Else
+    ; Because there could be previous callback functions
+    SLT.Data.OnNoTasks = Function() EndFunction
+  EndIf
+
+  ;---[ Setup the engine ]-----------------------------------------------------
+  ; Reset the Task counter
+  SLT.Data.TasksCount = 0
+
+  ; Stop the previous timer (if any) and Setup a new one
+  If TB.Item.Exists(SLT.Data, "timerid")
+    StopTimer(SLT.Data.TimerID)
+  EndIf
+  SLT.Data.TimerID = StartTimer(Nil)
+
+  ; Setup the engine state
+  SLT.Data.State = #SLT_STATE_RUNNING
+
+  ; Clear the previous updater (if any)
+  If TB.Item.Exists(SLT.Data, "updaterid")
+    ClearInterval(SLT.Data.UpdaterID)
+  EndIf
+
+  ; Startup a new updater (if needed)
+  If SLT.Data.Upd_Freq >= 0
+    SLT.Data.UpdaterID = SetInterval(Nil, SLT.Update, SLT.Data.Upd_Freq)
+  EndIf
+
+  DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+  Return(True)
+
+EndFunction
+
+Function SLT.Update()
+/******************************************************************************
+result = SLT.Update()
+
+This function updates all the active (running) tasks, generally it is called
+automatically using an interval function, but if you have specified a negative
+update frequency to switch off this feature you have to remember to call this
+func. by yourself otherwise your tasks will be freezed.
+---------------------------------------------------------------------
+OUTPUT
+  result : False if there was no tasks to update otherwise True.
+******************************************************************************/
+  
+  ; Check if all the tasks are paused globally
+  If SLT.Data.State = #SLT_STATE_PAUSED
+    Return()
+  
+  EndIf
+  
+  ; Check if there are tasks that need to be updated
+  If SLT.Data.TasksCount = 0 And Not(SLT.Data.OnNoTask_Executed)
+  
+    ; No tasks active, execute the 'OnNoTasks' event
+    SLT.Data.OnNoTasks()
+    
+    ; It can be executed only once
+    SLT.Data.OnNoTask_Executed = True
+    Return(False)
+
+  Else
+    ; Update all active tasks, while updating it also tracks the
+    ; rendering time.
+    Local totalRenderTime, cnt = 0, 0
+    Local i, v
+    For i, v In Pairs(SLT.Tasks)
+      cnt = cnt + 1
+	    Local result, renderingTime = v:update()
+      totalRenderTime = totalRenderTime + renderingTime
+    Next
+    
+    ; Avarage rendering time for each task
+    SLT.Stats.RenderTime_Mid   = totalRenderTime/cnt
+    
+    ; Total rendering time for this frame
+    SLT.Stats.RenderTime_Frame = totalRenderTime
+
+  EndIf
+
+  Return(True)
+  
+EndFunction
+
+Function SLT.Free()
+/******************************************************************************
+SLT.Free()
+
+Use this function to remove all the running and paused tasks. Each tasks will
+be entirely removed from the system.
+******************************************************************************/
+  DBG.Console.Out("SLT.Free()", DBG.OpenFunc, SLT.DebugChannel)
+
+  ; Remove all tasks
+  Local i, v
+  For i, v In Pairs(SLT.Tasks)
+    v:Remove()
+  Next
+  
+  DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+
+EndFunction
+
+Function SLT.Pause()
+/******************************************************************************
+result = SLT.Pause()
+
+This function pauses all the tasks globally even if every single task is
+in a running state. To pause a single task you have to use its own method.
+Use 'SLT.Resume()' function to globally resume all the task updates.
+---------------------------------------------------------------------
+OUTPUT
+  result : Returns TRUE if the engine was paused correctly, or FALSE if it was
+           already paused.
+******************************************************************************/
+  DBG.Console.Out("SLT.Pause()", DBG.OpenFunc, SLT.DebugChannel)
+
+  If SLT.Data.State = #SLT_STATE_RUNNING
+    SLT.Data.State = #SLT_STATE_PAUSED
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(True)
+    
+  Else
+    DBG.Console.Out("Already paused!", DBG.Warning, SLT.DebugChannel)
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(False)
+    
+  EndIf
+
+EndFunction
+
+Function SLT.Resume()
+/******************************************************************************
+result = SLT.Resume()
+
+This function resumes the tasks update after a 'SLT.Pause() call.
+---------------------------------------------------------------------
+OUTPUT
+  result => Returns TRUE if it was unpaused correctly, or FALSE if it was already
+            running.
+******************************************************************************/
+  DBG.Console.Out("SLT.Resume()", DBG.OpenFunc, SLT.DebugChannel)
+
+  If SLT.Data.State = #SLT_STATE_PAUSED
+    SLT.Data.State = #SLT_STATE_RUNNING
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(True)
+    
+  Else
+    DBG.Console.Out("Already running!", DBG.Warning, SLT.DebugChannel)
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    
+    Return(False)
+    
+  EndIf
+
+EndFunction
+
+
+
+
+/* -----------------------------------------------------------------------------
+  CLASS SLT.TaskObject
+  ----------------------------------------------------------------------------- */
+   SLT.TaskObject = {
+      Name   = "",                     ; Unique task name
+      Layer  = -1,                     ; Layer name
+      Offset = {                       ; Rendering offset
+	      x = 0,                         ;   Horizontal offset
+	      y = 0 },                       ;   Vertical offset
+      StartingPos  = #SLT_START_BEGIN, ; Starting position (Begin/End layer)
+      Content      = { "-empty-" },    ; Content to display: one or more lines
+      Align        = #SLT_ALIGN_LEFT,  ; Text alignment
+      Interline    = 4,                ; Interline in vertical mode
+      AutoWordWrap = False,            ; Uses automatic wordwrap
+      Font         = GFX.Font:New(),   ; Font definition
+      Direction = #SLT_DIR_HORIZONTAL, ; Scrolling direction
+      Speed     = 2,                   ; Scrolling speed (pixel x refresh)
+      ScrollAlways = False,            ; Scroll even if there is no need
+      ClearLayer = True,               ; Clear layer before rendering
+      ClearColor = $C0000050,          ; Clear color
+      Bounce     = False,              ; Bounce text
+      Loop       = False,              ; Loop text
+      UpdFreq = 0,                     ; Update frequency
+      DeltaTime = 0,
+      OnStart        = Function() EndFunction, ; Action to perform at text start
+      OnLoop         = Function() EndFunction, ; Action to perform at text loop
+      OnBounce       = Function() EndFunction, ; Action to perform at text bounce
+      OnBeforeUpdate = Function() EndFunction, ; Action to perform before every refresh
+      OnAfterUpdate  = Function() EndFunction, ; Action to perform after every refresh
+      OnEnd          = Function() EndFunction, ; Action to perform at text end
+      Userdata = Nil,                  ; Userdata field
+      Margins  = {                     ; Text margins
+	      Left = 0,
+	      Right = 0,
+	      Top = 0,
+	      Bottom = 0 },
+      Private = {
+	      NxUpdate  = -1,               ; Timer for the next update
+	      CurrSpeed = 1,                ; Current speed
+	      CurrText  = "",               ; Text without tags (the one to show)
+	      CurrTextLen = -1,             ; Text lenght
+	      ScrollPos = 0,                ; Current scrolling position
+	      Buffer    = Nil,              ; Buffer for precalc mode
+	      State     = -1 }              ; Scrolling state
+   }
+
+
+Function SLT.TaskObject:New(Params)
+/******************************************************************************
+SLTObj = SLT.TaskObject:New(Params)
+
+Add a new SLT task
+---------------------------------------------------------------------
+INPUT
+  Params : Table with all parameters needed to initialize the object
+  - layer : An existing layer id or layer name
+  - name  : Task name
+  - offsetx : Horizontal text offset in pixels
+  - offsety : Vertical text offset in pixels
+  - startingpos : Determines if the text rendering should start  from the
+                  begin of the text to render or from its  end. 
+                  This means that starting from the end the text will result
+                  beyond the current visible area, but will be shown during
+                  the scrolling. Available constants are:
+                  - #SLT_START_BEGIN : Start text rendering from the begin
+                  - #SLT_START_END : Start text rendering from the end
+  - content : This table is used to pass the text we want to show in the sliding
+              text, each entry represent a line of text. If you want to use the
+              wordwrap its better to use only one entry.
+              All Hollywood tags are fully supported.
+  - align : You can set the initial alignment using one of the following
+            constants:
+            For the HORIZONTAL Scrolling
+            - #SLT_ALIGN_LEFT : Align to the left of the rendering area
+            - #SLT_ALIGN_HCENTER : Align to the center of the rendering area
+            - #SLT_ALIGN_RIGHT : Align to the right of the rendering area
+            For the VERTICAL Scrolling
+            - #SLT_ALIGN_TOP     Align to the top of the rendering area
+            - #SLT_ALIGN_VCENTER Aling to the center of the rendering area
+            - #SLT_ALIGN_BOTTOM  Align to the bottom of the rendering area
+  - interline : Use this tag to define the additional space in pixels between 
+                each line of text. 
+  - autowordwrap : This flag activate the auto wordwrap feature. Lines of text
+                   that does not fit in the rendering area will be splitted in
+                   more lines. Very usefull for vertical scrollers.
+  - font : You need to pass a font object that describes how the text have to
+           be rendered. See GFX.Font for details about font objects.
+  - bounce : This flag sets the text scrolling in bounce mode.
+  - loop : This flag sets the text scrolling in loop mode.
+  - direction : This tag is ised to define the scrolling direction, it can be:
+                - #SLT_DIR_HORIZONTAL : For the horizontal scrolling
+                - #SLT_DIR_VERTICAL : For the vertical scrolling
+  - speed : Sets the scrolling speed in pixel/refresh
+  - scrollalways : This switch is used to force the scrolling even if there is
+                   no need to scroll because the text fits in the area.
+  - clearlayer : Set to TRUE to tell the engine to clear the rendering area
+                 before each refresh. You may want to disable it, for example,
+                 if you are going to put a background by yourself (see events)
+  - clearcolor : Specify here the color you want to use to clear the rendering
+                 area, you can use RGB or ARGB color formats.
+                 Using ARGB colors you can easily reproduce nice blur effects.
+  - updfreq : This attribute is used to specify an additional delay in ms for
+              the new task. Useful if you need faster or slower updates for a
+              single task.
+  - onstart : Callback function called when the task is started for the
+              first time.
+  - onbounce : Callback function called every time the text bounces
+  - onloop : Callback function called every time the text loops
+  - onbeforeupdate : Callback function called before text rendering, useful
+                     to draw you own background.
+  - onafterupdate : Callback function called after text rendering, useful to
+                    draw your own foreground.
+  - onend : Callback function called when the scrolling ends. This event will
+            never happen if bounce or loop flags are set.
+  - userdata : This item is freely usable with custom data that are passed to
+                the callback functions.
+  - margins : Defines the rendering area margins, it a table with the following
+              fields:
+              - left : Left margin in pixels
+              - right : Right margin in pixels
+              - top : Top margin in pixels
+              - bottom : Bottom margin in pixels
+  
+OUTPUT
+  SLTObj : Initialized SLT object or NIL if the creation failed.
+  
+******************************************************************************/
+  DBG.Console.Out("SLT.TaskObject:Add()", DBG.OpenFunc, SLT.DebugChannel)
+
+  ;---[ Layer Target ]---------------------------------------------------------
+  If TB.Item.Exists(params, "layer")
+    If Not(LayerExists(params.Layer))
+      DBG.Console.Out("Layer <" .. params.Layer .. "> does not exists!", DBG.Error, SLT.DebugChannel)
+	    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+	    Return(Nil)
+      
+    EndIf
+    
+  Else
+    DBG.Console.Out("<Layer> tag is missing!", DBG.Error, SLT.DebugChannel)
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(Nil)
+    
+  EndIf
+
+  ;---[ Task Name ]------------------------------------------------------------
+  ; Check if we need to generate a random name for this task if the user has
+  ; omitted it.
+  If TB.Item.IsNil(params, "name")
+    params.Name = HL.GetRndName()
+    
+  ElseIf params.name = ""
+    params.Name = HL.GetRndName()
+    
+  EndIf
+
+  ; Check if the name is already in use
+  If TB.Item.Exists(SLT.Tasks, params.Name)
+    DBG.Console.Out("Task name <" .. params.Name .. "> already exists!", DBG.Error, SLT.DebugChannel)
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(Nil)
+    
+  EndIf
+
+  ;---[ Build the new SLT task ]-----------------------------------------------
+  ; Reset the OnNoTasks trigger
+  SLT.Data.OnNoTask_Executed = False
+  
+  Local new_task = CopyTable(self)
+
+  new_task.Layer = params.Layer
+  new_task.Name  = params.Name
+
+  ; OFFSETS
+  If TB.Item.Exists(params, "offsetx") Then new_task.Offset.x = params.OffsetX
+  If TB.Item.Exists(params, "offsety") Then new_task.Offset.y = params.OffsetY
+
+  ; STARTING POSITION
+  If TB.Item.Exists(params, "startingpos") Then new_task.StartingPos = params.StartingPos
+
+  ; ALIGN
+  If TB.Item.Exists(params, "align") Then new_task.Align = params.Align
+
+  ; MARGINS
+  If TB.Item.Exists(params, "margins")
+    If TB.Item.Exists(params.margins, "left"  ) Then new_task.margins.left = params.margins.left
+    If TB.Item.Exists(params.margins, "right" ) Then new_task.margins.right = params.margins.right
+    If TB.Item.Exists(params.margins, "top"   ) Then new_task.margins.top = params.margins.top
+    If TB.Item.Exists(params.margins, "bottom") Then new_task.margins.bottom = params.margins.bottom
+  EndIf
+
+  ; CONTENT
+  If TB.Item.Exists(params, "content") Then new_task.Content = CopyTable(params.Content)
+
+  ; INTERLINE
+  If TB.Item.Exists(params, "interline") Then new_task.Interline = params.Interline
+
+  ; FONT
+  If TB.Item.Exists(params, "font") Then new_task.Font = params.Font
+
+  ; AUTO WORDWRAP
+  If TB.Item.Exists(params, "autowordwrap")
+    new_task.AutoWordWrap = params.AutoWordWrap
+
+    ; Process the text to insert blank lines to do not overwrite text
+    new_task.Font:Apply()
+    Local t = {}
+    Local cnt = TB.Count(params.Content) - 1
+
+    For Local i = 0 To cnt
+      t[i] = Int(GFX.Text.GetWidth(params.Content[i])/GetAttribute(#LAYER, params.Layer, #ATTRWIDTH)) - 1
+      
+    Next
+    
+    For Local i = cnt To 0 Step -1
+      For Local it = 0 To t[i]
+        InsertItem(params.Content, "", i+1)
+        
+      Next
+      
+    Next
+    
+  EndIf
+
+  ; DIRECTION
+  If TB.Item.Exists(params, "direction") Then new_task.Direction = params.Direction
+
+  ; SPEED
+  If TB.Item.Exists(params, "speed") Then new_task.Speed = params.Speed
+
+  ; BOUNCE
+  If TB.Item.Exists(params, "bounce") Then new_task.Bounce = params.Bounce
+
+  ; LOOP
+  If TB.Item.Exists(params, "loop") Then new_task.Loop = params.Loop
+
+  ; SCROLL ALWAYS
+  If TB.Item.Exists(params, "scrollalways") Then new_task.ScrollAlways = params.ScrollAlways
+
+  ; CLEAR LAYER
+  If TB.Item.Exists(params, "clearlayer") Then new_task.ClearLayer = params.ClearLayer
+
+  ; CLEAR COLOR
+  If TB.Item.Exists(params, "clearcolor") Then new_task.ClearColor = params.ClearColor
+
+  ; UPDATE FREQUENCY
+  If TB.Item.Exists(params, "updfreq") Then new_task.UpdFreq = params.UpdFreq
+
+  ;---[ Events handling ]------------------------------------------------------
+  If TB.Item.Exists(params, "onstart"       ) Then new_task.OnStart        = params.OnStart
+  If TB.Item.Exists(params, "onbounce"      ) Then new_task.OnBounce       = params.OnBounce
+  If TB.Item.Exists(params, "onloop"        ) Then new_task.OnLoop         = params.OnLoop
+  If TB.Item.Exists(params, "onbeforeupdate") Then new_task.OnBeforeUpdate = params.OnBeforeUpdate
+  If TB.Item.Exists(params, "onafterupdate" ) Then new_task.OnAfterUpdate  = params.OnAfterUpdate
+  If TB.Item.Exists(params, "onend"         ) Then new_task.OnEnd          = params.OnEnd
+
+  ; USERDATA
+  If TB.Item.Exists(params, "userdata") Then new_task.userdata = params.userdata
+
+  ; Increase Tasks counter
+  SLT.Data.TasksCount = SLT.Data.TasksCount + 1
+
+  ;---[ Check if we need to PRECALCULATE the text rendering ]------------------
+  Local layer_width  = GetAttribute(#LAYER, new_task.Layer, #ATTRWIDTH)
+  Local layer_height = GetAttribute(#LAYER, new_task.Layer, #ATTRHEIGHT)
+  Local txtParams = {}
+  
+  ; Pick the longest line width
+  Local m = 0
+  For Local i = 0 To ListItems(new_task.Content)-1
+    ; GFX.Text.GetWidth() compute the lenght removing Hollywood tags
+    Local tw = GFX.Text.GetWidth(new_task.Content[i])
+    If tw > m Then m = tw
+    new_task.maxWidth = m
+  Next
+  
+  If (new_task.AutoWordWrap And new_task.Direction = #SLT_DIR_VERTICAL) Then txtParams = { WordWrap = layer_width - new_task.margins.left - new_task.margins.right }
+  If SLT.Data.RenderMode = #SLT_RENDERMODE_PRECALC
+    new_task.Font:Apply()
+    ;--- Horizontal Scrolling ---
+    If new_task.Direction = #SLT_DIR_HORIZONTAL
+      new_task.Private.Buffer = CreateBrush(Nil, new_task.maxWidth, layer_height, #BLACK, { Alphachannel = True, Clear = True })
+      GFX.OutputDevice.Select(#BRUSH, new_task.Private.Buffer, #SELMODE_COMBO)
+        Local text_lines = TB.Count(new_task.Content)
+        Local th         = TextHeight("|")
+        For Local i = 1 To text_lines
+          TextOut(new_task.margins.left, (i-1) * (th + new_task.Interline) + new_task.margins.top, new_task.Content[i-1], txtParams)
+        Next
+      GFX.OutputDevice.EndSelect()
+
+    ;--- Vertical Scrolling ---
+    ElseIf new_task.Direction = #SLT_DIR_VERTICAL
+      Local lines = TB.Count(new_task.Content)
+      If lines = 1
+        new_task.Content = GFX.Text.WordWrap(new_task.Content[0], layer_width)
+        lines = TB.Count(new_task.Content)
+        
+      EndIf
+      
+      Local brush_height = (TB.Count(new_task.Content) * (TextHeight("jiK") + new_task.Interline))
+      new_task.Private.Buffer = CreateBrush(Nil, layer_width, brush_height, #BLACK, { Alphachannel = True, Clear = True })
+      GFX.OutputDevice.Select(#BRUSH, new_task.Private.Buffer, #SELMODE_COMBO)
+        Local text_lines = TB.Count(new_task.Content)
+        Local th         = TextHeight("|")
+        For Local i = 1 To text_lines
+          TextOut(new_task.margins.left, (i-1) * (th + new_task.Interline) + new_task.margins.top, new_task.Content[i-1], txtParams)
+          
+        Next
+      GFX.OutputDevice.EndSelect()
+      
+    EndIf
+    
+  EndIf
+
+  ; Final setup
+  If new_task.StartingPos = #SLT_START_END
+    ;--- Start from end ---
+    If new_task.Direction = #SLT_DIR_HORIZONTAL
+      ;--- Horizontal ---
+      Switch new_task.Align
+        Case #SLT_ALIGN_LEFT
+          new_task.Private.ScrollPos = -new_task.maxWidth
+          
+        Case #SLT_ALIGN_HCENTER
+          new_task.Private.ScrollPos = (layer_width - new_task.maxWidth)/2
+          
+        Case #SLT_ALIGN_RIGHT
+          new_task.Private.ScrollPos = layer_width + new_task.maxWidth
+          
+      EndSwitch
+      
+    Else
+      ;--- Vertical ---
+      Local text_height = TB.Count(new_task.Content) * (new_task.Font.Size + new_task.Interline)
+      Switch new_task.Align
+        Case #SLT_ALIGN_TOP
+          new_task.Private.ScrollPos = -text_height
+          
+        Case #SLT_ALIGN_VCENTER
+          new_task.Private.ScrollPos = (layer_height - text_height)/2
+          
+        Case #SLT_ALIGN_BOTTOM
+          new_task.Private.ScrollPos = layer_height + text_height
+          
+      EndSwitch
+      
+    EndIf
+
+  Else
+    ;--- Start from begin ---
+    If new_task.Direction = #SLT_DIR_HORIZONTAL
+      ;--- Horizontal ---
+      Switch new_task.Align
+        Case #SLT_ALIGN_LEFT
+          new_task.Private.ScrollPos = 0
+          
+        Case #SLT_ALIGN_HCENTER
+          new_task.Private.ScrollPos = (layer_width - new_task.maxWidth)/2
+          
+        Case #SLT_ALIGN_RIGHT
+          new_task.Private.ScrollPos = layer_width - new_task.maxWidth
+          
+      EndSwitch
+
+    Else
+      ;--- Vertical ---
+      Local text_height = TB.Count(new_task.Content) * (new_task.Font.Size + new_task.Interline)
+      Switch new_task.Align
+        Case #SLT_ALIGN_TOP
+          new_task.Private.ScrollPos = 0
+          
+        Case #SLT_ALIGN_VCENTER
+          new_task.Private.ScrollPos = (layer_height - text_height)/2
+          
+        Case #SLT_ALIGN_BOTTOM
+          new_task.Private.ScrollPos = layer_height - text_height
+          
+      EndSwitch
+    EndIf
+
+  EndIf
+
+  ; Insert the new task object in the object list
+  SLT.Tasks[new_task.Name] = new_task
+
+  ; Draw the newly created object
+  new_task:Draw()
+
+  DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+  Return(new_task)
+
+EndFunction
+
+Function SLT.TaskObject:SetText(txt)
+  ; Change the object contents with a new text table                            |
+
+  self.Content = CopyTable(txt)
+
+  ; Pick the longest line width
+  Local m = 0
+  For Local i = 0 To ListItems(self.Content)-1
+    Local tw = GFX.Text.GetWidth(self.Content[i])
+    If tw > m Then m = tw
+    self.maxWidth = m
+  Next
+  
+  ;---[ If RenderMode is Precalc we need to regenerate the buffer ]------------
+  If SLT.Data.RenderMode = #SLT_RENDERMODE_PRECALC
+    self.Font:Apply()
+    Local layer_width  = GetAttribute(#LAYER, self.Layer, #ATTRWIDTH)
+    Local layer_height = GetAttribute(#LAYER, self.Layer, #ATTRHEIGHT)
+    Local txtParams = {}
+
+    If (self.AutoWordWrap And self.Direction = #SLT_DIR_VERTICAL) Then txtParams = { WordWrap = layer_width - self.margins.left - self.margins.right }
+
+    ; Free previous brush
+    FreeBrush(self.Private.Buffer)
+
+    If self.Direction = #SLT_DIR_HORIZONTAL
+      ;--- Horizontal ---
+      Local th = TextHeight("|")
+	    self.Private.Buffer = CreateBrush(Nil, self.maxWidth, layer_height, #BLACK, { Alphachannel = True, Clear = True })
+	    GFX.OutputDevice.Select(#BRUSH, self.Private.Buffer, #SELMODE_COMBO)
+	      Local text_lines = TB.Count(self.Content)
+	      For Local i = 1 To text_lines
+	        TextOut(self.margins.left, (i-1) * (th + self.Interline) + self.margins.top, self.Content[i-1], txtParams)
+	      Next
+      GFX.OutputDevice.EndSelect()
+
+    ElseIf self.Direction = #SLT_DIR_VERTICAL
+      ;--- Vertical ---
+      Local th = TextHeight("|")
+	    self.Private.Buffer = CreateBrush(Nil, layer_width, (TB.Count(self.Content)) * (th + self.Interline) , #BLACK, { Alphachannel = True, Clear = True })
+	    GFX.OutputDevice.Select(#BRUSH, self.Private.Buffer, #SELMODE_COMBO)
+	      Local text_lines = TB.Count(self.Content)
+	      For Local i = 1 To text_lines
+	        TextOut(self.margins.left, (i-1) * (th + self.Interline) + self.margins.top, self.Content[i-1], txtParams)
+	      Next
+      GFX.OutputDevice.EndSelect()
+
+    EndIf
+  EndIf
+
+  Return(True)
+
+EndFunction
+
+Function SLT.TaskObject:Draw()
+/********************************************************************
+SLT.TaskObject:Draw()
+
+This method is used to refresh the rendering area, this is called by the
+engine automatically, but you can call it by yourself if you need.
+This routine handles the events onbeforeupdate and onafterupdate so if
+you have attached functions to this events they will be called.
+********************************************************************/
+  ; Draw the SLT object                                                         |
+  Local layer_width  = GetAttribute(#LAYER, self.Layer, #ATTRWIDTH)
+  Local layer_height = GetAttribute(#LAYER, self.Layer, #ATTRHEIGHT)
+  Local txtParams = {}
+  If (self.AutoWordWrap And self.Direction = #SLT_DIR_VERTICAL) Then txtParams = { WordWrap = layer_width - self.margins.left - self.margins.right }
+
+  If self.Direction = #SLT_DIR_HORIZONTAL ; -----------------------------------
+    ;--- Horizontal ---
+    GFX.OutputDevice.Select(#LAYER, self.Layer, #SELMODE_NORMAL)
+    If SLT.Data.RenderMode = #SLT_RENDERMODE_DIRECT
+      ;--- Direct Rendering ---
+      Local text_width   = self.maxWidth
+      Local text_lines   = TB.Count(self.Content)
+      Local line_height  = TextHeight("|") + self.Interline
+      Local text_height  = text_lines * line_height
+
+      ; OnBeforeUpdate
+   	  self.OnBeforeUpdate(self)
+
+   	  If self.ClearLayer
+   	    SetFillStyle(#FILLCOLOR)
+   	    Box(0, 0, layer_width, layer_height, self.ClearColor)
+   	  EndIf
+
+   	  Local tmpclip = CreateClipRegion(Nil, #BOX, self.Margins.Left, self.Margins.Top, layer_width - self.Margins.Left - self.Margins.Right, layer_height - self.Margins.Top - self.Margins.Bottom )
+      SetClipRegion(tmpclip)
+
+      self.Font:Apply()
+   	  For Local i = 1 To text_lines
+   	    TextOut(self.margins.left + self.Private.ScrollPos + self.Offset.x, self.margins.top + self.Offset.y + (i-1) * line_height, self.Content[i-1], txtParams)
+   	  Next
+
+   	  FreeClipRegion(tmpclip)
+
+      ; OnAfterUpdate
+   	  self.OnAfterUpdate(self)
+
+    Else
+   	  ;--- Buffered Rendering ---
+      ; OnBeforeUpdate
+   	  self.OnBeforeUpdate(self)
+
+      If self.ClearLayer
+        SetFillStyle(#FILLCOLOR)
+        Box(0, 0, layer_width, layer_height, self.ClearColor)
+      EndIf
+
+      Local tmpclip = CreateClipRegion(Nil, #BOX, self.Margins.Left, self.Margins.Top, layer_width - self.Margins.Left - self.Margins.Right, layer_height - self.Margins.Top - self.Margins.Bottom )
+      SetClipRegion(tmpclip)
+
+      DisplayBrush(self.Private.Buffer, self.Private.ScrollPos + self.Offset.x, self.Offset.y)
+
+      FreeClipRegion(tmpclip)
+
+      ; OnAfterUpdate
+      self.OnAfterUpdate(self)
+
+    EndIf
+    
+    GFX.OutputDevice.EndSelect()
+
+  ElseIf self.Direction = #SLT_DIR_VERTICAL ; ---------------------------------
+    ;--- Vertical ---
+    GFX.OutputDevice.Select(#LAYER, self.Layer, #SELMODE_NORMAL)
+	    If SLT.Data.RenderMode = #SLT_RENDERMODE_DIRECT
+        Local text_width   = self.maxWidth
+        Local text_lines   = TB.Count(self.Content)
+        Local line_height  = TextHeight("|") + self.Interline
+        Local text_height  = text_lines * line_height
+
+	      ;--- Direct Rendering ---
+	      ; OnBeforeUpdate
+        self.OnBeforeUpdate(self)
+
+   	    If self.ClearLayer
+   	      SetFillStyle(#FILLCOLOR)
+   	      Box(0, 0, layer_width, layer_height, self.ClearColor)
+   	    EndIf
+
+        self.Font:Apply()
+
+ 	      Local tmpclip = CreateClipRegion(Nil, #BOX, self.Margins.Left, self.Margins.Top, layer_width - self.Margins.Left - self.Margins.Right, layer_height - self.Margins.Top - self.Margins.Bottom )
+ 	      SetClipRegion(tmpclip)
+
+ 	      For Local i = 1 To text_lines
+          TextOut(self.Offset.x + self.margins-left, self.margins.top + self.Private.ScrollPos + self.Offset.y + (i-1) * line_height, self.Content[i-1], txtParams)
+ 	      Next
+
+        FreeClipRegion(tmpclip)
+
+        ; OnAfterUpdate
+	      self.OnAfterUpdate(self)
+
+      Else
+ 	      ;--- Buffered Rendering ---
+        ; OnBeforeUpdate
+ 	      self.OnBeforeUpdate(self)
+
+ 	      If self.ClearLayer
+          SetFillStyle(#FILLCOLOR)
+          Box(0, 0, layer_width, layer_height, self.ClearColor)
+ 	      EndIf
+
+ 	      Local tmpclip = CreateClipRegion(Nil, #BOX, self.Margins.Left, self.Margins.Top, layer_width - self.Margins.Left - self.Margins.Right, layer_height - self.Margins.Top - self.Margins.Bottom )
+ 	      SetClipRegion(tmpclip)
+
+ 	      DisplayBrush(self.Private.Buffer, self.Offset.x, self.Private.ScrollPos + self.Offset.y)
+
+        FreeClipRegion(tmpclip)
+
+        ; OnAfterUpdate
+ 	      self.OnAfterUpdate(self)
+
+	    EndIf
+  
+    GFX.OutputDevice.EndSelect()
+
+  EndIf
+
+EndFunction
+
+Function SLT.TaskObject:Update()
+/********************************************************************
+result = SLT.TaskObject:Update()
+
+This method is called automatically by the engine, but it's ok to call
+it by yourself especially if you have switched off the automatic update.
+Here are handled the onbounce and onloop events.
+
+OUTPUT
+  result : False if the task is paused, is ended or there is no need
+           for an update.
+********************************************************************/
+  Local rtt = StartTimer(Nil)
+  
+  ; Check the task state
+  If self.Private.State = #SLT_TASKSTATE_PAUSED
+    ; If paused do nothing
+    Return(False)
+
+  ElseIf self.Private.State = #SLT_TASKSTATE_ENDED
+    ; If ended remove the task
+    self:Remove()
+    Return(False)
+
+  EndIf
+
+  ; Check if it's time to update the task
+  If GetTimer(SLT.Data.TimerID) < self.Private.NxUpdate Then Return(False)
+
+  ; Apply it's oen font and update the object
+  self.Font:Apply()
+  Local text_width   = self.maxWidth
+  Local text_lines   = TB.Count(self.Content)
+  Local text_height  = text_lines * (TextHeight("|") + self.interline)
+  Local layer_width  = GetAttribute(#LAYER, self.Layer, #ATTRWIDTH)
+  Local layer_height = GetAttribute(#LAYER, self.Layer, #ATTRHEIGHT)
+
+  Switch self.Direction
+    Case #SLT_DIR_VERTICAL
+	    If layer_height >= text_height
+        If Not(self.ScrollAlways)
+          self:Draw()
+          Return(False)
+          
+        EndIf
+        
+	    EndIf
+
+    Case #SLT_DIR_HORIZONTAL
+	    If layer_width >= text_width
+	      If Not(self.ScrollAlways)
+          self:Draw()
+          Return(False)
+          
+        EndIf
+        
+	    EndIf
+      
+  EndSwitch
+
+  ; Check if scrolling if over
+  Switch self.Direction
+    Case #SLT_DIR_VERTICAL
+	    ;--- Vertical Scrolling ---
+	    Local end_pos = 0
+
+	    ; Calculate ending position
+	    If self.StartingPos = #SLT_START_END
+        If self.Speed > 0
+	        ; END + DOWN->UP
+	        end_pos = text_height
+          
+	       Else
+	        ; END + UP->DOWN
+	        end_pos = layer_height
+          
+	       EndIf
+         
+	    Else
+	      If self.Speed > 0
+	        ; BEGIN + DOWN->UP
+	        end_pos = IIf(self.Bounce, text_height - layer_height, text_height)
+          
+	      Else
+	        ; BEGIN + UP->DOWN
+	        end_pos = IIf(self.Bounce, 0, layer_height)
+          
+	      EndIf
+        
+	    EndIf
+
+	    If self.Speed > 0
+	      ;--- SCROLLING RIGHT --> LEFT --------------------------------------
+	      If -self.Private.ScrollPos > end_pos
+	        ; Scrolling finished
+
+	        ; Check if we have to LOOP
+	        If self.Loop
+	          If self.StartingPos = #SLT_START_END
+	            ; Loop from END
+	            self.Private.ScrollPos = layer_height
+              
+	          Else
+	            ; Loop from BEGIN
+	            self.Private.ScrollPos = layer_height
+              
+	          EndIf
+
+            ; OnLoop
+	          self.OnLoop(self)
+		        Return(True)
+
+          ElseIf self.Bounce
+   		      ; Check if we have to BOUNCE
+   		      self.speed = -self.speed
+
+            ; OnBounce
+   		      self.OnBounce(self)
+            Return(True)
+
+          EndIf
+
+   	      ; No BOUNCE and no LOOP, the task is ENDED
+   	      self.Private.State = #SLT_TASKSTATE_ENDED
+   	      
+          ; OnEnd
+          self.OnEnd(self)
+
+          self:Remove()
+   	      Return(False)
+
+   	    EndIf
+
+   	  Else
+   	    ;--- SCROLLING LEFT >>> RIGHT --------------------------------------
+   	    If self.Private.ScrollPos > end_pos
+   	      ; Scrolling finished
+
+   	      ; Check if we have to LOOP
+   	      If self.Loop
+   		      If self.StartingPos = #SLT_START_END
+   		        ; Loop from END
+   		        self.Private.ScrollPos = -text_width
+              
+   		      Else
+   		        ; Loop from BEGIN
+   		        self.Private.ScrollPos = -text_width
+              
+   		      EndIf
+
+            ; OnLoop
+   		      self.OnLoop(self)
+   		      Return(True)
+
+          ElseIf self.Bounce
+   		      ; Check if we have to BOUNCE
+   		      self.speed = -self.speed
+
+            ; OnBounce
+   		      self.OnLoop(self)
+   		      Return(True)
+
+          EndIf
+
+   	      ; No LOOP and no BOUNCE, task is ENDED
+   	      self.Private.State = #SLT_TASKSTATE_ENDED
+   	      
+          ; OnEnd
+          self.OnLoop(self)
+
+   	      self:Remove()
+   	      Return(False)
+
+   	    EndIf
+
+   	  EndIf
+
+
+    Case #SLT_DIR_HORIZONTAL
+	    ;--- HORIZONTAL SCROLLING ---------------------------------------------
+	    Local end_pos    = 0
+
+	    ; Calculate ending position
+	    If self.StartingPos = #SLT_START_END
+	      If self.Speed > 0
+	        ; END + RIGHT->LEFT
+	        end_pos = text_width
+          
+	      Else
+	        ; END + LEFT->RIGHT
+	        end_pos = layer_width
+          
+	      EndIf
+        
+	    Else
+	      If self.Speed > 0
+	        ; BEGIN + RIGHT->LEFT
+	        end_pos = IIf(self.Bounce, -(layer_width - text_width - self.Margins.Right), text_width)
+          
+	      Else
+	        ; BEGIN + LEFT->RIGHT
+	        end_pos = IIf(self.Bounce, self.Margins.Left, layer_width)
+          
+	      EndIf
+        
+	    EndIf
+
+	    If self.Speed > 0
+	      ;--- SCROLLING RIGHT --> LEFT --------------------------------------
+	      If -self.Private.ScrollPos >= end_pos
+	        ; Scrolling finished
+
+	        ; Check if we have to LOOP
+	        If self.Loop
+		        If self.StartingPos = #SLT_START_END
+		          ; Loop from END
+		          self.Private.ScrollPos = layer_width
+              
+            Else
+		          ; Loop from BEGIN
+		          self.Private.ScrollPos = layer_width
+              
+		        EndIf
+
+            ; OnLoop
+		        self.OnLoop(self)
+            Return(True)
+
+          ElseIf self.Bounce
+		        ; Check if we have to BOUNCE
+		        self.speed = -self.speed
+
+            ; OnBounce
+		        self.OnBounce(self)
+            Return(True)
+          EndIf
+
+	        ; No BOUNCE and no LOOP, the task is ENDED
+	        self.Private.State = #SLT_TASKSTATE_ENDED
+	        
+          ; OnEnd
+          self.OnEnd(self)
+
+	        self:Remove()
+	        Return(False)
+
+        EndIf
+
+	    Else
+	      ;--- SCROLLING LEFT >>> RIGHT --------------------------------------
+	      If self.Private.ScrollPos >= end_pos
+	        ; Scrolling finished
+
+	        ; Check if we have to LOOP
+	        If self.Loop
+		        If self.StartingPos = #SLT_START_END
+		          ; Loop from END
+		          self.Private.ScrollPos = -text_width
+              
+		        Else
+		          ; Loop from BEGIN
+		          self.Private.ScrollPos = -text_width
+              
+		        EndIf
+
+            ; OnLoop
+            self.OnLoop(self)
+            Return(True)
+
+          ElseIf self.Bounce
+		        ; Check if we have to BOUNCE
+		        self.speed = -self.speed
+
+            ; OnBounce
+		        self.OnLoop(self)
+            Return(True)
+            
+          EndIf
+
+	        ; No LOOP and no BOUNCE, task is ENDED
+	        self.Private.State = #SLT_TASKSTATE_ENDED
+	        
+          ; OnEnd
+          self.OnLoop(self)
+
+	        self:Remove()
+	        Return(False)
+
+        EndIf
+
+	    EndIf
+
+      Default
+        Return(False)
+
+  EndSwitch
+
+  ; Continue to scroll text
+  self.Private.ScrollPos = self.Private.ScrollPos - self.Speed
+
+  ; Draw it
+  self:Draw()
+
+  ; The FX is still running, update the timer
+  Local renderingTime   = GetTimer(rtt)
+  self.Private.NxUpdate = GetTimer(SLT.Data.TimerID) + self.UpdFreq + SLT.Data.Upd_Freq
+  StopTimer(rtt)
+   
+  Return(True, renderingTime)
+
+EndFunction
+
+Function SLT.TaskObject:Remove()
+/********************************************************************
+SLT.TaskObject:Remove()
+
+This method free all resources used by task and remove the task itself.
+This method handles the onend event. Removing a task will call the onend
+func if there is one.
+
+********************************************************************/
+  DBG.Console.Out("SLT.TaskObject:Remove() -> " .. self.Name, DBG.OpenFunc, SLT.DebugChannel)
+
+  ; Remove the Task from the list
+  SLT.Tasks[self.Name] = Nil
+
+  ; OnEnd event
+  self.OnEnd(self)
+
+  ; Check if we have to free the buffer
+  If TB.Item.Exists(self.Private, "buffer")
+    FreeBrush(self.Private.Buffer)
+    self.Private.Buffer = Nil
+    
+  EndIf
+
+  ; Update the task counter
+  SLT.Data.TasksCount = SLT.Data.TasksCount - 1
+
+  DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+  Return(True)
+
+EndFunction
+
+
+Function SLT.TaskObject:Pause()
+/********************************************************************
+result = SLT.TaskObject:Pause()
+
+Use this method to put the task in pause mode. Once in this state, even
+if you call the update method nothing will happen.
+You can unpause the task with the method SLT.TaskObject:Resume()
+
+OUTPUT
+  result : True if the task was paused, False if the task is already
+           paused.
+********************************************************************/
+  DBG.Console.Out("SLT.TaskObject.Pause() -> " .. self.Name, DBG.OpenFunc, SLT.DebugChannel)
+
+  If self.Private.State = #SLT_TASKSTATE_PAUSED
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(False)
+    
+  Else
+    self.Private.State = #SLT_TASKSTATE_PAUSED
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(True)
+    
+  EndIf
+
+EndFunction
+
+
+Function SLT.TaskObject:Resume()
+/********************************************************************
+result = SLT.TaskObject:Resume()
+
+Use this method to resume a previously paused task.
+
+OUTPUT
+  result : True if the task has been resumed, False if the task
+           was not paused.
+********************************************************************/
+  DBG.Console.Out("SLT.TaskObject.Resume() -> " .. self.Name, DBG.OpenFunc, SLT.DebugChannel)
+
+  If self.Private.State <> #SLT_TASKSTATE_PAUSED
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(False)
+    
+  Else
+    self.Private.State = #SLT_TASKSTATE_RUNNING
+    DBG.Console.Out(Nil, DBG.CloseFunc, SLT.DebugChannel)
+    Return(True)
+    
+  EndIf
+
+EndFunction
+
+
+
+/* -----------------------------------------------------------------------------
+  END CLASS
+  ----------------------------------------------------------------------------- */
+
+Function SLT.TEST_01()
+    ; Here is a simple test to show how to use the sliding text
+    ; class.
+    ; -----------------------------------------------------
+    
+    ; First of all we need to initialize it
+    SLT.Init(
+      { upd_freq   = 5,                         ; Excute an update every 5 ms
+        renderMode = #SLT_RENDERMODE_PRECALC,   ; Use the PRECAL rendering mode, you can use also the DIRECT mode
+        OnNoTask   = Function() End EndFunction ; When all task are terminated you can execute a function
+        })
+    
+    ; This system uses layers, so let's enable them
+    EnableLayers()
+    
+    ; Now we are goin to create some layers we will use
+    ; to put our scrollers on
+    CreateLayer(50, 50, 400, 96, 
+      { name         = "box_1",
+        alphachannel = True,
+        color        = #WHITE
+        })
+    CreateLayer(150, 150, 400, 20, 
+      { name         = "box_2",
+        alphachannel = False,
+        color        = #GREEN
+        })
+    CreateLayer(50, 250, 400, 200, 
+      { name         = "box_3",
+        alphachannel = True,
+        color        = #RED
+        })
+    
+    ; -------------------------------------------------
+    ; We want to move & rotate the layer 'box_1' around
+    ; -------------------------------------------------
+    Global box1_xstep, box1_astep, box1_angle = 1, 0.25, 0
+    SetInterval(1, Function(msg) 
+                     Local lName = msg.UserData
+                     Local px = GetAttribute(#LAYER, lName, #ATTRXPOS)
+                     Local py = GetAttribute(#LAYER, lName, #ATTRYPOS)
+                     px = px + box1_xstep
+                     box1_angle = box1_angle + box1_astep
+                     If px > 640-400 Or px < 0
+                       box1_xstep = -box1_xstep
+                     EndIf
+                     If box1_angle > 10 Or box1_angle < -10
+                       box1_astep = -box1_astep
+                     EndIf
+                     ShowLayer(lName, px, py)
+                     RotateLayer(lName, box1_angle, True)
+                   EndFunction, 50, "box_1")
+
+    ; -------------------------------------------------
+    ; We want to zoom in/out the layer 'box_2'
+    ; -------------------------------------------------
+    Global box2_zoom, box2_zstep = 1, 0.01
+    SetInterval(2, Function(msg) 
+                     Local lName = msg.UserData
+                     Local w = GetAttribute(#LAYER, lName, #ATTRWIDTH)
+                     Local h = GetAttribute(#LAYER, lName, #ATTRHEIGHT)
+                     box2_zoom = box2_zoom + box2_zstep
+                     If box2_zoom > 3 Or box2_zoom < 1
+                       box2_zstep = -box2_zstep
+                     EndIf
+                     ScaleLayer(lName, w, h*box2_zoom, True)
+                   EndFunction, 25, "box_2")
+                   
+    ; -----------------------------------
+    ; TASK 1, Scroller on the BOX_1 Layer
+    ; -----------------------------------
+    SLT.TaskObject:New(
+      { ; Target Layer
+        layer = "box_1",
+        
+        ; The text to scroll
+        content = { "Hello!",
+                    "This is a simple test to show a scrolling text rendered into a layer...", 
+                    "This is the second line...", 
+                    "third", 
+                    "fourth..." },
+        ; Offsets to adjust the text position
+        offsetX = 0, offsetY = 0,
+        
+        ; Scroll starting position
+        startingPos = #SLT_START_END, ; _END
+        
+        ; Text Alignment
+        align = #SLT_ALIGN_LEFT,
+        
+        ; Scroll even the text fits?
+        ScrollAlways = True,
+        
+        ; Adjust the space between the lines
+        interline = 4,
+        
+        ; Wordwrap the text?
+        autowordwrap = False,
+        
+        ; Font object
+        Font = GFX.Font:New({ Name = #SANS, 
+                              Size = 16, 
+                              Antialias = True, 
+                              Edge = True,
+                              EdgeThikness = 3 }),
+
+        onAfterUpdate =
+          Function(msg)
+            ; We want to print the x & y coordinates in the
+            ; scrolling box
+            ; It will will rendered on top of the layer contents
+            ; ---------------------------------
+            ; Read the layer name
+            Local lName = msg.Layer
+            
+            ; Read the coordinate
+            Local x = GetAttribute(#LAYER, lName, #ATTRXPOS)
+            Local y = GetAttribute(#LAYER, lName, #ATTRYPOS)
+            
+            SetFont(#SANS, 14)
+            SetFontStyle(#ANTIALIAS)
+            
+            ; We can render directly into the layer with this event
+            TextOut(#LEFT, #BOTTOM, "(" .. x .. "," .. y ..")", { Color = $00FF00 })
+            
+          EndFunction,
+          
+        OnBeforeUpdate =
+          Function(msg)
+            ; We want to print a big text on the background
+            ; It will will rendered behind of the layer contents
+            ; ---------------------------------
+            ; Read the layer name
+            Local lName = msg.Layer
+            
+            SetFont(#SANS, 50)
+            SetFontStyle(#ANTIALIAS)
+            
+            ; We can render directly into the layer with this event
+            TextOut(#CENTER, #CENTER, "BACKGROUND", { Color = $FFFFFF })
+            
+          EndFunction,
+        
+        ; Let the text bounce (loop must be False)
+        bounce = True,
+        
+        ; Loop the scroller (set to False if you are using Bounce)
+        loop = False,
+        
+        ; Scrolling direction
+        direction = #SLT_DIR_HORIZONTAL, ;_VERTICAL,
+        
+        ; Scrolling Speed
+        speed = 0.5,
+
+        ; Clear the layer at each update?
+        clearlayer = True,
+        
+        ; Clear color
+        clearcolor = $C0005050,
+        
+        ; Additional time to the defaut update reate
+        updfreq = 0,
+        
+        ; Text margins
+        margins = 
+          { left = 15, right = 15 }
+        })
+
+    ; -----------------------------------
+    ; TASK 2, Scroller on the BOX_2 Layer
+    ; -----------------------------------
+    SLT.TaskObject:New(
+      { ; Target Layer
+        layer = "box_2",
+        
+        ; The text to scroll
+        content = { "This is another example of a scrolling text inside a layer :) ... Only one line this time!" },
+        
+        ; Offsets to adjust the text position
+        offsetX = 0, offsetY = 0,
+        
+        ; Scroll starting position
+        startingPos = #SLT_START_END, ; _END
+        
+        ; Text Alignment
+        align = #SLT_ALIGN_LEFT,
+        
+        ; Scroll even the text fits?
+        ScrollAlways = True,
+        
+        ; Adjust the space between the lines
+        interline = 4,
+        
+        ; Wordwrap the text?
+        autowordwrap = False,
+        
+        ; Font object
+        Font = GFX.Font:New({ Name = #SANS, 
+                              Size = 20, 
+                              Antialias = True, 
+                              Shadow = True,
+                              ShadowColor = $000000 }),
+        
+        ; Let the text bounce (loop must be False)
+        bounce = False,
+        
+        ; Loop the scroller (set to False if you are using Bounce)
+        loop = True,
+        
+        ; Scrolling direction
+        direction = #SLT_DIR_HORIZONTAL, ;_VERTICAL,
+        
+        ; Scrolling Speed
+        speed = 0.75,
+
+        ; Clear the layer at each update?
+        clearlayer = True,
+        
+        ; Clear color
+        clearcolor = $C0505000,
+        
+        ; Additional time to the defaut update reate
+        updfreq = 0,
+        
+        ; Text margins
+        margins = 
+          { left = 5, right = 5 }
+        })
+
+    ; -----------------------------------
+    ; TASK 3, Scroller on the BOX_3 Layer
+    ; -----------------------------------
+    SLT.TaskObject:New(
+      { ; Target Layer
+        layer = "box_3",
+        
+        ; The text to scroll
+        content = { "This a vertical scroller text, the text is wordwrappet automatically depending on the rendering area size, so you do not have to handle it manually, scrolling text is always nice to see and this library renders the text into layer to have more flexibility because you can still use all the features available with Hollywood layers!" },
+        
+        ; Offsets to adjust the text position
+        offsetX = 0, offsetY = 0,
+        
+        ; Scroll starting position
+        startingPos = #SLT_START_END, ; _END
+        
+        ; Text Alignment
+        align = #SLT_ALIGN_BOTTOM,
+        
+        ; Scroll even the text fits?
+        ScrollAlways = True,
+        
+        ; Adjust the space between the lines
+        interline = 4,
+        
+        ; Wordwrap the text?
+        autowordwrap = True,
+        
+        ; Font object
+        Font = GFX.Font:New({ Name = #SANS, 
+                              Size = 22, 
+                              Antialias = True, 
+                              Edge = True,
+                              EdgeColor = $FF0000 }),
+        
+        ; Let the text bounce (loop must be False)
+        bounce = False,
+        
+        ; Loop the scroller (set to False if you are using Bounce)
+        loop = True,
+        
+        ; Scrolling direction
+        direction = #SLT_DIR_VERTICAL, ;_VERTICAL,
+        
+        ; Scrolling Speed
+        speed = 1,
+
+        ; Clear the layer at each update?
+        clearlayer = True,
+        
+        ; Clear color
+        clearcolor = $E0500095,
+        
+        ; Additional time to the defaut update reate
+        updfreq = 0,
+        
+        ; Text margins
+        margins = 
+          { left = 5, right = 5, top = 5, bottom = 5 }
+        })
+
+    Repeat
+      WaitEvent()
+      
+    Forever
+    
+EndFunction
+  
+Function SLT.TEST_02()
+    ; This shows how to use the update events to update the background and
+    ; the foreground dynamically.
+
+    ; First of all we need to initialize it
+    SLT.Init(
+      { upd_freq   = 5,                         ; Excute an update every 5 ms
+        renderMode = #SLT_RENDERMODE_DIRECT,    ; Use the DIRECT rendering mode
+        OnNoTask   = Function() End EndFunction ; When all task are terminated you can execute a function
+        })
+    
+    ; This system uses layers, so let's enable them
+    EnableLayers()
+    
+    ; We need a layer for our player deck
+    Local width, height = 300, 100
+    CreateLayer(#CENTER, #CENTER, width, height,
+      { name         = "layer",
+        alphachannel = True,
+        color        = #BLACK })
+
+    ; For the background we will put a snow effect
+    Local snow =
+      { updFreq = 10,   ; Snow frequency
+        updCnt  =  0,   ; Frequency counter
+        flakes  = {}    ; All snow flakes are here
+        }
+        
+    ; For the foreground we will use a scanner effect
+    Local scan =
+      { py = 0,
+        px = 0,
+        ystep = 0.5,
+        xstep = 1 }
+    
+    ; Let's define a function to update the background
+    Local updateSnow = Function()
+                         If snow.updCnt < snow.updFreq
+                           ; Not time for a new flake
+                           snow.updCnt = snow.updCnt + 1
+                           
+                         Else
+                           ; Generate a new flake
+                           InsertItem(snow.flakes, { x = Rnd(width), y = 0 })
+                           snow.updCnt = 0
+                           
+                         EndIf
+                         
+                         
+                         
+                         ; Update the flakes
+                         SetFillStyle(#FILLCOLOR)
+                         Box(0, 0, width, height, $E8333333)
+                         
+                         Local toRemove = {}
+                         For Local i = 0 To ListItems(snow.flakes)-1
+                           Local flake = snow.flakes[i]
+                           Local direction = IIf(Rnd(10)>3, 1, -1)
+                           flake.x = flake.x + direction/2
+                           flake.y = flake.y + 1/4
+                           Plot(flake.x, flake.y, $FFFFFF)
+                           If flake.y > height
+                             InsertItem(toRemove, i)
+                           EndIf
+                         Next
+                         
+                         For Local i = 0 To ListItems(toRemove)-1
+                           RemoveItem(snow.flakes, toRemove[i])
+                         Next
+                         
+                       EndFunction
+    
+    Local updateScanner = Function()
+
+                            If scan.py > height Or scan.py < 0 Then scan.ystep = -scan.ystep
+                            if scan.px > width Or scan.px < 0 Then scan.xstep = -scan.xstep
+                            
+                            scan.py = scan.py + scan.ystep
+                            scan.px = scan.px + scan.xstep
+                            
+                            SetFillStyle(#FILLCOLOR)
+                            Box(0, scan.py-2, width, 5, $FF0000)
+                            Box(scan.px-2, 0, 5, height, $0000FF)
+                            
+                            SetFillStyle(#FILLNONE)
+                            Box(scan.px-15, scan.py-15, 30, 30, $00FF00)
+                            
+                          EndFunction
+                          
+    SLT.TaskObject:New(
+      { ; Target Layer
+        layer = "layer",
+        
+        ; The text to scroll
+        content = { "Now playing [COLOR=$FFFF00]What a wonderful world[/COLOR] by Louis Armstrong..." },
+        ; Offsets to adjust the text position
+        offsetX = 0, 
+        offsetY = 40,
+        
+        ; Scroll starting position
+        startingPos = #SLT_START_END, ; _END
+        
+        ; Text Alignment
+        align = #SLT_ALIGN_LEFT,
+        
+        ; Scroll even the text fits?
+        ScrollAlways = True,
+        
+        ; Wordwrap the text?
+        autowordwrap = False,
+        
+        ; Font object
+        Font = GFX.Font:New({ Name = #SANS, 
+                              Size = 26, 
+                              Antialias = True, 
+                              Edge = True,
+                              EdgeThikness = 3 }),
+
+        onAfterUpdate = updateScanner,
+        
+        OnBeforeUpdate = updateSnow,
+        
+        ; Let the text bounce (loop must be False)
+        bounce = False,
+        
+        ; Loop the scroller (set to False if you are using Bounce)
+        loop = True,
+        
+        ; Scrolling direction
+        direction = #SLT_DIR_HORIZONTAL, ;_VERTICAL,
+        
+        ; Scrolling Speed
+        speed = 0.5,
+
+        ; Clear the layer at each update?
+        clearlayer = False, ; We handle it manually
+        
+        ; Clear color
+        clearcolor = $C0005050,
+        
+        ; Additional time to the defaut update reate
+        updfreq = 0,
+        
+        ; Text margins
+        margins = 
+          { left = 0, right = 0, top = 0, bottom = 0 }
+        })
+    
+    Repeat
+      WaitEvent()
+      
+    Forever
+    
+EndFunction
+  
+  
+;SLT.TEST_01()
+;SLT.TEST_02()
+
+; CHANGELOG
+; 2.1 - 05/10/2020 : Optimization, bug fixes, examples
