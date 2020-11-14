@@ -2,8 +2,8 @@
  * ANSI SUPPORT LIBRARY                                             *
  * Author  : Fabio Falcucci (Allanon)                               *
  * License : Donationware                                           *
- * Version : 1.3                                                    *
- * Release : 04.08.2020                                             *
+ * Version : 1.4                                                    *
+ * Release : 10.09.2020                                             *
  * Dependancies : -                                                 *
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
@@ -61,6 +61,10 @@
  
  CHANGE LOG
  ----------
+ 1.4
+    Term.App:_FixedWidth(txt, size, align)
+      Added support for center alignment
+
  1.3
     Several improvements in terminal functions
 
@@ -1440,7 +1444,8 @@ Function Term.App:MenuAdd(name, items)
 EndFunction
 
 Function Term.App:_FixedWidth(txt, size, align)
-  ; align 1, 0, -1
+
+  ; align 1, 0, -1 -> left, center, right
   If IsNil(align) Then align = 1
   
   Local l = StrLen(txt)
@@ -1452,6 +1457,10 @@ Function Term.App:_FixedWidth(txt, size, align)
     ElseIf align = -1
       txt = "«" .. LeftStr(txt, size-1)
       
+    ElseIf align = 0
+      Local exc = Int((l-size)/2)
+      txt = "«" .. MidStr(txt, exc, size-2) .. "»"
+      
     EndIf
     
   ElseIf l < size
@@ -1460,6 +1469,10 @@ Function Term.App:_FixedWidth(txt, size, align)
       
     ElseIf align = -1
       txt = RepeatStr(" ", size-l-1) .. txt
+      
+    ElseIf align = 0
+      Local half = (size-l)/2
+      txt = RepeatStr(" ", half) .. txt .. RepeatStr(" ", half)
       
     EndIf
     
