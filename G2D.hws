@@ -65,6 +65,9 @@
  :: BG Picture ::
  G2D.BGPic.CreateSkinned()
  
+ CHANGE LOG
+ ==========
+ 12/08/2020 : Fixed a bug in G2D.Area:SkinFitMin() method
  
  ********************************************************************/
 
@@ -1225,8 +1228,8 @@ OUTPUT
 
   ;::: BORDERS :::
   If HL.IsNotNil(Border)
-    Cls(Border)
-    
+    self:FillColor(Border)
+
     SetFillStyle(#FILLCOLOR)
     Local deltay = (self.h - h) / 2
     Local deltax = (self.w - w) / 2
@@ -1289,6 +1292,7 @@ OUTPUT
   
   DisplayBrush(tmpBrush, self.x + ox, self.y + oy)
   SetClipRegion(#NONE)
+  
   FreeClipRegion(cid)
 
   ; Free the resources
@@ -1926,12 +1930,12 @@ OUTPUT
   Local newHeight = GetAttribute(#BRUSH, tmpBrush, #ATTRWIDTH)
   Local factor = newHeight/oldHeight
   
-  sectors.left.start    = Round(sectors.left.start * factor)
-  sectors.left.size     = Round(sectors.left.size * factor)
-  sectors.middle.start = Round(sectors.middle.start * factor)
-  sectors.middle.size  = Round(sectors.middle.size * factor)
-  sectors.right.start = Round(sectors.right.start * factor)
-  sectors.right.size  = Round(sectors.right.size * factor)
+  sectors.left.start    = Round(sectors.left.start * factor+0.5)
+  sectors.left.size     = Round(sectors.left.size * factor+0.5)
+  sectors.middle.start = Round(sectors.middle.start * factor+0.5)
+  sectors.middle.size  = Round(sectors.middle.size * factor+0.5)
+  sectors.right.start = Round(sectors.right.start * factor+0.5)
+  sectors.right.size  = Round(sectors.right.size * factor+0.5)
 
   ;::: LEFT :::
   DisplayBrushPart(tmpBrush, sectors.left.start, 0, self.x, self.y, sectors.left.size, self.h)
@@ -1943,7 +1947,7 @@ OUTPUT
 
   If vadapt
     ; stretch fill
-    middle:skinStretch(mBrush, { x = 0, y = 0 }, alpha, 2)
+    middle:skinStretch(mBrush, { x = 0, y = 0 }, alpha, 0)
   Else
     ; fill pattern
     middle:skinHPattern(mBrush, { x = 0, y = 0 }, alpha)
@@ -2055,7 +2059,7 @@ OUTPUT
   If sectors.vmiddle.start < 0 Then sectors.vmiddle.start = 0
   CropBrush(tmp2, sectors.left.start, sectors.vmiddle.start, sectors.left.size, sectors.vmiddle.size)
   If vadapt
-    tarea:skinStretch(tmp2, { x = 0, y = 0 }, alpha, 1)
+    tarea:skinStretch(tmp2, { x = 0, y = 0 }, alpha, 0)
   Else
     tarea:skinVPattern(tmp2, { x = 0, y = 0 }, alpha)
   EndIf
@@ -2070,7 +2074,7 @@ OUTPUT
   If sectors.right.start < 0 Then sectors.right.start = 0
   CropBrush(tmp2, sectors.right.start, sectors.vmiddle.start, sectors.right.size, sectors.vmiddle.size)
   If vadapt
-    tarea:skinStretch(tmp2, { x = 0, y = 0 }, alpha, 1)
+    tarea:skinStretch(tmp2, { x = 0, y = 0 }, alpha, 0)
   Else
     tarea:skinVPattern(tmp2, { x = 0, y = 0 }, alpha)
   EndIf
@@ -2090,14 +2094,15 @@ OUTPUT
   tarea:skinHPattern3S(tmp2, tsectors, alpha, vadapt)
   FreeBrush(tmp2)
 
-  ;::: INTERNAL AREA :::
+  ;::: MIDDLE AREA :::
   ; 18/07/2019 : Ho modificato l'area rimuovendo i margini -1 sulle coord e +2 sulle dimensioni
   ;              perchè causavano glitch nel rendering.
-  Local tarea    = G2D.Area:new(self.x + sectors.left.size, self.y + sectors.top.size, self.w - sectors.left.size - sectors.right.size, self.h - sectors.top.size - sectors.bottom.size)
+  ; 12/08/2020 : Rimesso perchè c'erano altri glitch -_-'
+  Local tarea    = G2D.Area:new(self.x + sectors.left.size-1, self.y + sectors.top.size-1, self.w - sectors.left.size - sectors.right.size+2, self.h - sectors.top.size - sectors.bottom.size+2)
   Local tmp2     = CopyBrush(tmpBrush, Nil)
   CropBrush(tmp2, sectors.hmiddle.start, sectors.vmiddle.start, sectors.hmiddle.size, sectors.vmiddle.size)
   If vadapt
-    tarea:skinStretch(tmp2, { x = 0, y = 0 }, alpha, 3)
+    tarea:skinStretch(tmp2, { x = 0, y = 0 }, alpha, 2)
   Else
     tarea:skinPattern(tmp2, { x = 0, y = 0 }, alpha)
   EndIf
