@@ -5,8 +5,8 @@
  * Dependancies : HELPERS, EASING Libraries                               *
  * PayPal Support : hijoe@tin.it                                          *
  * Patreon Support : https://www.patreon.com/Allanon71                    *
- * Version : 1.4                                                          *
- * Release : 02.05.2020                                                   *
+ * Version : 1.5                                                          *
+ * Release : 14.11.2020                                                   *
  *-------------------------------------------------------------------------
  *
  *   Tables library is an include file for Hollywood with many
@@ -21,6 +21,7 @@
  TB.Item.Comapare()
  TB.Item.Exists()
  TB.Item.Find()
+ TB.Item.DeepFind()
  TB.Item.IsNil()
  
  :: TABLE CONVERSIONS ::
@@ -53,6 +54,7 @@
 @INCLUDE "+Includes.hws"
 @INCLUDE #INC_HELPERS
 @INCLUDE #INC_EASING
+;@INCLUDE #INC_DEBUG
 
 Global TB = {}
        TB.Item    = {}
@@ -573,6 +575,87 @@ Function TB.ReIndex(oldKey, newKey, source)
     newTable[v[newKey]][newKey] = Nil
   Next
   Return(newTable)
+EndFunction
+
+Function TB.Item.DeepFind(table, keyword, recflag)
+/******************************************************************************
+| subset = TB.Item.DeepFind(table, keyword)
+|
+| Returns a subset of the given 'table' if any of its fields match the given
+| 'keyword'. 'keyword' can contain matching patterns.
+|
+| INPUT
+|   table : Source table
+|   keyword : Value
+|   recflag : Is a flag used internally when recursion is ised
+|
+| OUTPUT
+|   subset : A table with all 'table' items with at least one matching field.
+|            the original index will be preserved.
+|
+| NOTE
+|   For string values you can use pattern matching conventions as follow:
+|    *  : Matches all characters.                
+|    ?  : Matches just a single character.
+|    #  : Matches all numbers. 
+|    [] : Matches one or several characters or a range of characters
+******************************************************************************/
+  
+  Local subset = {}
+  Local kType = GetType(keyword)
+  
+  Local i, v
+  For i, v In Pairs(table)
+    Local found = False
+    If GetType(v) = #TABLE
+      Local result = TB.Item.DeepFind(v, keyword, True)
+      If result
+        found = True
+        If recflag
+          Return(True)
+        EndIf
+      EndIf
+    
+    ElseIf GetType(v) = kType
+      If kType = #STRING
+        If MatchPattern(LowerStr(v), LowerStr(keyword))
+          found = True
+          If recflag
+            Return(True)
+          EndIf
+        EndIf
+      Else
+        If v = keyword
+          found = True
+          If recflag
+            Return(True)
+          EndIf
+        EndIf
+      EndIf
+      
+    ElseIf GetType(v) = #NUMBER
+      If kType = #STRING
+        If v = ToNumber(keyword)
+          found = True
+          If recflag
+            Return(True)
+          EndIf
+        EndIf
+      EndIf
+      
+    EndIf
+    
+    If found
+      subset[i] = v
+    EndIf
+  Next
+  
+  If recflag
+    Return(found)
+  Else
+    Return(subset)
+  EndIf
+  
 EndFunction
 
 Function TB.Item.Find(table, value, caseSensitive, exactString)
@@ -2088,6 +2171,30 @@ Function TB.TEST_Serialization()
   DebugPrompt("== HIT ENTER TO QUIT ==")
 EndFunction
 
+Function TB.TEST_DeepFind()
+
+  Local testTable =
+    { ["index0"] = 
+      { ["sayhello"] = "hello",
+        ["sayhi"]    = "hi",
+        [0] = 100,
+        [1] = 
+          { [100] = 1000,
+            [120] = 2000 },
+        ["saywow"] = "Wow!",
+        },
+      [0] =
+      { [5] = "five",
+        [8] = "eight",
+        [0] =
+        { ["alpha"] = "ALFA" }
+        },
+      [1] = "one1" }
+      
+  Local k = "ALFA"
+  Local subset = TB.Item.DeepFind(testTable, k)
+
+EndFunction
 
 /* TEST AREA
    =========
@@ -2106,4 +2213,4 @@ EndFunction
 ;TB.TEST_Sort()
 ;TB.TEST_ReIndex()
 ;TB.TEST_ReplaceChars()
-
+;TB.TEST_DeepFind()
