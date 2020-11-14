@@ -53,14 +53,18 @@
  - GFX.ImageFX.AddFrame()
  - GFX.ImageFX.Reflex()
  - GFX.ImageFX.Scale()
+ 
  :: TEXT UTILITIES ::
  - GFX.Text.DeTagger()
  - GFX.Text.GetWidth()
  - GFX.Text.WordWrap()
+ - GFX.Text.ClipAlign()
  
  CHANGE LOG
  ----------
- 
+21/09/2020 : Added GFX.Text.ClipAlign()
+             Function to align text inside a clip region, supports
+             wordwrap by default.
  *********************************************************************/
 
 @INCLUDE "+Includes.hws"
@@ -388,7 +392,7 @@ NOTE
     If r
       ; Object creation
       Local obj = CopyTable(self)
-      obj.brush = LoadBrush(Nil, ImageFile, { LoadAlpha = d.Alpha, SmoothScale = True })
+      obj.brush = LoadBrush(Nil, ImageFile, { LoadAlpha = d.Alpha, SmoothScale = GFX.SmoothZoom })
       obj.alpha = d.Alpha
       obj.name  = ImageName
       obj.image = ImageFile
@@ -435,7 +439,7 @@ Reload an image object source.
     ; Free the current brush
     FreeBrush(self.brush)
 
-    self.brush = LoadBrush(Nil, self.Image, { LoadAlpha = d.Alpha, SmoothScale = True })
+    self.brush = LoadBrush(Nil, self.Image, { LoadAlpha = d.Alpha, SmoothScale = GFX.SmoothZoom })
 
     self.size.w = GetAttribute(#BRUSH, self.brush, #ATTRWIDTH)
     self.size.h = GetAttribute(#BRUSH, self.brush, #ATTRHEIGHT)
@@ -631,7 +635,7 @@ OUTPUT
   ; Process the cloned brush
   Local nb = 0
   If (direction = #GFX_REFLEXTOP) Or (direction = #GFX_REFLEXBOTTOM)
-    ScaleBrush(bc, GetAttribute(#BRUSH, image, #ATTRWIDTH), GetAttribute(#BRUSH, image, #ATTRHEIGHT)*scale, True)
+    ScaleBrush(bc, GetAttribute(#BRUSH, image, #ATTRWIDTH), GetAttribute(#BRUSH, image, #ATTRHEIGHT)*scale, GFX.SmoothZoom)
     TintBrush(bc, color, color_strenght)
     FlipBrush(bc, False)
 
@@ -757,9 +761,9 @@ INPUT
 
   ; Image scaling
   If IsSprite
-    ScaleSprite(image, scale_x, scale_y, True)
+    ScaleSprite(image, scale_x, scale_y, GFX.SmoothZoom)
   Else
-    ScaleBrush(image, scale_x, scale_y, True)
+    ScaleBrush(image, scale_x, scale_y, GFX.SmoothZoom)
   EndIf
 
   If ExactSize
@@ -1275,8 +1279,8 @@ OUTPUT
   Local ScreenH = GetAttribute(Output, Id, #ATTRHEIGHT) + 1
 
   ; Check display boundaries
-  If (xStart + Width)  > ScreenW Then Width  = ScreenW - xStart - 1
-  If (yStart + Height) > ScreenH Then Height = ScreenH - yStart - 1
+  If (xStart + Width)  >= ScreenW Then Width  = ScreenW - xStart - 1
+  If (yStart + Height) >= ScreenH Then Height = ScreenH - yStart - 1
 
   ; Adjust the clip region sizes
   If ((xStart + Width) =< 0)
@@ -1300,9 +1304,42 @@ OUTPUT
 	  yStart = yStart - 1
     If yStart < 0 Then yStart = 0
 	EndIf
-
+  
   ; Create the clip region and returns its id
   Return(CreateClipRegion(ClipID, Shape, xStart, yStart, Width, Height))
+  
+EndFunction
+
+Function GFX.Text.ClipAlign(clipId, txt, align, margins, wordwrap, hor_offset)
+  ; Align text in an active clip region
+  
+  ; Retrieve the current area size
+  Local x, y = GetAttribute(#CLIPREGION, clipId, #ATTRXPOS), GetAttribute(#CLIPREGION, clipId, #ATTRYPOS)
+  Local w, h = GetAttribute(#CLIPREGION, clipId, #ATTRWIDTH), GetAttribute(#CLIPREGION, clipId, #ATTRHEIGHT)
+  
+  ; WordWrap
+  Local t = { txt }
+  If wordwrap
+    t = GFX.Text.WordWrap(txt, w-margins*2)
+  EndIf
+  Local th = TextHeight("|")
+  
+  ; Draw the text
+  Local xt, yt = 0, y
+  
+  For i = 0 To ListItems(t)-1
+    Switch align
+      Case #LEFT
+        xt = x + margins + hor_offset
+      Case #RIGHT
+        xt = x + w - TextWidth(t[i]) - margins
+      Case #CENTER
+        xt = x + (w/2 - TextWidth(t[i]) / 2)
+    EndSwitch
+  
+    TextOut(xt, yt, t[i])
+    yt = yt + th
+  Next
   
 EndFunction
 
@@ -2101,9 +2138,9 @@ OUTPUT
   
 EndFunction
 
-Function GFX.Smooting(Mode) ; OBSOLETE
+Function GFX.Smoothing(Mode)
 /******************************************************************************
-GFX.Smooting(Enabled) ** OBSOLETE **
+GFX.Smoothing(Enabled)
 
 Set the global graphic smoothing used when brushes are scaled or zoomed.
 ---------------------------------------------------------------------
@@ -3288,6 +3325,20 @@ Function GFX.Test_FontObject()
   WaitLeftMouse()
   
 EndFunction
+
+
+
+/*
+Local x, y, w, h = 10, 10, 200, 30
+Local txt = "Questa è una prova..."
+Local c = CreateClipRegion(Nil, #BOX, x, y, w, h)
+SetClipRegion(c)
+Box(x, y, w, h, #RED)
+GFX.Text.ClipAlign(c, txt, #CENTER, 4)
+
+WaitLeftMouse()
+End
+*/
 
 /* TEST AREA
    =========
