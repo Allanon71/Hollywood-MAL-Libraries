@@ -2,8 +2,8 @@
  * JSON LIBRARY                                             *
  * Author  : Fabio Falcucci (Allanon)                               *
  * License : Donationware                                           *
- * Version : 1.3                                                    *
- * Release : 29.09.2020                                             *
+ * Version : 1.4                                                    *
+ * Release : 05.11.2020                                             *
  * Dependancies : Debug Lib                                                 *
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
@@ -30,6 +30,9 @@
  
  CHANGE LOG
  ----------
+ 1.4
+    Huge code optimization
+    Added func JSON.PerformanceTest() to measure performance & test
  1.3
     Fixed a bug in nested structures
  1.2
@@ -38,6 +41,16 @@
 */
 @INCLUDE "+Includes.hws"
 @INCLUDE #INC_DEBUG
+
+Const #JSON_DBLQ = "\""
+Const #JSON_SPC  = " "
+Const #JSON_NL1  = "\n"
+Const #JSON_NL2  = "\r"
+Const #JSON_TAB  = "\t"
+Const #JSON_OCP  = "{"
+Const #JSON_CCP  = "}"
+Const #JSON_OSP  = "["
+Const #JSON_CSP  = "]"
 
  ; 08/05/2018 : Added support fr escaped UTF-8 characters that uses
  ;              the \uXXXX escape sequence.
@@ -49,386 +62,399 @@
 Local JSON = {}
 JSON.DebugChannel  = "JSON"
 JSON.ErrorDecoding = False
+JSON.CHR92         = Chr(92)
 
-Function JSON._ReadObject(source, position)
-   ;::: Legge il primo oggetto che trova a partire dalla posizione data, un  :::
-   ;::: oggetto è delimitato dalle parentesi graffe.                         :::
+Function JSON._ReadObject(source, position) ; -
+  ;::: Legge il primo oggetto che trova a partire dalla posizione data, un  :::
+  ;::: oggetto è delimitato dalle parentesi graffe.                         :::
 
-;--   DBG.Console.Out("._ReadObject @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+  ; DBG.Console.Out("._ReadObject @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
 
-   Local result = {}
-   Local source_len = StrLen(source)
+  Local result = {}
+  Local source_len = JSON._sourceLen;StrLen(source)
+  Local ch = MidStr(source, position, 1)
+  While ch <> #JSON_OCP
+    position = position + 1
+    If position > source_len
+      DBG.Console.Out("Cannot found the opening marker '{'", DBG.Error, JSON.DebugChannel)
+      ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(result, position)
+    EndIf
+    ch = MidStr(source, position, 1)
+  Wend
 
-   While MidStr(source, position, 1) <> "{"
-      position = position + 1
-      If position > source_len
-         DBG.Console.Out("Cannot found the opening marker '{'", DBG.Error, JSON.DebugChannel)
-;--         DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-         Return(result, position)
-      EndIf
-   Wend
+  ;::: Adesso cerco l'inizio della chiave delimitata da doppi apici.        :::
+  ; DBG.Console.Out("Reading the first key:value pair...", Nil, JSON.DebugChannel)
 
-   ;::: Adesso cerco l'inizio della chiave delimitata da doppi apici.        :::
-;--   DBG.Console.Out("Reading the first key:value pair...", Nil, JSON.DebugChannel)
-
-   Local looping = True
-   While looping
-      key, value, position = JSON._ReadPair(source, position)
+  Local looping = True
+  Local r
+  While looping
+    key, value, position = JSON._ReadPair(source, position)
       
-      If IsNil(key) Then looping = False
+    If IsNil(key) Then looping = False
 
-      result[key] = value
+    result[key] = value
 
-      ;::: Check for another pair or the object end (look for ',' and '}')   :::
-      Local r
-      r, position = JSON._IsObjectEnded(source, position)
+    ;::: Check for another pair or the object end (look for ',' and '}')   :::
+    r, position = JSON._IsObjectEnded(source, position)
 
-      If r
-         ;::: Object is ended :::
-         looping = False
-         position = position + 1
-;--         DBG.Console.Out("Object ended.", Nil, JSON.DebugChannel)
-      Else
-         ;::: There is another pair? :::
-         If MidStr(source, position, 1) = ","
-;--            DBG.Console.Out("Detected another pair.", Nil, JSON.DebugChannel)
-            position = position + 1
-         EndIf
+    If r
+      ;::: Object is ended :::
+      looping = False
+      position = position + 1
+      ; DBG.Console.Out("Object ended.", Nil, JSON.DebugChannel)
+    Else
+      ;::: There is another pair? :::
+      If MidStr(source, position, 1) = ","
+        ; DBG.Console.Out("Detected another pair.", Nil, JSON.DebugChannel)
+        position = position + 1
       EndIf
-   Wend
+    EndIf
+  Wend
 
-;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-   Return(result, position) ;<-- Mi sembra strano questo +1 ma in caso contrario non funge
+  ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+  Return(result, position) ;<-- Mi sembra strano questo +1 ma in caso contrario non funge
                             ; FIXED : Rendevo locale position su local r, position, nessuno
                             ; sa come a fatto a funzionare fino ad ora (28/08/2019)
 
 EndFunction
 
-Function JSON._ReadArray(source, position)
-;--   DBG.Console.Out("._ReadArray @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+Function JSON._ReadArray(source, position) ; -
+  ; DBG.Console.Out("._ReadArray @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
 
-   Local values = {}
-   Local index = 0
-   Local r, value
+  Local values = {}
+  Local index = 0
+  Local r, value
 
-   ;::: Starting
-   Local qpos = FindStr(source, "[", True, position)
-   If qpos = -1
-      DBG.Console.Out("Missing array start [ marker", DBG.Error, JSON.DebugChannel)
-;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(Nil, position)
-   EndIf
+  ;::: Starting
+  Local qpos = FindStr(source, #JSON_OSP, True, position)
+  If qpos = -1
+    DBG.Console.Out("Missing array start [ marker", DBG.Error, JSON.DebugChannel)
+    ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(Nil, position)
+  EndIf
 
-   position = qpos + 1
+  position = qpos + 1
 
-   ; Check for empty array
-   Local r, position = JSON._IsArrayEnded(source, position)
-   If r 
-     ; DBG.Console.Out("Detected empty array...", Nil, JSON.DebugChannel)
-     Return({}, position+1)
+  ; Check for empty array
+  Local r, position = JSON._IsArrayEnded(source, position)
+  If r 
+    ; DBG.Console.Out("Detected empty array...", Nil, JSON.DebugChannel)
+    Return({}, position+1)
+  EndIf
+    
+  Local looping = True
+  While looping
+    value, position = JSON._ReadValue(source, position)
+
+    ;If GetType(value) = #NIL
+    If IsNil(value)
+      looping = False
+    Else
+      values[index] = value
+      index = index + 1
+    EndIf
+
+    ;::: Check for another value or the array end (look for ',' and ']')   :::
+    r, position = JSON._IsArrayEnded(source, position)
+
+    If r
+      ;::: Array is ended :::
+      looping = False
+      position = position + 1
+    Else
+      ;::: There is another value? :::
+      ;DebugPrint("->", position, GetTimer(1))
+      
+      ;position = FindStr(source, ",", False, position) + 1
+      If MidStr(source, position, 1) = ","
+        ; DBG.Console.Out("Detected another value.", Nil, JSON.DebugChannel)
+        position = position + 1
+      EndIf
+    EndIf
+
+  Wend
+
+
+  ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+  Return(values, position)
+
+EndFunction
+
+Function JSON._ReadString(source, position) ; -
+  ; DBG.Console.Out("._ReadString @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+  ;::: Cerca i doppi apici :::
+  Local qpos1 = FindStr(source, #JSON_DBLQ, True, position)
+
+  If qpos1 = -1
+    DBG.Console.Out("Starting double-quotes not found.", DBG.Error, JSON.DebugChannel)
+    ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(Nil)
+  EndIf
+
+  ;::: Cerca la chiusura degli apici :::
+  Local qpos2 = FindStr(source, #JSON_DBLQ, True, qpos1+1)
+
+  If qpos2 = -1
+    DBG.Console.Out("Ending double-quotes not found.", DBG.Error, JSON.DebugChannel)
+    ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(Nil, JSON._sourceLen);StrLen(source))
+  Else
+    ; Verifica se è veramente un fine campo oppure degli apici all'interno
+    ; della stringa
+    If MidStr(source, qpos2-1, 1) = JSON.CHR92
+      Local loop = True
+      While loop
+        qpos2 = FindStr(source, #JSON_DBLQ, True, qpos2+1)
+        If qpos2 = -1
+          DBG.Console.Out("Ending double-quotes not found.", DBG.Error, JSON.DebugChannel)
+          ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+          Return(Nil)
+        Else
+          If MidStr(source, qpos2-1, 1) <> JSON.CHR92
+            loop = False
+          Else
+            qpos2 = qpos2+1
+          EndIf
+        EndIf
+      Wend
+    EndIf
+
+  EndIf
+
+  ;::: Estrazione della stringa :::
+  Local key = MidStr(source, qpos1+1, qpos2-qpos1-1)
+
+  ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+  Return(key, qpos2+1)
+
+EndFunction
+
+Function JSON._ReadNumber(source, position) ; -
+  ; DBG.Console.Out("._ReadNumber @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+  ;::: Cerca il primo carattere fra +-.0123456789 :::
+  Local qpos1, qpos2 = -1, -1
+  Local slen = JSON._sourceLen;StrLen(source)
+  Local chars = "-+.0123456789"
+  Local looping = True
+  Local c
+
+  While looping
+    c = MidStr(source, position, 1)
+    If FindStr(chars, c, True) <> -1
+      looping = False
+      qpos1 = position
+    Else
+      position = position + 1
+      If position > slen
+        DBG.Console.Out("Number beginning not found!", DBG.Error, JSON.DebugChannel)
+        ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+        Return(Nil, position)
+      EndIf
+    EndIf
+  Wend
+
+  ;::: Cerca la fine del numero :::
+  looping = True
+  While looping
+    c = MidStr(source, position, 1)
+    If FindStr("+-.0123456789eE", c, True) = -1
+      looping = False
+      qpos2 = position
+    Else
+      position = position + 1
+      If position > slen
+        DBG.Console.Out("Number ending not found!", DBG.Error, JSON.DebugChannel)
+        ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+        Return(Nil, position)
+      EndIf
+    EndIf
+  Wend
+
+  ;::: Estrazione della stringa :::
+  Local value = MidStr(source, qpos1, qpos2-qpos1)
+
+  ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+  Return(ToNumber(value), qpos2)
+
+EndFunction
+
+Function JSON._ReadValue(source, position) ; -
+  ; DBG.Console.Out("._ReadValue @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+  Local value
+
+  ;::: Salta manualmente gli spazi e altri caratteri speciali :::
+  Local ch = MidStr(source, position, 1)
+  While ch = #JSON_SPC Or
+        ch = #JSON_NL1 Or
+        ch = #JSON_NL2 Or
+        ch = #JSON_TAB
+    position = position + 1
+    ch = MidStr(source, position, 1)
+  Wend
+
+  ;::: Verifica il tipo di valore che dobbiamo estrarre :::
+  Local c = MidStr(source, position, 1)
+
+  If c = #JSON_DBLQ
+    ;::: STRINGA :::
+    value, position = JSON._ReadString(source, position)
+    ; DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(value, position)
+
+  ElseIf FindStr("+-.0123456789", c, True) <> -1
+    ;::: NUMERO :::
+    value, position = JSON._ReadNumber(source, position)
+    ; DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(value, position)
+    
+  ElseIf c = #JSON_OSP
+    ;::: ARRAY :::
+    value, position = JSON._ReadArray(source, position)
+    ; DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(value, position)
+
+  ElseIf c = #JSON_OCP
+    ;::: OGGETTO :::
+    value, position = JSON._ReadObject(source, position)
+    ; DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(value, position)
+    
+  ElseIf LowerStr(c) = "t"
+    ;::: TRUE? :::
+    If LowerStr(MidStr(source, position, 4)) = "true"
+      value = True
+      position = position + 4
+    Else
+      value = Nil
+      DBG.Console.Out("Expected TRUE @ " .. position, DBG.Error, JSON.DebugChannel)
+    EndIf
+
+    ; DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(value, position)
+
+  ElseIf LowerStr(c) = "f"
+    ;::: FALSE? :::
+    If LowerStr(MidStr(source, position, 5)) = "false"
+      value = False
+      position = position + 5
+    Else
+      value = Nil
+      DBG.Console.Out("Expected FALSE @ " .. position, DBG.Error, JSON.DebugChannel)
+    EndIf
+
+    ; DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(value, position)
+
+  ElseIf LowerStr(c) = "n"
+    ;::: NULL? :::
+    If LowerStr(MidStr(source, position, 4)) = "null"
+      value = "*NULL*"
+      position = position + 4
+    Else
+      value = Nil
+      DBG.Console.Out("Expected NULL @ " .. position, DBG.Error, JSON.DebugChannel)
+    EndIf
+
+    ;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(value, position)
+
+  Else
+    DBG.Console.Out("Value type unrecognized! @ " .. position .. "-> " .. MidStr(source, position, 8) .. "...", DBG.Error, JSON.DebugChannel)
+    ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    position = position + 1
+     Return(Nil, position)
+  EndIf
+
+  ;--   DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+
+EndFunction
+
+Function JSON._ReadPair(source, position) ; -
+  ; DBG.Console.Out("._ReadPair @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+
+  Local key, value
+
+  ;::: Cerco la stringa/chiave :::
+  key, position = JSON._ReadString(source, position)
+
+  ;::: Cerca il separatore :::
+  position = FindStr(source, ":", True, position)
+  If position = -1
+    ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+    Return(Nil, Nil, position)
+  Else
+    position = position + 1
+  EndIf
+
+  ;::: Cerco il valore :::
+  value, position = JSON._ReadValue(source, position)
+
+  ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+  Return(key, value, position)
+
+EndFunction
+
+Function JSON._IsObjectEnded(source, position) ; -
+  ;::: An object ends when we encounter the } skipping spaces.              :::
+  ; DBG.Console.Out("._IsObjectEnded?", DBG.OpenFunc, JSON.DebugChannel)
+
+  Local ended = False
+  Local slen  = JSON._sourceLen;StrLen(source)
+  Local c     = MidStr(source, position, 1)
+  While c <> #JSON_CCP
+    If c = #JSON_SPC Or c =#JSON_NL1 Or c = #JSON_NL2 Or c = #JSON_TAB
+      position = position + 1
+      If position > slen
+        DBG.Console.Out("Ending object marker } missing.", DBG.Error, JSON.DebugChannel)
+        ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+        Return(True, position)
+      EndIf
+    Else
+      ; DBG.Console.Out("Object is not yet ended", DBG.CloseFunc, JSON.DebugChannel)
+      Return(False, position)
     EndIf
     
-   Local looping = True
-   While looping
+    c = MidStr(source, position, 1)
+    
+  Wend
 
-      value, position = JSON._ReadValue(source, position)
-
-      If GetType(value) = #NIL
-         looping = False
-      Else
-         values[index] = value
-         index = index + 1
-      EndIf
-
-      ;::: Check for another value or the array end (look for ',' and ']')   :::
-      r, position = JSON._IsArrayEnded(source, position)
-
-      If r
-         ;::: Array is ended :::
-         looping = False
-         position = position + 1
-      Else
-         ;::: There is another value? :::
-         If MidStr(source, position, 1) = ","
-;--            DBG.Console.Out("Detected another value.", Nil, JSON.DebugChannel)
-            position = position + 1
-         EndIf
-      EndIf
-
-   Wend
-
-
-;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-   Return(values, position)
+  ; DBG.Console.Out("Object ended", Nil, JSON.DebugChannel)
+  ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+  Return(True, position)
 
 EndFunction
 
-Function JSON._ReadString(source, position)
-;--   DBG.Console.Out("._ReadString @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
+Function JSON._IsArrayEnded(source, position) ; -
+  ;::: An array ends when we encounter the ] skipping spaces.              :::
+  ; DBG.Console.Out("._IsArrayEnded?", DBG.OpenFunc, JSON.DebugChannel)
 
-   ;::: Cerca i doppi apici :::
-   Local qpos1 = FindStr(source, "\"", True, position)
-
-   If qpos1 = -1
-      DBG.Console.Out("Starting double-quotes not found.", DBG.Error, JSON.DebugChannel)
-;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(Nil)
-   EndIf
-
-   ;::: Cerca la chiusura degli apici :::
-   Local qpos2 = FindStr(source, "\"", True, qpos1+1)
-
-   If qpos2 = -1
-      DBG.Console.Out("Ending double-quotes not found.", DBG.Error, JSON.DebugChannel)
-;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(Nil, StrLen(source))
-   Else
-      ; Verifica se è veramente un fine campo oppure degli apici all'interno
-      ; della stringa
-      If MidStr(source, qpos2-1, 1) = Chr(92)
-         Local loop = True
-         While loop
-            qpos2 = FindStr(source, "\"", True, qpos2+1)
-            If qpos2 = -1
-               DBG.Console.Out("Ending double-quotes not found.", DBG.Error, JSON.DebugChannel)
-;--               DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-               Return(Nil)
-            Else
-               If MidStr(source, qpos2-1, 1) <> Chr(92)
-                  loop = False
-               Else
-                  qpos2 = qpos2+1
-               EndIf
-            EndIf
-        Wend
-     EndIf
-
-   EndIf
-
-   ;::: Estrazione della stringa :::
-   Local key = MidStr(source, qpos1+1, qpos2-qpos1-1)
-
-;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-   Return(key, qpos2+1)
-
-EndFunction
-
-Function JSON._ReadNumber(source, position)
-;--   DBG.Console.Out("._ReadNumber @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
-
-   ;::: Cerca il primo carattere fra +-.0123456789 :::
-   Local qpos1, qpos2 = -1, -1
-   Local slen = StrLen(source)
-   Local chars = "-+.0123456789"
-   Local looping = True
-
-   While looping
-      c = MidStr(source, position, 1)
-      If FindStr(chars, c, True) <> -1
-         looping = False
-         qpos1 = position
-      Else
-         position = position + 1
-         If position > slen
-            DBG.Console.Out("Number beginning not found!", DBG.Error, JSON.DebugChannel)
-;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-            Return(Nil, position)
-         EndIf
-      EndIf
-   Wend
-
-   ;::: Cerca la fine del numero :::
-   looping = True
-   While looping
-      c = MidStr(source, position, 1)
-      If FindStr("+-.0123456789eE", c, True) = -1
-         looping = False
-         qpos2 = position
-      Else
-         position = position + 1
-         If position > slen
-            DBG.Console.Out("Number ending not found!", DBG.Error, JSON.DebugChannel)
-;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-            Return(Nil, position)
-         EndIf
-      EndIf
-   Wend
-
-   ;::: Estrazione della stringa :::
-   Local value = MidStr(source, qpos1, qpos2-qpos1)
-
-;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-   Return(ToNumber(value), qpos2)
-
-EndFunction
-
-Function JSON._ReadValue(source, position)
-;--   DBG.Console.Out("._ReadValue @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
-
-   Local value
-
-   ;::: Salta manualmente gli spazi e altri caratteri speciali :::
-   While MidStr(source, position, 1) = " " Or
-         MidStr(source, position, 1) = "\n" Or
-         MidStr(source, position, 1) = "\r" Or
-         MidStr(source, position, 1) = "\t"
+  Local ended = False
+  Local slen  = JSON._sourceLen;StrLen(source)
+  Local c     = MidStr(source, position, 1)
+  
+  While c <> #JSON_CSP
+    If c = #JSON_SPC Or c = #JSON_NL1 Or c = #JSON_NL2 Or c = #JSON_TAB
       position = position + 1
-   Wend
-
-   ;::: Verifica il tipo di valore che dobbiamo estrarre :::
-   Local c = MidStr(source, position, 1)
-
-   If c = "\""
-      ;::: STRINGA :::
-      value, position = JSON._ReadString(source, position)
-;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(value, position)
-
-   ElseIf FindStr("+-.0123456789", c, True) <> -1
-      ;::: NUMERO :::
-      value, position = JSON._ReadNumber(source, position)
-;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(value, position)
-
-   ElseIf c = "["
-      ;::: ARRAY :::
-      value, position = JSON._ReadArray(source, position)
-;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(value, position)
-
-   ElseIf c = "{"
-      ;::: OGGETTO :::
-      value, position = JSON._ReadObject(source, position)
-;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(value, position)
-
-   ElseIf LowerStr(c) = "t"
-      ;::: TRUE? :::
-      If LowerStr(MidStr(source, position, 4)) = "true"
-         value = True
-         position = position + 4
-      Else
-         value = Nil
-         DBG.Console.Out("Expected TRUE @ " .. position, DBG.Error, JSON.DebugChannel)
+      If position > slen
+        DBG.Console.Out("Ending array marker ] missing.", DBG.Error, JSON.DebugChannel)
+        ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+        Return(True, position)
       EndIf
-;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(value, position)
+    Else
+      ; DBG.Console.Out("Array is not yet ended", DBG.CloseFunc, JSON.DebugChannel)
+      Return(False, position)
+    EndIf
+    
+    c = MidStr(source, position, 1)
+  Wend
 
-   ElseIf LowerStr(c) = "f"
-      ;::: FALSE? :::
-      If LowerStr(MidStr(source, position, 5)) = "false"
-         value = False
-         position = position + 5
-      Else
-         value = Nil
-         DBG.Console.Out("Expected FALSE @ " .. position, DBG.Error, JSON.DebugChannel)
-      EndIf
-;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(value, position)
-
-   ElseIf LowerStr(c) = "n"
-      ;::: NULL? :::
-      If LowerStr(MidStr(source, position, 4)) = "null"
-         value = "*NULL*"
-         position = position + 4
-      Else
-         value = Nil
-         DBG.Console.Out("Expected NULL @ " .. position, DBG.Error, JSON.DebugChannel)
-      EndIf
-;--      DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(value, position)
-
-   Else
-      DBG.Console.Out("Value type unrecognized! @ " .. position .. "-> " .. MidStr(source, position, 8) .. "...", DBG.Error, JSON.DebugChannel)
-;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      position = position + 1
-      Return(Nil, position)
-   EndIf
-
-;--   DBG.Log.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-
-EndFunction
-
-Function JSON._ReadPair(source, position)
-;--   DBG.Console.Out("._ReadPair @ " .. position, DBG.OpenFunc, JSON.DebugChannel)
-
-   Local key, value
-
-   ;::: Cerco la stringa/chiave :::
-   key, position = JSON._ReadString(source, position)
-
-   ;::: Cerca il separatore :::
-   position = FindStr(source, ":", True, position)
-   If position = -1
-;--      DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-      Return(Nil, Nil, position)
-   Else
-      position = position + 1
-   EndIf
-
-   ;::: Cerco il valore :::
-   value, position = JSON._ReadValue(source, position)
-
-;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-   Return(key, value, position)
-
-EndFunction
-
-Function JSON._IsObjectEnded(source, position)
-   ;::: An object ends when we encounter the } skipping spaces.              :::
-;--   DBG.Console.Out("._IsObjectEnded?", DBG.OpenFunc, JSON.DebugChannel)
-
-   Local ended = False
-   Local slen  = StrLen(source)
-
-   While MidStr(source, position, 1) <> "}"
-      Local c = MidStr(source, position, 1)
-
-      If c = " " Or c = "\n" Or c = "\r" Or c = "\t"
-         position = position + 1
-         If position > slen
-            DBG.Console.Out("Ending object marker } missing.", DBG.Error, JSON.DebugChannel)
-;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-            Return(True, position)
-         EndIf
-      Else
-;--         DBG.Console.Out("Object is not yet ended", DBG.CloseFunc, JSON.DebugChannel)
-         Return(False, position)
-      EndIf
-   Wend
-
-;--   DBG.Console.Out("Object ended", Nil, JSON.DebugChannel)
-;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-   Return(True, position)
-
-EndFunction
-
-Function JSON._IsArrayEnded(source, position)
-   ;::: An array ends when we encounter the ] skipping spaces.              :::
-;--   DBG.Console.Out("._IsArrayEnded?", DBG.OpenFunc, JSON.DebugChannel)
-
-   Local ended = False
-   Local slen  = StrLen(source)
-
-   While MidStr(source, position, 1) <> "]"
-      Local c = MidStr(source, position, 1)
-
-      If c = " " Or c = "\n" Or c = "\r" Or c = "\t"
-         position = position + 1
-         If position > slen
-            DBG.Console.Out("Ending array marker ] missing.", DBG.Error, JSON.DebugChannel)
-;--            DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-            Return(True, position)
-         EndIf
-      Else
-;--         DBG.Console.Out("Array is not yet ended", DBG.CloseFunc, JSON.DebugChannel)
-         Return(False, position)
-      EndIf
-   Wend
-
-;--   DBG.Console.Out("Array ended", Nil, JSON.DebugChannel)
-;--   DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
-   Return(True, position)
+  ; DBG.Console.Out("Array ended", Nil, JSON.DebugChannel)
+  ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+  Return(True, position)
 
 EndFunction
 
@@ -447,14 +473,14 @@ Function JSON.decode(source)
    EndIf
 
    ;::: Clean Up : Remove starting and ending spaces :::
-   source = TrimStr(source, " ", False)
-   source = TrimStr(source, " ", True)
+   source = TrimStr(source, #JSON_SPC, False)
+   source = TrimStr(source, #JSON_SPC, True)
 
    ;::: Clean Up : Remove starting and ending CR & LF :::
-   source = TrimStr(source, "\n", False)
-   source = TrimStr(source, "\n", True)
-   source = TrimStr(source, "\r", False)
-   source = TrimStr(source, "\r", True)
+   source = TrimStr(source, #JSON_NL1, False)
+   source = TrimStr(source, #JSON_NL1, True)
+   source = TrimStr(source, #JSON_NL2, False)
+   source = TrimStr(source, #JSON_NL2, True)
    
    ;::: Clean Up : Convert all escaped UTF-8 characters
    ; This loop will search for backslashes used to escape
@@ -488,9 +514,10 @@ Function JSON.decode(source)
 
    ;::: THE FIRST ITEM MUST BE AN OBJECT OR AN ARRAY, CHECK IT :::
    ;::: OR A PLAIN VALUE
-   If LeftStr(source, 1) = "{"
+   JSON._sourceLen = StrLen(source)
+   If LeftStr(source, 1) = #JSON_OCP
       result = JSON._ReadObject(source, 0)
-   ElseIf LeftStr(source, 1) = "["
+   ElseIf LeftStr(source, 1) = #JSON_OSP
       result = JSON._ReadArray(source, 0)
    Else
       result = { source }
@@ -500,3 +527,54 @@ Function JSON.decode(source)
    Return(result)
 
 EndFunction
+
+Function JSON.PerformanceTest()
+  ; This function is used to mesure performances from different releases
+  ;   t01: 7521, 7549, 7647 => 7572ms
+  ;   t02: 6526, 6302, 6266 => 6364ms
+  ;   t03: 6354, 6333, 6282 => 6323ms
+  ;   t04: 6274, 6560, 6306 => 6380ms
+  ;   t05: 6248, 6239, 6283 => 6256ms
+  ;   t06: 6216, 6271, 6236 => 6241ms
+  ;   t07: 6232, 6273, 6275 => 6260ms
+  ;   t08: 5172, 5152, 5206 => 5176ms
+  ;   t09: 5065, 5113, 5087 => 5088ms
+  ;   t10: 5121, 5101, 5069 => 5097ms
+  ;   t11: 5049, 5083, 4847 => 4993ms
+  ;   t12: 4900, 4859, 4864 => 4874ms
+  ;   t13: 4884, 4891, 4875 => 4883ms
+  ;   t14: 4895, 4865, 4867 => 4875ms
+  ;   t15: 4274, 4318, 4305 => 4299ms
+  ;   t16: 4302, 4292, 4280 => 4291ms
+  ;   4291/7572 = 56% time reduction
+  ; -------------------------------------------------------
+  
+  ; Very Big JSON data block
+  Local data = 
+    [[{"name":"Matthew Kosloski","profile_name":"matthew","profile_url":"https://teamtreehouse.com/matthew","gravatar_url":"https://uploads.teamtreehouse.com/production/profile-photos/118878/avatar_badlands.jpg","gravatar_hash":"5f99592344173c9f2dce0beb8821c3d8","badges":[{"id":49,"name":"Newbie","url":"https://teamtreehouse.com/matthew","icon_url":"https://achievement-images.teamtreehouse.com/Generic_Newbie.png","earned_date":"2013-09-12T00:35:56.000Z","courses":[]},{"id":159,"name":"Website Basics","url":"https://teamtreehouse.com/library/build-a-simple-website/website-basics","icon_url":"https://achievement-images.teamtreehouse.com/badges_WebsiteIsland1_Stage1.png","earned_date":"2013-09-12T22:34:06.000Z","courses":[{"title":"Build a Simple Website","url":"https://teamtreehouse.com/library/build-a-simple-website","badge_count":1},{"title":"Website Basics","url":"https://teamtreehouse.com/library/build-a-simple-website/website-basics","badge_count":1}]},{"id":822,"name":"Creating a Spoiler Revealer","url":"https://teamtreehouse.com/library/jquery-basics-2014/creating-a-spoiler-revealer","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_jQueryBasics_Stage2.png","earned_date":"2014-07-02T19:49:18.000Z","courses":[{"title":"jQuery Basics (2014)","url":"https://teamtreehouse.com/library/jquery-basics-2014","badge_count":1},{"title":"Creating a Spoiler Revealer","url":"https://teamtreehouse.com/library/jquery-basics-2014/creating-a-spoiler-revealer","badge_count":1}]},{"id":832,"name":"Creating a Simple Lightbox","url":"https://teamtreehouse.com/library/jquery-basics-2014/creating-a-simple-lightbox","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_jQueryBasics_Stage3.png","earned_date":"2014-07-02T21:14:49.000Z","courses":[{"title":"jQuery Basics (2014)","url":"https://teamtreehouse.com/library/jquery-basics-2014","badge_count":1},{"title":"Creating a Simple Lightbox","url":"https://teamtreehouse.com/library/jquery-basics-2014/creating-a-simple-lightbox","badge_count":1}]},{"id":842,"name":"Creating a Mobile Drop Down Menu","url":"https://teamtreehouse.com/library/jquery-basics-2014/creating-a-mobile-drop-down-menu","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_jQueryBasics_Stage4.png","earned_date":"2014-07-02T21:58:48.000Z","courses":[{"title":"jQuery Basics (2014)","url":"https://teamtreehouse.com/library/jquery-basics-2014","badge_count":1},{"title":"Creating a Mobile Drop Down Menu","url":"https://teamtreehouse.com/library/jquery-basics-2014/creating-a-mobile-drop-down-menu","badge_count":1}]},{"id":2442,"name":"Form Basics","url":"https://teamtreehouse.com/library/html-forms/form-basics","icon_url":"https://achievement-images.teamtreehouse.com/badges_html_forms_stage1.png","earned_date":"2014-07-08T23:37:50.000Z","courses":[{"title":"HTML Forms","url":"https://teamtreehouse.com/library/html-forms","badge_count":1},{"title":"Form Basics","url":"https://teamtreehouse.com/library/html-forms/form-basics","badge_count":1}]},{"id":2452,"name":"Organizing Forms","url":"https://teamtreehouse.com/library/html-forms-2/organizing-forms","icon_url":"https://achievement-images.teamtreehouse.com/badges_html_forms_stage2.png","earned_date":"2014-07-09T02:04:55.000Z","courses":[{"title":"HTML Forms","url":"https://teamtreehouse.com/library/html-forms","badge_count":1},{"title":"Organizing Forms","url":"https://teamtreehouse.com/library/html-forms-2/organizing-forms","badge_count":1}]},{"id":392,"name":"Logo Design 101","url":"https://teamtreehouse.com/library/logo-design-basics/logo-design-101","icon_url":"https://achievement-images.teamtreehouse.com/LogoDesign101.png","earned_date":"2014-07-09T03:21:57.000Z","courses":[{"title":"Logo Design Basics","url":"https://teamtreehouse.com/library/logo-design-basics","badge_count":1},{"title":"Logo Design 101","url":"https://teamtreehouse.com/library/logo-design-basics/logo-design-101","badge_count":1}]},{"id":2462,"name":"Choosing Options","url":"https://teamtreehouse.com/library/html-forms/choosing-options","icon_url":"https://achievement-images.teamtreehouse.com/badges_html_forms_stage3.png","earned_date":"2014-07-10T22:13:41.000Z","courses":[{"title":"HTML Forms","url":"https://teamtreehouse.com/library/html-forms","badge_count":1},{"title":"Choosing Options","url":"https://teamtreehouse.com/library/html-forms/choosing-options","badge_count":1}]},{"id":163,"name":"Getting Started With Rails","url":"https://teamtreehouse.com/library/build-a-simple-ruby-on-rails-application/getting-started-with-rails","icon_url":"https://achievement-images.teamtreehouse.com/badges_SimpleFacebook_Stage1.png","earned_date":"2014-07-19T09:00:39.000Z","courses":[{"title":"Build a Simple Ruby on Rails Application","url":"https://teamtreehouse.com/library/build-a-simple-ruby-on-rails-application","badge_count":1},{"title":"Getting Started with Rails","url":"https://teamtreehouse.com/library/build-a-simple-ruby-on-rails-application/getting-started-with-rails","badge_count":1}]},{"id":187,"name":"Getting Started with PHP","url":"https://teamtreehouse.com/library/build-a-simple-php-application/getting-started-with-php","icon_url":"https://achievement-images.teamtreehouse.com/badges_eCommerce_Stage1.png","earned_date":"2014-07-19T09:29:17.000Z","courses":[{"title":"Build a Simple PHP Application","url":"https://teamtreehouse.com/library/build-a-simple-php-application","badge_count":1},{"title":"Getting Started with PHP","url":"https://teamtreehouse.com/library/build-a-simple-php-application/getting-started-with-php","badge_count":1}]},{"id":1942,"name":"Say Hello to Python","url":"https://teamtreehouse.com/library/python-basics-retired/say-hello-to-python","icon_url":"https://achievement-images.teamtreehouse.com/badges_python_basics_stage1.png","earned_date":"2014-07-21T20:44:28.000Z","courses":[{"title":"Python Basics (Retired)","url":"https://teamtreehouse.com/library/python-basics-retired","badge_count":1},{"title":"Say Hello to Python","url":"https://teamtreehouse.com/library/python-basics-retired/say-hello-to-python","badge_count":1}]},{"id":1962,"name":"Ins \u0026 Outs","url":"https://teamtreehouse.com/library/python-basics-retired/ins-outs","icon_url":"https://achievement-images.teamtreehouse.com/badges_python_basics_stage2.png","earned_date":"2014-07-21T21:06:57.000Z","courses":[{"title":"Python Basics (Retired)","url":"https://teamtreehouse.com/library/python-basics-retired","badge_count":1},{"title":"Ins \u0026 Outs","url":"https://teamtreehouse.com/library/python-basics-retired/ins-outs","badge_count":1}]},{"id":1972,"name":"Things That Count","url":"https://teamtreehouse.com/library/python-basics-retired/things-that-count","icon_url":"https://achievement-images.teamtreehouse.com/badges_python_basics_stage3.png","earned_date":"2014-07-21T22:58:09.000Z","courses":[{"title":"Python Basics (Retired)","url":"https://teamtreehouse.com/library/python-basics-retired","badge_count":1},{"title":"Things That Count","url":"https://teamtreehouse.com/library/python-basics-retired/things-that-count","badge_count":1}]},{"id":2352,"name":"How Ruby Works","url":"https://teamtreehouse.com/library/ruby-basics-retired/how-ruby-works","icon_url":"https://achievement-images.teamtreehouse.com/badges_ruby_basics_Stage1.png","earned_date":"2014-07-22T18:55:53.000Z","courses":[{"title":"Ruby Basics (Retired)","url":"https://teamtreehouse.com/library/ruby-basics-retired","badge_count":1},{"title":"How Ruby Works","url":"https://teamtreehouse.com/library/ruby-basics-retired/how-ruby-works","badge_count":1}]},{"id":2362,"name":"Ruby Strings (Ruby Basics)","url":"https://teamtreehouse.com/library/ruby-basics-retired/ruby-strings","icon_url":"https://achievement-images.teamtreehouse.com/badges_ruby_basics_Stage2.png","earned_date":"2014-07-22T19:14:02.000Z","courses":[{"title":"Ruby Basics (Retired)","url":"https://teamtreehouse.com/library/ruby-basics-retired","badge_count":1},{"title":"Ruby Strings","url":"https://teamtreehouse.com/library/ruby-basics-retired/ruby-strings","badge_count":1}]},{"id":2372,"name":"Ruby Numbers (Ruby Basics)","url":"https://teamtreehouse.com/library/ruby-basics-retired/ruby-numbers","icon_url":"https://achievement-images.teamtreehouse.com/badges_ruby_basics_Stage3.png","earned_date":"2014-07-22T19:31:10.000Z","courses":[{"title":"Ruby Basics (Retired)","url":"https://teamtreehouse.com/library/ruby-basics-retired","badge_count":1},{"title":"Ruby Numbers","url":"https://teamtreehouse.com/library/ruby-basics-retired/ruby-numbers","badge_count":1}]},{"id":2832,"name":"PHP Getting Started","url":"https://teamtreehouse.com/library/php-basics-retired/what-is-php","icon_url":"https://achievement-images.teamtreehouse.com/badge_php_basics_stage01.png","earned_date":"2014-08-15T20:17:11.000Z","courses":[{"title":"PHP Basics (Retired)","url":"https://teamtreehouse.com/library/php-basics-retired","badge_count":1},{"title":"What is PHP?","url":"https://teamtreehouse.com/library/php-basics-retired/what-is-php","badge_count":1}]},{"id":3222,"name":"JavaScript and the DOM","url":"https://teamtreehouse.com/library/interactive-web-pages-with-javascript/javascript-and-the-dom","icon_url":"https://achievement-images.teamtreehouse.com/bagdes-javascript-interactiveweb-stage-12.png","earned_date":"2014-09-07T01:28:20.000Z","courses":[{"title":"Interactive Web Pages with JavaScript","url":"https://teamtreehouse.com/library/interactive-web-pages-with-javascript","badge_count":1},{"title":"JavaScript and the DOM","url":"https://teamtreehouse.com/library/interactive-web-pages-with-javascript/javascript-and-the-dom","badge_count":1}]},{"id":3232,"name":"Selecting Elements and Adding Events with JavaScript","url":"https://teamtreehouse.com/library/interactive-web-pages-with-javascript/selecting-elements-and-adding-events-with-javascript","icon_url":"https://achievement-images.teamtreehouse.com/bagdes-javascript-interactiveweb-stage-13.png","earned_date":"2014-09-13T19:18:25.000Z","courses":[{"title":"Interactive Web Pages with JavaScript","url":"https://teamtreehouse.com/library/interactive-web-pages-with-javascript","badge_count":1},{"title":"Selecting Elements and Adding Events with JavaScript","url":"https://teamtreehouse.com/library/interactive-web-pages-with-javascript/selecting-elements-and-adding-events-with-javascript","badge_count":1}]},{"id":492,"name":"Installing Wordpress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/installing-wordpress","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_BuildSites_Stage1.png","earned_date":"2015-04-17T00:15:24.000Z","courses":[{"title":"How to Make a Website with WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress","badge_count":1},{"title":"Installing WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/installing-wordpress","badge_count":1}]},{"id":912,"name":"Beginning HTML and CSS","url":"https://teamtreehouse.com/library/how-to-make-a-website/beginning-html-and-css","icon_url":"https://achievement-images.teamtreehouse.com/badges_html_howtomakeawebsite_stage01.png","earned_date":"2015-04-19T03:35:34.000Z","courses":[{"title":"How to Make a Website","url":"https://teamtreehouse.com/library/how-to-make-a-website","badge_count":1},{"title":"Beginning HTML and CSS","url":"https://teamtreehouse.com/library/how-to-make-a-website/beginning-html-and-css","badge_count":1}]},{"id":3552,"name":"Starting a WordPress Theme","url":"https://teamtreehouse.com/library/wordpress-theme-development/starting-a-wordpress-theme","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-36.png","earned_date":"2015-04-19T23:17:37.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Starting a WordPress Theme","url":"https://teamtreehouse.com/library/wordpress-theme-development/starting-a-wordpress-theme","badge_count":1}]},{"id":367,"name":"Why Version Control Matters","url":"https://teamtreehouse.com/library/git-basics/why-version-control-matters","icon_url":"https://achievement-images.teamtreehouse.com/badges_DD_Git_Stage1.png","earned_date":"2015-04-24T03:28:37.000Z","courses":[{"title":"Git Basics","url":"https://teamtreehouse.com/library/git-basics","badge_count":1},{"title":"Why Version Control Matters","url":"https://teamtreehouse.com/library/git-basics/why-version-control-matters","badge_count":1}]},{"id":361,"name":"HTML Email Basics","url":"https://teamtreehouse.com/library/html-email-design/html-email-basics","icon_url":"https://achievement-images.teamtreehouse.com/badges_htmlemail_Stage1.png","earned_date":"2015-05-12T04:46:20.000Z","courses":[{"title":"HTML Email Design","url":"https://teamtreehouse.com/library/html-email-design","badge_count":1},{"title":"HTML Email Basics","url":"https://teamtreehouse.com/library/html-email-design/html-email-basics","badge_count":1}]},{"id":362,"name":"Coding HTML Email","url":"https://teamtreehouse.com/library/html-email-design/coding-html-email","icon_url":"https://achievement-images.teamtreehouse.com/badges_htmlemail_Stage2.png","earned_date":"2015-05-16T00:55:38.000Z","courses":[{"title":"HTML Email Design","url":"https://teamtreehouse.com/library/html-email-design","badge_count":1},{"title":"Coding HTML Email","url":"https://teamtreehouse.com/library/html-email-design/coding-html-email","badge_count":1}]},{"id":3562,"name":"Working with CSS and JS in WordPress Themes","url":"https://teamtreehouse.com/library/wordpress-theme-development/working-with-css-and-js-in-wordpress-themes","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-37.png","earned_date":"2015-06-10T04:09:07.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Working with CSS and JS in WordPress Themes","url":"https://teamtreehouse.com/library/wordpress-theme-development/working-with-css-and-js-in-wordpress-themes","badge_count":1}]},{"id":3572,"name":"WordPress Header and Footer Templates","url":"https://teamtreehouse.com/library/wordpress-theme-development/wordpress-header-and-footer-templates","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-38.png","earned_date":"2015-06-10T04:24:40.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"WordPress Header and Footer Templates","url":"https://teamtreehouse.com/library/wordpress-theme-development/wordpress-header-and-footer-templates","badge_count":1}]},{"id":3582,"name":"The WordPress Loop","url":"https://teamtreehouse.com/library/wordpress-theme-development/the-wordpress-loop","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-39.png","earned_date":"2015-06-10T05:08:23.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"The WordPress Loop","url":"https://teamtreehouse.com/library/wordpress-theme-development/the-wordpress-loop","badge_count":1}]},{"id":3592,"name":"Building Page Templates in WordPress","url":"https://teamtreehouse.com/library/wordpress-theme-development/building-page-templates-in-wordpress","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-40.png","earned_date":"2015-06-10T05:34:17.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Building Page Templates in WordPress","url":"https://teamtreehouse.com/library/wordpress-theme-development/building-page-templates-in-wordpress","badge_count":1}]},{"id":3602,"name":"Building Out WordPress Navigation","url":"https://teamtreehouse.com/library/wordpress-theme-development/building-out-wordpress-navigation","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-41.png","earned_date":"2015-06-10T18:31:47.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Building Out WordPress Navigation","url":"https://teamtreehouse.com/library/wordpress-theme-development/building-out-wordpress-navigation","badge_count":1}]},{"id":3612,"name":"Custom Post Type Templates","url":"https://teamtreehouse.com/library/wordpress-theme-development/custom-post-type-templates-in-wordpress","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-42.png","earned_date":"2015-06-10T22:10:12.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Custom Post Type Templates in WordPress","url":"https://teamtreehouse.com/library/wordpress-theme-development/custom-post-type-templates-in-wordpress","badge_count":1}]},{"id":3622,"name":"Adding a Blog to a WordPress Theme","url":"https://teamtreehouse.com/library/wordpress-theme-development/adding-a-blog-to-a-wordpress-theme","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-43.png","earned_date":"2015-06-10T23:20:48.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Adding a Blog to a WordPress Theme","url":"https://teamtreehouse.com/library/wordpress-theme-development/adding-a-blog-to-a-wordpress-theme","badge_count":1}]},{"id":3632,"name":"Custom Homepage Templates in WordPress","url":"https://teamtreehouse.com/library/wordpress-theme-development/custom-homepage-templates-in-wordpress","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-44.png","earned_date":"2015-06-11T03:18:03.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Custom Homepage Templates in WordPress","url":"https://teamtreehouse.com/library/wordpress-theme-development/custom-homepage-templates-in-wordpress","badge_count":1}]},{"id":6292,"name":"Getting Started with Jekyll","url":"https://teamtreehouse.com/library/build-a-blog-with-jekyll-and-github-pages/getting-started-with-jekyll","icon_url":"https://achievement-images.teamtreehouse.com/badges_html_jekyll_stage1.png","earned_date":"2015-06-12T01:06:50.000Z","courses":[{"title":"Build a Blog with Jekyll and GitHub Pages","url":"https://teamtreehouse.com/library/build-a-blog-with-jekyll-and-github-pages","badge_count":1},{"title":"Getting Started with Jekyll","url":"https://teamtreehouse.com/library/build-a-blog-with-jekyll-and-github-pages/getting-started-with-jekyll","badge_count":1}]},{"id":3642,"name":"Finishing Your WordPress Theme","url":"https://teamtreehouse.com/library/wordpress-theme-development/finishing-your-wordpress-theme","icon_url":"https://achievement-images.teamtreehouse.com/badges_wp_buildtheme_stage-45.png","earned_date":"2015-06-25T21:27:41.000Z","courses":[{"title":"WordPress Theme Development","url":"https://teamtreehouse.com/library/wordpress-theme-development","badge_count":1},{"title":"Finishing Your WordPress Theme","url":"https://teamtreehouse.com/library/wordpress-theme-development/finishing-your-wordpress-theme","badge_count":1}]},{"id":3262,"name":"Getting Started with WordPress","url":"https://teamtreehouse.com/library/getting-started-with-wordpress/getting-started-with-wordpress","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_GettingStarted_Stage1.png","earned_date":"2015-06-26T01:55:42.000Z","courses":[{"title":"Getting Started with WordPress","url":"https://teamtreehouse.com/library/getting-started-with-wordpress","badge_count":1},{"title":"Getting Started with WordPress","url":"https://teamtreehouse.com/library/getting-started-with-wordpress/getting-started-with-wordpress","badge_count":1}]},{"id":552,"name":"WordPress Plugin Best Practices","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/plugin-best-practices","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_BuildSites_Stage6.png","earned_date":"2015-06-26T03:21:11.000Z","courses":[{"title":"How to Make a Website with WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress","badge_count":1},{"title":"Plugin Best Practices","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/plugin-best-practices","badge_count":1}]},{"id":542,"name":"Widgets and Custom Menus","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/wordpress-widgets-and-custom-menus","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_BuildSites_Stage5.png","earned_date":"2015-06-26T03:23:07.000Z","courses":[{"title":"How to Make a Website with WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress","badge_count":1},{"title":"WordPress Widgets and Custom Menus","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/wordpress-widgets-and-custom-menus","badge_count":1}]},{"id":502,"name":"WordPress Themes","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/wordpress-themes","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_BuildSites_Stage2.png","earned_date":"2015-06-26T03:29:57.000Z","courses":[{"title":"How to Make a Website with WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress","badge_count":1},{"title":"WordPress Themes","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/wordpress-themes","badge_count":1}]},{"id":512,"name":"Customizing WordPress Themes","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/customizing-wordpress-themes","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_BuildSites_Stage3.png","earned_date":"2015-06-26T03:31:37.000Z","courses":[{"title":"How to Make a Website with WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress","badge_count":1},{"title":"Customizing WordPress Themes","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/customizing-wordpress-themes","badge_count":1}]},{"id":522,"name":"Custom Post Types and Fields","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/custom-post-types-and-fields-in-wordpress","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_BuildSites_Stage4.png","earned_date":"2015-06-26T03:33:12.000Z","courses":[{"title":"How to Make a Website with WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress","badge_count":1},{"title":"Custom Post Types and Fields in WordPress","url":"https://teamtreehouse.com/library/how-to-make-a-website-with-wordpress/custom-post-types-and-fields-in-wordpress","badge_count":1}]},{"id":1382,"name":"The WordPress Codex","url":"https://teamtreehouse.com/library/the-wordpress-codex/how-to-use-the-wordpress-codex","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_Codex_Stage1-12.png","earned_date":"2015-06-26T04:00:59.000Z","courses":[{"title":"The WordPress Codex","url":"https://teamtreehouse.com/library/the-wordpress-codex","badge_count":1},{"title":"How to Use the WordPress Codex","url":"https://teamtreehouse.com/library/the-wordpress-codex/how-to-use-the-wordpress-codex","badge_count":1}]},{"id":632,"name":"Local WordPress Development","url":"https://teamtreehouse.com/library/local-wordpress-development/local-wordpress-development","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_Local_Stage1.png","earned_date":"2015-06-26T04:40:11.000Z","courses":[{"title":"Local WordPress Development","url":"https://teamtreehouse.com/library/local-wordpress-development","badge_count":1},{"title":"Local WordPress Development","url":"https://teamtreehouse.com/library/local-wordpress-development/local-wordpress-development","badge_count":1}]},{"id":6322,"name":"Introduction to Methods","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/introduction-to-methods","icon_url":"https://achievement-images.teamtreehouse.com/badges_javaScript_oojs_Stage1.png","earned_date":"2015-06-28T19:40:25.000Z","courses":[{"title":"Object-Oriented JavaScript (2015)","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015","badge_count":1},{"title":"Introduction to Methods","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/introduction-to-methods","badge_count":1}]},{"id":6332,"name":"Constructor Functions \u0026 Prototypes","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/constructor-functions-and-prototypes","icon_url":"https://achievement-images.teamtreehouse.com/badges_javaScript_oojs_Stage2.png","earned_date":"2015-06-29T02:06:04.000Z","courses":[{"title":"Object-Oriented JavaScript (2015)","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015","badge_count":1},{"title":"Constructor Functions and Prototypes","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/constructor-functions-and-prototypes","badge_count":1}]},{"id":6362,"name":"Prototypal Inheritance","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/prototypal-inheritance","icon_url":"https://achievement-images.teamtreehouse.com/badges_javaScript_oojs_Stage3.png","earned_date":"2015-06-29T02:30:35.000Z","courses":[{"title":"Object-Oriented JavaScript (2015)","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015","badge_count":1},{"title":"Prototypal Inheritance","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/prototypal-inheritance","badge_count":1}]},{"id":6372,"name":"Quiz Practice Project","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/practice-project","icon_url":"https://achievement-images.teamtreehouse.com/badges_javaScript_oojs_Stage4.png","earned_date":"2015-06-29T19:12:13.000Z","courses":[{"title":"Object-Oriented JavaScript (2015)","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015","badge_count":1},{"title":"Practice Project","url":"https://teamtreehouse.com/library/objectoriented-javascript-2015/practice-project","badge_count":1}]},{"id":4342,"name":"AngularJS MVC Frameworks","url":"https://teamtreehouse.com/library/angularjs/mvc-frameworks-in-angularjs","icon_url":"https://achievement-images.teamtreehouse.com/badges-js-angularjs-stage-61.png","earned_date":"2015-06-29T19:42:25.000Z","courses":[{"title":"AngularJS","url":"https://teamtreehouse.com/library/angularjs","badge_count":1},{"title":"MVC Frameworks in AngularJS","url":"https://teamtreehouse.com/library/angularjs/mvc-frameworks-in-angularjs","badge_count":1}]},{"id":1622,"name":"AJAX Concepts","url":"https://teamtreehouse.com/library/ajax-basics-retiring/ajax-concepts","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_AJAXBasics_Stage1.png","earned_date":"2015-06-29T21:05:19.000Z","courses":[{"title":"AJAX Basics (retiring)","url":"https://teamtreehouse.com/library/ajax-basics-retiring","badge_count":1},{"title":"AJAX Concepts","url":"https://teamtreehouse.com/library/ajax-basics-retiring/ajax-concepts","badge_count":1}]},{"id":1632,"name":"Programming AJAX","url":"https://teamtreehouse.com/library/ajax-basics-retiring/programming-ajax","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_AJAXBasics_Stage2.png","earned_date":"2015-06-29T22:10:05.000Z","courses":[{"title":"AJAX Basics (retiring)","url":"https://teamtreehouse.com/library/ajax-basics-retiring","badge_count":1},{"title":"Programming AJAX","url":"https://teamtreehouse.com/library/ajax-basics-retiring/programming-ajax","badge_count":1}]},{"id":1642,"name":"jQuery and AJAX","url":"https://teamtreehouse.com/library/ajax-basics-retiring/jquery-and-ajax","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_AJAXBasics_Stage3.png","earned_date":"2015-06-30T01:28:22.000Z","courses":[{"title":"AJAX Basics (retiring)","url":"https://teamtreehouse.com/library/ajax-basics-retiring","badge_count":1},{"title":"jQuery and AJAX","url":"https://teamtreehouse.com/library/ajax-basics-retiring/jquery-and-ajax","badge_count":1}]},{"id":6612,"name":"Transitions and Transforms","url":"https://teamtreehouse.com/library/animating-svg-with-css/transitions-and-transforms","icon_url":"https://achievement-images.teamtreehouse.com/badges_css_svganimation_stage01.png","earned_date":"2015-07-15T03:05:14.000Z","courses":[{"title":"Animating SVG with CSS","url":"https://teamtreehouse.com/library/animating-svg-with-css","badge_count":1},{"title":"Transitions and Transforms","url":"https://teamtreehouse.com/library/animating-svg-with-css/transitions-and-transforms","badge_count":1}]},{"id":6622,"name":"Keyframe and Line Drawing Animations","url":"https://teamtreehouse.com/library/animating-svg-with-css/keyframe-and-line-drawing-animations","icon_url":"https://achievement-images.teamtreehouse.com/badges_css_svganimation_stage02.png","earned_date":"2015-07-15T04:36:26.000Z","courses":[{"title":"Animating SVG with CSS","url":"https://teamtreehouse.com/library/animating-svg-with-css","badge_count":1},{"title":"Keyframe and Line Drawing Animations","url":"https://teamtreehouse.com/library/animating-svg-with-css/keyframe-and-line-drawing-animations","badge_count":1}]},{"id":2222,"name":"JavaScript Loops","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects/simplify-repetitive-tasks-with-loops","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_Basics_Stage6.png","earned_date":"2015-07-16T05:06:16.000Z","courses":[{"title":"JavaScript Loops, Arrays and Objects","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects","badge_count":1},{"title":"Simplify Repetitive Tasks with Loops","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects/simplify-repetitive-tasks-with-loops","badge_count":1}]},{"id":2162,"name":"JavaScript Arrays","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects/tracking-multiple-items-with-arrays","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_Basics_Stage5.png","earned_date":"2015-07-16T19:46:23.000Z","courses":[{"title":"JavaScript Loops, Arrays and Objects","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects","badge_count":1},{"title":"Tracking Multiple Items with Arrays ","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects/tracking-multiple-items-with-arrays","badge_count":1}]},{"id":4602,"name":"JavaScript Objects","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects/tracking-data-using-objects","icon_url":"https://achievement-images.teamtreehouse.com/javascript-loops-stage3.png","earned_date":"2015-07-16T22:45:09.000Z","courses":[{"title":"JavaScript Loops, Arrays and Objects","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects","badge_count":1},{"title":"Tracking Data Using Objects","url":"https://teamtreehouse.com/library/javascript-loops-arrays-and-objects/tracking-data-using-objects","badge_count":1}]},{"id":2122,"name":"Introducing JavaScript","url":"https://teamtreehouse.com/library/javascript-basics-retired/introducing-javascript","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_Basics_Stage1.png","earned_date":"2015-07-16T23:01:01.000Z","courses":[{"title":"JavaScript Basics (Retired)","url":"https://teamtreehouse.com/library/javascript-basics-retired","badge_count":1},{"title":"Introducing JavaScript","url":"https://teamtreehouse.com/library/javascript-basics-retired/introducing-javascript","badge_count":1}]},{"id":2132,"name":"JavaScript Variables","url":"https://teamtreehouse.com/library/javascript-basics-retired/storing-and-tracking-information-with-variables","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_Basics_Stage2.png","earned_date":"2015-07-16T23:21:20.000Z","courses":[{"title":"JavaScript Basics (Retired)","url":"https://teamtreehouse.com/library/javascript-basics-retired","badge_count":1},{"title":"Storing and Tracking Information with Variables","url":"https://teamtreehouse.com/library/javascript-basics-retired/storing-and-tracking-information-with-variables","badge_count":1}]},{"id":3182,"name":"JavaScript Numbers","url":"https://teamtreehouse.com/library/javascript-basics-retired/working-with-numbers","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_Basics_Stage0-34.png","earned_date":"2015-07-16T23:42:31.000Z","courses":[{"title":"JavaScript Basics (Retired)","url":"https://teamtreehouse.com/library/javascript-basics-retired","badge_count":1},{"title":"Working With Numbers","url":"https://teamtreehouse.com/library/javascript-basics-retired/working-with-numbers","badge_count":1}]},{"id":2142,"name":"JavaScript Conditional Statements","url":"https://teamtreehouse.com/library/javascript-basics-retired/making-decisions-with-conditional-statements","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_Basics_Stage3.png","earned_date":"2015-07-17T00:05:22.000Z","courses":[{"title":"JavaScript Basics (Retired)","url":"https://teamtreehouse.com/library/javascript-basics-retired","badge_count":1},{"title":"Making Decisions with Conditional Statements","url":"https://teamtreehouse.com/library/javascript-basics-retired/making-decisions-with-conditional-statements","badge_count":1}]},{"id":2152,"name":"JavaScript Functions","url":"https://teamtreehouse.com/library/javascript-basics-retired/creating-reusable-code-with-functions","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_Basics_Stage4B.png","earned_date":"2015-07-21T03:24:24.000Z","courses":[{"title":"JavaScript Basics (Retired)","url":"https://teamtreehouse.com/library/javascript-basics-retired","badge_count":1},{"title":"Creating Reusable Code with Functions","url":"https://teamtreehouse.com/library/javascript-basics-retired/creating-reusable-code-with-functions","badge_count":1}]},{"id":394,"name":"Introduction to Front-End Frameworks","url":"https://teamtreehouse.com/library/framework-basics/introduction-to-frontend-frameworks","icon_url":"https://achievement-images.teamtreehouse.com/badges_framework_Stage1.png","earned_date":"2015-08-29T02:14:04.000Z","courses":[{"title":"Framework Basics","url":"https://teamtreehouse.com/library/framework-basics","badge_count":1},{"title":"Introduction to Front-End Frameworks","url":"https://teamtreehouse.com/library/framework-basics/introduction-to-frontend-frameworks","badge_count":1}]},{"id":6252,"name":"Welcome to Gulp.js","url":"https://teamtreehouse.com/library/gulp-basics/welcome-to-gulpjs","icon_url":"https://achievement-images.teamtreehouse.com/badges-js-gulp-stage1.png","earned_date":"2015-08-30T01:38:29.000Z","courses":[{"title":"Gulp Basics","url":"https://teamtreehouse.com/library/gulp-basics","badge_count":1},{"title":"Welcome to Gulp.js","url":"https://teamtreehouse.com/library/gulp-basics/welcome-to-gulpjs","badge_count":1}]},{"id":6262,"name":"Gulp your JavaScript workflow!","url":"https://teamtreehouse.com/library/gulp-basics/gulp-your-javascript-workflow","icon_url":"https://achievement-images.teamtreehouse.com/badges-js-gulp-stage2.png","earned_date":"2015-09-12T17:54:13.000Z","courses":[{"title":"Gulp Basics","url":"https://teamtreehouse.com/library/gulp-basics","badge_count":1},{"title":"Gulp your JavaScript Workflow","url":"https://teamtreehouse.com/library/gulp-basics/gulp-your-javascript-workflow","badge_count":1}]},{"id":6272,"name":"Compile Sass with Gulp","url":"https://teamtreehouse.com/library/gulp-basics/compile-sass-with-gulp","icon_url":"https://achievement-images.teamtreehouse.com/badges-js-gulp-stage3.png","earned_date":"2015-09-12T18:16:03.000Z","courses":[{"title":"Gulp Basics","url":"https://teamtreehouse.com/library/gulp-basics","badge_count":1},{"title":"Compile Sass with Gulp","url":"https://teamtreehouse.com/library/gulp-basics/compile-sass-with-gulp","badge_count":1}]},{"id":6282,"name":"Improving your Gulp Workflow","url":"https://teamtreehouse.com/library/gulp-basics/improving-your-gulp-task-pipelines","icon_url":"https://achievement-images.teamtreehouse.com/badges-js-gulp-stage4.png","earned_date":"2015-10-31T01:28:59.000Z","courses":[{"title":"Gulp Basics","url":"https://teamtreehouse.com/library/gulp-basics","badge_count":1},{"title":"Improving your Gulp Task Pipelines","url":"https://teamtreehouse.com/library/gulp-basics/improving-your-gulp-task-pipelines","badge_count":1}]},{"id":4432,"name":"Introduction to Node.js","url":"https://teamtreehouse.com/library/nodejs-basics-2014/introduction-to-nodejs","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_nodeBasics_Stage1.png","earned_date":"2015-10-31T17:55:36.000Z","courses":[{"title":"Node.js Basics (2014)","url":"https://teamtreehouse.com/library/nodejs-basics-2014","badge_count":1},{"title":"Introduction to Node.js","url":"https://teamtreehouse.com/library/nodejs-basics-2014/introduction-to-nodejs","badge_count":1}]},{"id":4442,"name":"Building a Command Line Application","url":"https://teamtreehouse.com/library/nodejs-basics-2014/building-a-command-line-application","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_nodeBasics_Stage2.png","earned_date":"2015-10-31T19:54:00.000Z","courses":[{"title":"Node.js Basics (2014)","url":"https://teamtreehouse.com/library/nodejs-basics-2014","badge_count":1},{"title":"Building a Command Line Application","url":"https://teamtreehouse.com/library/nodejs-basics-2014/building-a-command-line-application","badge_count":1}]},{"id":6642,"name":"What is npm?","url":"https://teamtreehouse.com/library/npm-basics/what-is-npm","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_npmbasics_Stage1.png","earned_date":"2015-10-31T20:36:02.000Z","courses":[{"title":"npm Basics","url":"https://teamtreehouse.com/library/npm-basics","badge_count":1},{"title":"What is npm?","url":"https://teamtreehouse.com/library/npm-basics/what-is-npm","badge_count":1}]},{"id":6862,"name":"Getting Started with Express","url":"https://teamtreehouse.com/library/express-basics-2015/getting-started-with-express","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_ExpressBasics_Stage1.png","earned_date":"2015-11-01T00:42:46.000Z","courses":[{"title":"Express Basics (2015)","url":"https://teamtreehouse.com/library/express-basics-2015","badge_count":1},{"title":"Getting Started with Express","url":"https://teamtreehouse.com/library/express-basics-2015/getting-started-with-express","badge_count":1}]},{"id":6872,"name":"Developing Express Apps Like a Boss","url":"https://teamtreehouse.com/library/express-basics-2015/developing-express-apps-like-a-boss","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_ExpressBasics_Stage2.png","earned_date":"2015-11-01T02:26:37.000Z","courses":[{"title":"Express Basics (2015)","url":"https://teamtreehouse.com/library/express-basics-2015","badge_count":1},{"title":"Developing Express Apps Like a Boss","url":"https://teamtreehouse.com/library/express-basics-2015/developing-express-apps-like-a-boss","badge_count":1}]},{"id":6882,"name":"The Request and Response Objects in Express","url":"https://teamtreehouse.com/library/express-basics-2015/the-request-and-response-objects-in-express","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_ExpressBasics_Stage3.png","earned_date":"2015-11-19T03:00:55.000Z","courses":[{"title":"Express Basics (2015)","url":"https://teamtreehouse.com/library/express-basics-2015","badge_count":1},{"title":"The Request and Response Objects in Express","url":"https://teamtreehouse.com/library/express-basics-2015/the-request-and-response-objects-in-express","badge_count":1}]},{"id":6892,"name":"Using Templates with Express","url":"https://teamtreehouse.com/library/express-basics-2015/using-templates-with-express","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_ExpressBasics_Stage4.png","earned_date":"2015-11-20T03:12:45.000Z","courses":[{"title":"Express Basics (2015)","url":"https://teamtreehouse.com/library/express-basics-2015","badge_count":1},{"title":"Using Templates with Express","url":"https://teamtreehouse.com/library/express-basics-2015/using-templates-with-express","badge_count":1}]},{"id":6902,"name":"Serving Static Files in Express","url":"https://teamtreehouse.com/library/express-basics-2015/serving-static-files-in-express","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_ExpressBasics_Stage5.png","earned_date":"2015-11-20T03:30:23.000Z","courses":[{"title":"Express Basics (2015)","url":"https://teamtreehouse.com/library/express-basics-2015","badge_count":1},{"title":"Serving Static Files in Express","url":"https://teamtreehouse.com/library/express-basics-2015/serving-static-files-in-express","badge_count":1}]},{"id":6912,"name":"Doing More with Express","url":"https://teamtreehouse.com/library/express-basics-2015/doing-more-with-express","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_ExpressBasics_Stage6.png","earned_date":"2015-11-22T03:10:07.000Z","courses":[{"title":"Express Basics (2015)","url":"https://teamtreehouse.com/library/express-basics-2015","badge_count":1},{"title":"Doing more with Express","url":"https://teamtreehouse.com/library/express-basics-2015/doing-more-with-express","badge_count":1}]},{"id":8582,"name":"Getting Started with MongoDB","url":"https://teamtreehouse.com/library/mongo-basics/getting-started-with-mongodb","icon_url":"https://achievement-images.teamtreehouse.com/badges_Mongo_Basics_Stage1.png","earned_date":"2016-01-21T03:11:26.000Z","courses":[{"title":"Mongo Basics","url":"https://teamtreehouse.com/library/mongo-basics","badge_count":1},{"title":"Getting Started With MongoDB","url":"https://teamtreehouse.com/library/mongo-basics/getting-started-with-mongodb","badge_count":1}]},{"id":8592,"name":"Understanding MongoDB","url":"https://teamtreehouse.com/library/mongo-basics/understanding-mongodb","icon_url":"https://achievement-images.teamtreehouse.com/badges_Mongo_Basics_Stage2.png","earned_date":"2016-01-22T03:21:01.000Z","courses":[{"title":"Mongo Basics","url":"https://teamtreehouse.com/library/mongo-basics","badge_count":1},{"title":"Understanding MongoDB","url":"https://teamtreehouse.com/library/mongo-basics/understanding-mongodb","badge_count":1}]},{"id":8602,"name":"Working With Collections","url":"https://teamtreehouse.com/library/mongo-basics/working-with-collections","icon_url":"https://achievement-images.teamtreehouse.com/badges_Mongo_Basics_Stage3.png","earned_date":"2016-01-23T03:16:31.000Z","courses":[{"title":"Mongo Basics","url":"https://teamtreehouse.com/library/mongo-basics","badge_count":1},{"title":"Working With Collections ","url":"https://teamtreehouse.com/library/mongo-basics/working-with-collections","badge_count":1}]},{"id":8612,"name":"Go Further With Mongo ","url":"https://teamtreehouse.com/library/mongo-basics/go-further-with-mongo","icon_url":"https://achievement-images.teamtreehouse.com/badges_Mongo_Basics_Stage4.png","earned_date":"2016-01-23T04:44:08.000Z","courses":[{"title":"Mongo Basics","url":"https://teamtreehouse.com/library/mongo-basics","badge_count":1},{"title":"Go Further With Mongo","url":"https://teamtreehouse.com/library/mongo-basics/go-further-with-mongo","badge_count":1}]},{"id":6652,"name":"Installing Packages with npm","url":"https://teamtreehouse.com/library/npm-basics/installing-packages-with-npm","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_npmbasics_Stage2.png","earned_date":"2016-02-05T03:02:39.000Z","courses":[{"title":"npm Basics","url":"https://teamtreehouse.com/library/npm-basics","badge_count":1},{"title":"Installing Packages with npm","url":"https://teamtreehouse.com/library/npm-basics/installing-packages-with-npm","badge_count":1}]},{"id":6662,"name":"Updating and Uninstalling Packages with npm","url":"https://teamtreehouse.com/library/npm-basics/updating-and-uninstalling-packages-with-npm","icon_url":"https://achievement-images.teamtreehouse.com/badges_JavaScript_npmbasics_Stage3.png","earned_date":"2016-02-05T03:15:35.000Z","courses":[{"title":"npm Basics","url":"https://teamtreehouse.com/library/npm-basics","badge_count":1},{"title":"Updating and Uninstalling Packages with npm","url":"https://teamtreehouse.com/library/npm-basics/updating-and-uninstalling-packages-with-npm","badge_count":1}]},{"id":8102,"name":"Getting Started with Angular","url":"https://teamtreehouse.com/library/angularjs-basics-1x-2/getting-started-with-angular","icon_url":"https://achievement-images.teamtreehouse.com/2015-badges-js-angularbasics-stage1.png","earned_date":"2016-02-06T03:07:45.000Z","courses":[{"title":"AngularJS Basics (1.x)","url":"https://teamtreehouse.com/library/angularjs-basics-1x-2","badge_count":1},{"title":"Getting Started with Angular ","url":"https://teamtreehouse.com/library/angularjs-basics-1x-2/getting-started-with-angular","badge_count":1}]},{"id":922,"name":"HTML First","url":"https://teamtreehouse.com/library/how-to-make-a-website/html-first","icon_url":"https://achievement-images.teamtreehouse.com/bagdes_html_howtobuildawebsite_stage02.png","earned_date":"2016-02-20T03:59:13.000Z","courses":[{"title":"How to Make a Website","url":"https://teamtreehouse.com/library/how-to-make-a-website","badge_count":1},{"title":"HTML First","url":"https://teamtreehouse.com/library/how-to-make-a-website/html-first","badge_count":1}]},{"id":932,"name":"Creating HTML Content","url":"https://teamtreehouse.com/library/how-to-make-a-website/creating-html-content","icon_url":"https://achievement-images.teamtreehouse.com/bagdes_html_howtobuildawebsite_stage03.png","earned_date":"2016-02-20T05:27:46.000Z","courses":[{"title":"How to Make a Website","url":"https://teamtreehouse.com/library/how-to-make-a-website","badge_count":1},{"title":"Creating HTML Content","url":"https://teamtreehouse.com/library/how-to-make-a-website/creating-html-content","badge_count":1}]},{"id":942,"name":"CSS: Cascading Style Sheets","url":"https://teamtreehouse.com/library/how-to-make-a-website/css-cascading-style-sheets","icon_url":"https://achievement-images.teamtreehouse.com/bagdes_html_howtobuildawebsite_stage04.png","earned_date":"2016-02-20T20:56:48.000Z","courses":[{"title":"How to Make a Website","url":"https://teamtreehouse.com/library/how-to-make-a-website","badge_count":1},{"title":"CSS: Cascading Style Sheets","url":"https://teamtreehouse.com/library/how-to-make-a-website/css-cascading-style-sheets","badge_count":1}]},{"id":9572,"name":"Introducing Unit Testing","url":"https://teamtreehouse.com/library/javascript-unit-testing/introducing-unit-testing","icon_url":"https://achievement-images.teamtreehouse.com/javascript_unit_testing_stage01.png","earned_date":"2016-05-06T05:10:36.000Z","courses":[{"title":"JavaScript Unit Testing","url":"https://teamtreehouse.com/library/javascript-unit-testing","badge_count":1},{"title":"Introducing Unit Testing","url":"https://teamtreehouse.com/library/javascript-unit-testing/introducing-unit-testing","badge_count":1}]},{"id":9582,"name":"Behavior Driven Development with Mocha \u0026 Chai","url":"https://teamtreehouse.com/library/javascript-unit-testing/behavior-driven-development-with-mocha-chai","icon_url":"https://achievement-images.teamtreehouse.com/javascript_unit_testing_stage02.png","earned_date":"2016-05-07T18:55:14.000Z","courses":[{"title":"JavaScript Unit Testing","url":"https://teamtreehouse.com/library/javascript-unit-testing","badge_count":1},{"title":"Behavior Driven Development with Mocha \u0026 Chai","url":"https://teamtreehouse.com/library/javascript-unit-testing/behavior-driven-development-with-mocha-chai","badge_count":1}]},{"id":9592,"name":"Improving Our Tests","url":"https://teamtreehouse.com/library/javascript-unit-testing/improving-our-tests","icon_url":"https://achievement-images.teamtreehouse.com/javascript_unit_testing_stage03.png","earned_date":"2016-05-14T19:50:10.000Z","courses":[{"title":"JavaScript Unit Testing","url":"https://teamtreehouse.com/library/javascript-unit-testing","badge_count":1},{"title":"Improving Our Tests","url":"https://teamtreehouse.com/library/javascript-unit-testing/improving-our-tests","badge_count":1}]},{"id":9602,"name":"Next Steps","url":"https://teamtreehouse.com/library/javascript-unit-testing/next-steps","icon_url":"https://achievement-images.teamtreehouse.com/javascript_unit_testing_stage04.png","earned_date":"2016-05-14T21:28:45.000Z","courses":[{"title":"JavaScript Unit Testing","url":"https://teamtreehouse.com/library/javascript-unit-testing","badge_count":1},{"title":"Next Steps","url":"https://teamtreehouse.com/library/javascript-unit-testing/next-steps","badge_count":1}]},{"id":1472,"name":"Setup a Bootstrap Theme","url":"https://teamtreehouse.com/library/from-bootstrap-to-wordpress-theme/setup-a-bootstrap-theme","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_Bootstrap_Stage01.png","earned_date":"2016-05-15T00:45:26.000Z","courses":[{"title":"From Bootstrap to WordPress","url":"https://teamtreehouse.com/library/from-bootstrap-to-wordpress","badge_count":1},{"title":"Setup a Bootstrap Theme","url":"https://teamtreehouse.com/library/from-bootstrap-to-wordpress-theme/setup-a-bootstrap-theme","badge_count":1}]},{"id":1492,"name":"Create Bootstrap Styled Theme Templates","url":"https://teamtreehouse.com/library/from-bootstrap-to-wordpress-theme/create-bootstrap-styled-theme-templates","icon_url":"https://achievement-images.teamtreehouse.com/badges_WP_Bootstrap_Stage02.png","earned_date":"2016-05-23T23:50:26.000Z","courses":[{"title":"From Bootstrap to WordPress","url":"https://teamtreehouse.com/library/from-bootstrap-to-wordpress","badge_count":1},{"title":"Create Bootstrap Styled Theme Templates","url":"https://teamtreehouse.com/library/from-bootstrap-to-wordpress-theme/create-bootstrap-styled-theme-templates","badge_count":1}]},{"id":9882,"name":"Building a REST Service","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/building-a-rest-service","icon_url":"https://achievement-images.teamtreehouse.com/badges_REST_API_Express_Stage1.png","earned_date":"2016-07-20T04:01:50.000Z","courses":[{"title":"Build a REST API With Express","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express","badge_count":1},{"title":"Building a REST Service","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/building-a-rest-service","badge_count":1}]},{"id":9892,"name":"Building API Routes in Express","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/building-api-routes-in-express","icon_url":"https://achievement-images.teamtreehouse.com/badges_REST_API_Express_Stage2.png","earned_date":"2016-07-22T20:55:53.000Z","courses":[{"title":"Build a REST API With Express","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express","badge_count":1},{"title":"Building API Routes in Express","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/building-api-routes-in-express","badge_count":1}]},{"id":9902,"name":"Modeling Data for the API ","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/modeling-data-for-the-api","icon_url":"https://achievement-images.teamtreehouse.com/badges_REST_API_Express_Stage3.png","earned_date":"2016-07-24T06:04:45.000Z","courses":[{"title":"Build a REST API With Express","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express","badge_count":1},{"title":"Modeling Data for the API ","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/modeling-data-for-the-api","badge_count":1}]},{"id":9912,"name":"Communicating with Mongo Through Mongoose","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/communicating-with-mongo-through-mongoose","icon_url":"https://achievement-images.teamtreehouse.com/badges_REST_API_Express_Stage4.png","earned_date":"2016-07-24T17:49:54.000Z","courses":[{"title":"Build a REST API With Express","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express","badge_count":1},{"title":"Communicating with Mongo through Mongoose","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/communicating-with-mongo-through-mongoose","badge_count":1}]},{"id":9922,"name":"Completing and Testing the API","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/completing-and-testing-the-api","icon_url":"https://achievement-images.teamtreehouse.com/badges_REST_API_Express_Stage5.png","earned_date":"2016-08-04T00:13:13.000Z","courses":[{"title":"Build a REST API With Express","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express","badge_count":1},{"title":"Completing and Testing the API","url":"https://teamtreehouse.com/library/build-a-rest-api-with-express/completing-and-testing-the-api","badge_count":1}]},{"id":9832,"name":"What is Authentication? ","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/what-is-authentication","icon_url":"https://achievement-images.teamtreehouse.com/badges_express_auth_importance_stage01.png","earned_date":"2016-08-05T20:05:28.000Z","courses":[{"title":"User Authentication With Express and Mongo","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo","badge_count":1},{"title":"What is Authentication?","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/what-is-authentication","badge_count":1}]},{"id":9842,"name":"User Registration and Login","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/user-registration","icon_url":"https://achievement-images.teamtreehouse.com/badges_express_reg_login_stage02.png","earned_date":"2016-08-12T02:20:34.000Z","courses":[{"title":"User Authentication With Express and Mongo","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo","badge_count":1},{"title":"User Registration","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/user-registration","badge_count":1}]},{"id":9852,"name":"Sessions and Cookies ","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/sessions-and-cookies","icon_url":"https://achievement-images.teamtreehouse.com/badges_express_sessions_cookies_stage03.png","earned_date":"2016-08-12T04:25:12.000Z","courses":[{"title":"User Authentication With Express and Mongo","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo","badge_count":1},{"title":"Sessions and Cookies","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/sessions-and-cookies","badge_count":1}]},{"id":9862,"name":"Express Middleware","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/improving-the-app-with-custom-middleware","icon_url":"https://achievement-images.teamtreehouse.com/badges_express_middleware_stage04.png","earned_date":"2016-08-12T05:57:38.000Z","courses":[{"title":"User Authentication With Express and Mongo","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo","badge_count":1},{"title":"Improving the App with Custom Middleware","url":"https://teamtreehouse.com/library/user-authentication-with-express-and-mongo/improving-the-app-with-custom-middleware","badge_count":1}]}],"points":{"total":8932,"HTML":612,"CSS":691,"Design":117,"JavaScript":4149,"Ruby":312,"PHP":153,"Android":0,"Development Tools":92,"Business":0,"Python":42,"Java":1,"Digital Literacy":0,"C#":1,"Databases":244,"Data Analysis":0,"APIs":0,"Security":0,"Go":0,"Quality Assurance":0,"Machine Learning":0,"Learning Resources":0,"Computer Science":0,"Equity, Diversity, and Inclusion (EDI)":0,"21st Century Skills":0}}]]
+
+  StartTimer(1)
+  Local decoded = JSON.Decode(data)
+  DebugPrint("Tile elapsed: " .. GetTimer(1) .. "ms")
+  DebugPrompt("Hit enter to dump the result...")
+  DebugPrint("===============================")
+  DBG.DumpTable(decoded)
+  DebugPrint("===============================")
+  DebugPrompt("Hit Enter to quit.")
+EndFunction
+
+;JSON.PerformanceTest()
+
+/*
+; TEST
+Local toImport = "C:/Users/Fabio.NB-FABIO/Desktop/Software/Transcendence/2.3.0.0/listtx.txt"
+StartTimer(1)
+Local d = FileToString(toImport)
+DebugPrint("Load time  :", GetTimer(1))
+StartTimer(1)
+Local dec = JSON.Decode(d)
+DebugPrint("Decode time:", GetTimer(1))
+DebugPrompt("?")
+DBG.DumpTable(dec)
+DebugPrompt("?")
+*/
