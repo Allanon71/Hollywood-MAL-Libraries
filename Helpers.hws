@@ -46,6 +46,7 @@ HL.SizeString()
 :: NUMBERS ::
 HL.RoundBig()
 HL.Value2Perc()
+HL.FormatNum(v, i, d)
 
 :: CONVERSIONS ::
 HL.Convert.BytesTo()
@@ -71,6 +72,10 @@ HL.RestartApp()
 
 ---- LATEST CHANGES ------------------------------------------------
 --------------------------------------------------------------------
+19/09/2020
+  ADD : HL.RoundBig() now accept a third parameter to round up or down
+03/09/2020
+  ADD : HL.FormatNum(v, i, d)
 07/08/2020
   ADD : HL.RestartApp()
 04/07/2020
@@ -468,7 +473,7 @@ NOTES
 
 EndFunction
 
-Function HL.RoundBig(value, decimals)
+Function HL.RoundBig(value, decimals, roundDown)
 /********************************************************************
 rounded = HL.RoundBug(value, decimals)
 
@@ -480,6 +485,7 @@ errors like this:
 INPUT
   value : value to convert
   decimals : how many decimals you want
+  roundDown = To round down (default is roundUp)
 OUTPUT
   rounded : rounded value with the specified decimals
 ********************************************************************/
@@ -487,10 +493,17 @@ OUTPUT
   Local sign       = IIf(rounded<0, -1, 1)
   Local multiplier = 10^decimals
   Local intPart    = Int(rounded)
+  
+  If IsNil(roundDown) Then RoundDown = False
+  Local vRound = IIf(roundDown, -0.5, 0.5)
+  
   rounded = rounded-intPart
-  rounded = Cast(Abs(rounded)*multiplier+0.5, False, #INTEGER)
+
+  rounded = Cast(Abs(rounded)*multiplier+vRound, False, #INTEGER)
   rounded = intPart + (rounded)/(multiplier*sign)
+  
   Return(rounded)
+  
 EndFunction
 /*
 Local v = "9511.262466530"
@@ -1666,3 +1679,20 @@ OUTPUT
 
 EndFunction
 
+Function HL.FormatNum(v, i, d)
+  ; Format the number <v> with <i> integer positions and <d> decimal positions
+  ; Return the formatted string
+  ; -------------------------------------------------------
+  Local iv = Int(v) ; Integer part
+  Local dv = v-iv   ; Decimal part
+  
+  Local is = ToString(iv)
+  Local ds = UnRightStr(FormatStr("%." .. d .. "f", dv), 2)
+  
+  While StrLen(is) < i
+    is = " " .. is
+  Wend
+  
+  Return(is .. "." .. ds)
+
+EndFunction
