@@ -2,6 +2,28 @@
 /* GLFX v1.0 */
 /*************/
 
+/* TODO STUFF ARE MARKED WITH #TODO#    */
+
+/* CHANGE LOG
+   ==========
+   25/11/2020
+    Removed : Background class, all can be done with the sprite class.
+      Removed : GLFX.HeightMap_Generate() -> Not needed anymore
+      Removed : GLFX.Background:HMap_GetTerrainHeight() -> Not needed anymore
+      Removed : GLFX.Background:Create() -> Not needed anymore
+      Removed : GLFX.Background:Move() -> Not needed anymore
+      Removed : GLFX.Background:HMap_AddSerie() -> Not needed anymore
+      Removed : GLFX.Background:HMap_AttachSprite() -> Not needed anymore
+      Removed : GLFX.Background:HMap_DetachSprite() -> Not needed anymore
+      Removed : GLFX.Background:Draw() -> Not needed anymore
+      Removed : GLFX.Background:Update() -> Not needed anymore
+   26/11/2020
+    Docs : Doc comments for the SPRITE Object
+    Docs : GLFX.Sprite:_UpdateAnimation() doc comments added
+    Docs : GLFX.Sprite:SetAnimationFrame() doc comments added
+    Docs : GLFX.Sprite:_UpdatePolyColl() doc comments added
+    Docs : GLFX.Sprite:SetBoundaries() doc comments added
+    
 /* POWEROFTWO
    ----------
    MorphOS, AmigaOS4 and AmigaOS3 need that texture sizes have to be a
@@ -3216,526 +3238,6 @@ EndFunction
 
 
 
-;::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-;::::::::::::::::::::::::::::::: BACKGROUND CLASS :::::::::::::::::::::::::::::
-;::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-GLFX.Background = CopyTable(GLFX.SimpleSprite)
-
-GLFX.Background.Type = #BACKGROUND
-GLFX.Background.BGArea = {}
-GLFX.Background.BGArea.x = 0
-GLFX.Background.BGArea.y = 0
-GLFX.Background.BGArea.w = 320
-GLFX.Background.BGArea.h = 200
-GLFX.Background.Image = ""
-GLFX.Background.BGRepeat = False
-GLFX.Background.BGRepeatMode = #BGREPEAT_H
-GLFX.Background.AttachedSprites = {}
-
-Function GLFX.Background:Create(engine, name, layer, attributes, filters, BGType, params, group) ; NO MORE USED
-/******************************************************************************
-BGObj = GLFX.Background:Create(engine, name, layer, attributes, filters, BGType, 
-                      params, group)
-
-Create a new background object
----------------------------------------------------------------------
-INPUT
-  engine        Sprite engine
-  name          Object name
-  layer         Layer (rendering level)
-  attributes    Rendering attributes
-  filter        Rendering filter
-  BGType        Background type:
-                  #BGTYPE_PARALLAX  The background is an image that
-                  can be repeated and scrolled vertically or orizontally
-                  but can also be treated as a sprite that scrolls between
-                  blank spaces.
-                  - params
-                    area      Table { x, y, w, h }
-                    image     Image filename
-                    bgrepeat  Flag to repeat a seamless image for continuos
-                              background
-                  #BGTYPE_TILEMAP
-                    NOT YET SUPPORTED
-                    
-                  #BGTYPE_STATIC    The background is a static image like
-                  a sprite but without transitions handling. You have to 
-                  define the area where the background should live this 
-                  enable you to :Move() the background without exceeding the
-                  area orders.
-                  - params
-                    area      Table { x, y, w, h }
-                    image     Image filename
-                    
-                  #BGTYPE_HEIGHTMAP  The background is rendered at each
-                  frame starting from the x position of the background 
-                  sprite to the screen width.
-                  - params
-                    hMap      Height map table, each entry { h = <n> }
-                    color     Terrain color
-                    area      Bottom area base, { x, y, w, h }
-
-                  #BGTYPE_DYNAMIC
-                    NOT YET SUPPORTED
-  params        Depends on BGType.
-  group         Sprite group (default = 0)
-OUTPUT
-  BGObj         Background object
-******************************************************************************/
-
-  If HL.IsNil(name) Or name = "" Then name = HL.GetRndName()
-  
-  ;| Genera il nuovo oggetto
-  NewObj = CopyTable(GLFX.Background)
-  NewObj.Name = Name
-
-  ;| BGBType
-  If HL.IsNil(BGType) Then BGType = #BGTYPE_STATIC
-  NewObj.BGType = BGType
-  
-  ;| Attributes
-  If HL.IsNil(Attributes) Then Attributes =  {}
-  NewObj.Attributes = Attributes
-
-  ;| Coordinates
-  If TB.Item.Exists(Attributes, "x")
-    NewObj.x = Attributes.x
-    Attributes.x = Nil
-  EndIf
-
-  If TB.Item.Exists(Attributes, "y")
-    NewObj.y = Attributes.y
-    Attributes.y = Nil
-  EndIf
-
-  ;| LAYER check
-  If HL.IsNotNil(Layer) Then NewObj.Layer = Layer
-
-  ;| FILTERS check
-  If HL.IsNotNil(Filters) Then NewObj.Attributes.Filters = CopyTable(Filters)
-  
-  ;| GROUP Check
-  If HL.IsNotNil(Group) Then NewObj.Group = Group
-  
-  ;| Subtype initializations
-  Switch BGType
-    Case #BGTYPE_STATIC ; ------------------------------
-      If TB.Item.Exists(params, "image")
-        If Exists(params.image)
-          check, attr = IsPicture(params.image)
-          If check
-            NewObj.brush_id = _BrushCounter
-            LoadBrush(_BrushCounter, params.image, { LoadAlpha = attr.Alpha, Hardware = False })
-            Engine.Brushes[NewObj.Brush_ID] = 1
-            GLFX._TexInit(NewObj.brush_id)
-            _BrushCounter = _BrushCounter + 1
-          Else
-            ;|*** ERRORE: Formato immagine non riconosciuto ***
-            Return(Nil)
-          EndIf
-        Else
-          ; MISSING RESOURCE
-        EndIf
-        ; MISSING RESOURCE
-      EndIf
-      
-      If TB.Item.Exists(params, "area")
-        NewObj.BGArea = params.Area
-      EndIf
-    
-    Case #BGTYPE_HEIGHTMAP ; ---------------------------
-      NewObj.BGhMap = params.hMap
-      NewObj.BGhMapSize = ListItems(params.hMap)-1
-      NewObj.BGColor = params.color
-      NewObj.BGArea = params.area
-      NewObj.Brush_id = CreateBrush(Nil, params.area.w, params.area.h, #BLACK, { AlphaChannel = True, CLear = True })
-      Engine.Brushes[NewObj.Brush_ID] = 1
-    
-    Case #BGTYPE_PARALLAX ; ----------------------------
-      If TB.Item.Exists(params, "image")
-        If Exists(params.image)
-          check, attr = IsPicture(params.image)
-          If check
-            NewObj.brush_id = LoadBrush(Nil, params.image, { LoadAlpha = attr.Alpha, Hardware = Hardware })
-            Engine.Brushes[NewObj.Brush_ID] = 1
-          Else
-            ;|*** ERRORE: Formato immagine non riconosciuto ***
-            Return(Nil)
-          EndIf
-        Else
-          ; MISSING RESOURCE
-        EndIf
-        ; MISSING RESOURCE
-      EndIf
-      
-      If TB.Item.Exists(params, "area")
-        NewObj.BGArea = params.Area
-        NewObj.BGClip = CreateClipRegion(Nil, #BOX, NewObj.BGArea.x, NewObj.BGArea.y, NewObj.BGArea.w, NewObj.BGArea.h)
-      EndIf
-
-      If TB.Item.Exists(params, "bgrepeat")
-        NewObj.BGRepeat = params.BGRepeat
-      EndIf
-
-      If TB.Item.Exists(params, "bgrepeatmode")
-        NewObj.BGRepeatMode = params.BGRepeatMode
-        If NewObj.BGRepeatMode = #BGREPEAT_H
-          ; Adjust the area to be a multiple of the brush size
-          ; since the clip region is already defined
-          Local bgw = GetAttribute(#BRUSH, NewObj.Brush_ID, ATTRWIDTH)
-          NewObj.BGArea.w = (Int(NewObj.BGArea.w/bgw)+1)*bgw
-        ElseIf NewObj.BGRepeatMode = #BGREPEAT_V
-          ; Adjust the area to be a multiple of the brush size
-          ; since the clip region is already defined
-          Local bgh = GetAttribute(#BRUSH, NewObj.Brush_ID, ATTRHEIGHT)
-          NewObj.BGArea.h = (Int(NewObj.BGArea.h/bgh)+1)*bgh
-
-        EndIf
-      EndIf
-  EndSwitch
-  
-  
-  ;| Verifica attributo speciale CUSTOM_Fixed_Scale
-  If TB.Item.Exists(Attributes, "custom_fixed_scale")
-    If Attributes.CUSTOM_Fixed_Scale
-      ScaleBrush(NewObj.brush_id, Attributes.Width, Attributes.Height, True)
-      NewObj.Attributes.Width  = Nil
-      NewObj.Attributes.height = Nil
-      NewObj.Attributes.CUSTOM_Fixed_Scale = Nil
-    EndIf
-  EndIf
-  
-  ;| Salva lo sprite nella SpriteList dell'Engine
-  InsertItem(Engine.SpriteList, NewObj)
-
-  If TB.Item.IsNil(Engine.Layers, NewObj.Layer)
-    Engine.Layers[NewObj.Layer] = 
-      { SortedList = {},
-        UnsortedList = {},
-        FirstIndex = 0,
-        LastIndex  = 0 }
-  EndIf
-
-  If TB.Item.IsNil(Engine.Groups, NewObj.Group)
-    Engine.Groups[NewObj.Group] = {}
-    InsertItem(Engine.Groups[NewObj.Group], NewObj)
-  Else
-    InsertItem(Engine.Groups[NewObj.Group], NewObj)
-  EndIf
-  
-  If TB.Item.Exists(Engine.Layers[NewObj.Layer].SortedList, NewObj.y)
-    InsertItem(Engine.Layers[NewObj.Layer].SortedList[NewObj.y], NewObj)
-  Else
-    Engine.Layers[NewObj.Layer].SortedList[NewObj.y] = {}
-    InsertItem(Engine.Layers[NewObj.Layer].SortedList[NewObj.y], NewObj)
-  EndIf
-
-  If TB.Item.Exists(Engine.Layers[NewObj.Layer], "unsortedlist")
-    InsertItem(Engine.Layers[NewObj.Layer].UnsortedList, NewOBj)
-  Else
-    Engine.Layers[NewObj.Layer].UnsortedList = {}
-    InsertItem(Engine.Layers[NewObj.Layer].UnsortedList, NewOBj)
-  EndIf
-
-  If Engine.Layers[NewObj.Layer].FirstIndex > NewObj.y Then Engine.Layers[NewObj.Layer].FirstIndex = NewObj.y
-  If Engine.Layers[NewObj.Layer].LastIndex < NewObj.y Then Engine.Layers[NewObj.Layer].LastIndex = NewObj.y
-
-  NewObj.SortedIndex = NewObj.y
-  NewObj.Engine = Engine
-
-  If attr.Alpha
-    NewObj.Attributes.AlphaChannel = True
-    NewObj.Attributes.Mask         = False
-  Else
-    NewObj.Attributes.AlphaChannel = False
-  EndIf
-
-  ;| Durante l'inserimento verifica i layer intermedi
-  For Local i = 0 To NewObj.Layer - 1
-    If TB.Item.IsNil(Engine.Layers, i)
-      Engine.Layers[i] = 
-        { SortedList = {},
-          FirstIndex = 0,
-          LastIndex  = 0,
-          UnsortedList = {} }
-    EndIf
-  Next
-
-  If NewObj.Engine.LayerMax < NewObj.Layer Then NewObj.Engine.LayerMax = NewObj.Layer
-
-  ;| First update for position validation
-  NewObj:Move(NewObj.x, NewObj.y)
-  
-  ;| RETURN the result
-  Return(NewObj)
-EndFunction
-
-Function GLFX.Background:Move(x, y) ; NOT USED
-/******************************************************************************
-GLFX.Background:Move(x, y)
-
-Move the background at the given coordinates
----------------------------------------------------------------------
-INPUT
-  x     X coordinate
-  y     Y coordinate
-******************************************************************************/
-  Local area = self.BGArea
-  Local bgw = GetAttribute(#BRUSH, self.brush_id, #ATTRWIDTH)
-  Local bgh = GetAttribute(#BRUSH, self.brush_id, #ATTRHEIGHT)
-
-  Switch self.BGType
-    Case #BGTYPE_STATIC
-      If area.x+area.w>x+bgw
-        x=area.x+area.w-bgw
-      ElseIf x>area.x
-        x=area.x
-      EndIf
-      
-      If area.y+area.h>y+bgh
-        y=area.y+area.h-bgh
-      ElseIf y>area.y
-        y=area.y
-      EndIf
-      
-    Case #BGTYPE_PARALLAX
-      ;If self.BGRepeat
-      
-      ;Else
-        If x+bgw<area.x
-          x=area.x+area.w
-        ElseIf x>area.x+area.w
-          x=area.x-bgw
-        EndIf
-        If y+bgh<area.y
-          y=area.y+area.h
-        ElseIf y>area.y+area.h
-          y=area.y-bgh
-        EndIf
-
-      ;EndIf
-    
-  EndSwitch
-
-  self.x = x
-  self.y = y
-EndFunction  
-
-Function GLFX.Background.HMap_Generate(size, range, roughtness, fallChance) ; NOT YET CONVERTED FOR GLFX
-/******************************************************************************
-GLFX.Background.HMap_Generate(size, range, roughtness, fallChance)
-
-Generate an height map for the #BGTYPE_HEIGHTMAP background
----------------------------------------------------------------------
-INPUT
-  size        Size in pixels
-  range       Value range at index 0 and 1
-  roughness   Terrain roughtness
-  fallChance  Percentual of having a fall in the terrain
-******************************************************************************/
-; Genera una HMap casuale
-  Local hMap = {}
-  For i = 0 To size-1
-    Local value = Rnd(range[1]+1)+range[0]
-    If i>0
-      Local delta = hMap[i-1].h-value
-      If delta > roughtness
-        If Rnd(100)<fallChance
-          value = hMap[i-1].h - roughtness
-        EndIf
-      ElseIf delta < -roughtness
-        If Rnd(100)<fallChance
-          value = hMap[i-1].h + roughtness
-        EndIf
-      EndIf
-    EndIf
-    hMap[i] = { h = value }
-  Next
-
-  Return(hMap)
-EndFunction
-
-Function GLFX.Background:HMap_GetTerrainHeight(offset) ; NOT YET CONVERTED FOR GLFX
-/******************************************************************************
-height = GLFX.Background:HMap_GetTerrainHeight(offset)
-
-Return the terrain height at the give screen offset for the current background
-position.
----------------------------------------------------------------------
-INPUT
-  offset      Screen offset
-OUTPUT
-  height      Height of the terrain
-******************************************************************************/
-  Local index = Int(-self.x+offset)
-  Return(self.BGArea.y+self.BGhMap[index].h)
-EndFunction
-
-Function GLFX.Background:HMap_AddSerie(position, length, formula) ; NOT YET CONVERTED FOR GLFX
-/******************************************************************************
-GLFX.Background:HMap_AddSerie(position, length, formula)
-
-Modify the current terrain.
----------------------------------------------------------------------
-INPUT
-  position      Where start to change the terrain
-  length        Length in pixels
-  formula       Callback function that calculates the value variation
-                called with (index, lenght) arguments.
-******************************************************************************/
-  position = Int(position)
-  For Local i = position To position+length
-    self.BGhMap[i].h = self.BGhMap[i].h+Int(formula(i-position, length))
-  Next
-EndFunction
-
-Function GLFX.Background:HMap_AttachSprite(sprite, offsetx, offsety) ; NOT YET CONVERTED FOR GLFX
-/******************************************************************************
-GLFX.Background:HMap_AttachSprite(sprite, offsetx, offsety)
-
-Attach a sprite to this terrain, the sprite y will be updated with
-the terrain y coordinate.
----------------------------------------------------------------------
-INPUT
-  sprite      Sprite to attach
-  offsetx     Offset X
-  offsety     Offset Y
-******************************************************************************/
-  self.AttachedSprites[sprite] = { sprite = sprite, offsetx = offsetx, offsety = offsety }
-EndFunction
-
-Function GLFX.Background:HMap_DetachSprite(sprite) ; NOT YET CONVERTED FOR GLFX
-/******************************************************************************
-GLFX.Background:HMap_DetachSprite(sprite)
-
-Remove a previously attached sprite
----------------------------------------------------------------------
-INPUT
-  sprite      Sprite to remove
-******************************************************************************/
-  self.AttachedSprites[sprite] = Nil
-EndFunction
-
-Function GLFX.Background:Draw(offsetx, offsety) ; NO MORE USED
-/******************************************************************************
-GLFX.Background:Draw(offsetx, offsety)
-
-Draw the background object
----------------------------------------------------------------------
-INPUT
-  offsetx     Offset X
-  offsety     Offset Y
-******************************************************************************/
-
-  self:Update()
-
-  If self.Hidden Or self.Killed Then Return()
-  
-  Local area = self.BGArea
-  Local sx, sy = Area.x-self.x, Area.y-self.y
-  
-  Switch self.BGType
-    Case #BGTYPE_STATIC
-      DisplayBrushPart(self.brush_id, sx, sy, Area.x, Area.y, Area.w, Area.h, self.Attributes)
-      
-    Case #BGTYPE_HEIGHTMAP
-      SetFillStyle(#FILLCOLOR)
-      GFX.OutputDevice.Select(#BRUSH, self.brush_id, #SELMODE_COMBO)
-        Box(0, 0, self.BGArea.w, self.BGArea.h, self.BGColor)
-        Local start = 0
-        Local stop = start+self.BGArea.w
-        Local base = 0
-      
-        If stop-self.x >= self.BGhMapSize
-          stop = self.BGhMapSize+self.x
-        EndIf
-      
-        For i = start To stop
-          Local h = self.BGhMap[Int(i-self.x)].h
-          Line(i, base, i, base+h, $FF000000)
-        Next
-      GFX.OutputDevice.EndSelect()
-      DisplayBrush(self.brush_id, self.bgarea.x, self.bgarea.y)
-      
-      ;--- Update attached sprites ---
-      For i, entry In Pairs(self.AttachedSprites)
-        Local xpos = Int(-self.x+entry.sprite.x-self.BGArea.x)
-        If xpos < self.BGhMapSize
-          entry.sprite:Move(entry.sprite.x+entry.offsetx, self.BGhMap[xpos].h+self.BGArea.y+entry.offsety)
-        EndIf
-      Next
-        
-    Case #BGTYPE_PARALLAX
-      If self.BGRepeat
-        Local bgw = GetAttribute(#BRUSH, self.brush_id, #ATTRWIDTH)
-        Local bgh = GetAttribute(#BRUSH, self.brush_id, #ATTRHEIGHT)      
-        SetClipRegion(self.BGClip)
-        If self.BGRepeatMode = #BGREPEAT_H
-          Local x = self.x
-          While x+bgw>area.x
-            DisplayBrush(self.brush_id, x, self.y)
-            x=x-bgw
-          Wend
-          Local x = self.x+bgw
-          While x+bgw<area.x+area.w+bgw
-            DisplayBrush(self.brush_id, x, self.y)
-            x=x+bgw
-          Wend
-
-        ElseIf self.BGRepeatMode = #BGREPEAT_V
-          Local y = self.y
-          While y+bgh>area.y
-            DisplayBrush(self.brush_id, self.x, y)
-            y=y-bgh
-          Wend
-          Local y = self.y+bgh
-          While y+bgh<area.y+area.h+bgh
-            DisplayBrush(self.brush_id, self.x, y)
-            y=y+bgh
-          Wend
-        EndIf
-
-        SetClipRegion(#NONE)
-      Else
-        SetClipRegion(self.BGClip)
-        DisplayBrush(self.brush_id, self.x, self.y)
-        SetClipRegion(#NONE)
-      EndIf
-      
-    EndSwitch
-EndFunction
-
-Function GLFX.Background:Update() ; NOT USED
-/******************************************************************************
-GLFX.Background:Update()
-
-Update the background object
-******************************************************************************/
-
-  Switch self.BGType
-    Case #BGTYPE_STATIC
-      self:_UpdateCollisions()
-      
-    Case #BGTYPE_PARALLAX
-        
-  EndSwitch
-    /*
-  ; Aggiornamento COLLISIONS
-  self:_UpdateCollisions()
-
-  ; Aggiornamento PATH
-  self:_UpdatePath()
-
-  ; Aggiornamento Fade
-  self:_UpdateFade()
-
-  ; Aggiornamento Zoom
-  self:_UpdateZoom()
-
-  ; Aggiornamento Roto
-  self:_UpdateRoto()
-  */
-EndFunction
 
 
 Function GLFX:DrawAllSprites()
@@ -3776,134 +3278,155 @@ EndFunction
 
 
 
+;=======================================
+; SPRITE CLASS
+;=======================================
 
-
-
+; Sprite Object
+; -------------
 GLFX.Sprite = 
-  { name             = "",        ; Brush name (optional)
-    layer            = 0,         ; Brush layer
-    group            = 0,
-    id               = -1,        ; Brush internal ID
+  { name             = "",        ; Sprite name (optional, if not specified a random one will be used)
+    layer            = 0,         ; Sprite layer
+    group            = 0,         ; Sprite group (optional)
+    id               = -1,        ; Associated brush ID
     order            = -1,        ; Draw order
     file             = "",        ; Source file
-    engine           = {},        ; Engine
+    engine           = {},        ; Sprite Engine
     ;hardware         = True,
     
-    animated         = False,
-    useAtlas         = False,
-    atlas            = {},
-    atlasIndex       = -1,
-    frameList        = {},
-    animations       = {},
-    currentAnimation = 0,
-    currentFrame     = 0,
-    animationFrames  = 0,
-    nextFrameTime    = 0,
-    lastUpdateTime   = 0,
-    animDirection    = 1,
-    animationPaused  = True,
-    atlasAnimation   = False,
+    animated         = False,     ; Animated sprite?
+    useAtlas         = False,     ; Use atlas for animation frames?
+    atlas            = {},        ; Used atlas
+    atlasIndex       = -1,        ; Atlas index
+    frameList        = {},        ; List of current animation frames
+    animations       = {},        ; All defined animations
+    currentAnimation = 0,         ; Current animation index
+    currentFrame     = 0,         ; Current animation frame
+    animationFrames  = 0,         ; Total frames of current animation
+    nextFrameTime    = 0,         ; When the next frame must be switched
+    lastUpdateTime   = 0,         ; Last time of update
+    animDirection    = 1,         ; Animation direction (1=Forward, -1=Backward)
+    animationPaused  = True,      ; Is animation paused?
+    atlasAnimation   = False,     ; Animation frames use atlas?
     
-    x                = 0,
-    y                = 0,
-    z                = 0,
-    width            = 0,
-    height           = 0,
-    scaleW           = 1,
-    scaleH           = 1,
-    anchorX          = 0.5,
-    anchorY          = 0.5,
-    lockInside       = False, ; Lock inside the screen
-    color            = { 1.0, 1.0, 1.0, 1.0 },
-    polyColor        = { 1.0, 0, 0, 0.5 },
-    angle            = 0,
+    x                = 0,         ; X coordinate
+    y                = 0,         ; Y Coordinate
+    z                = 0,         ; Z Coordinate
+    width            = 0,         ; Width
+    height           = 0,         ; Height
+    scaleW           = 1,         ; Scale Width (factor)
+    scaleH           = 1,         ; Scale Height (factor)
+    anchorX          = 0.5,       ; Anchor X
+    anchorY          = 0.5,       ; Anchor Y
+    lockInside       = False,     ; Is it locked inside the screen area?
+    color            = { 1.0,     ; Main color, Red
+                         1.0,     ;  Green
+                         1.0,     ;  Blue
+                         1.0 },   ;  Transaprency
+    polyColor        = { 1.0,     ; Collision polygon color, Red
+                         0.0,     ;  Green
+                         0.0,     ;  Blue
+                         0.5 },   ;  Transparency
+    angle            = 0,         ; Current angle
     
-    blendSrc         = #GL_SRC_ALPHA,
-    blendDst         = #GL_ONE_MINUS_SRC_ALPHA,
+    blendSrc         = #GL_SRC_ALPHA,           ; Blend source (OpenGL)
+    blendDst         = #GL_ONE_MINUS_SRC_ALPHA, ; Blend Destination (OpenGL)
+                       ; Texture mapping brush -> texture
     texMapping       = { 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0 },
     ;   (A)----(B)        +--A--+   +--B--+   +--C--+   +--D--+
     ;    |      |
     ;    |      |
     ;   (C)----(D)
     
-    static           = False,
-    staticDispList   = -1,
+    static           = False,     ; Static texture?
+    staticDispList   = -1,        ; Static display list?
     
     transparency     = -1,        ; Transparent color
-    haveAlpha        = False,    
-    haveTransparency = False,
-    isVector         = False,
+    haveAlpha        = False,     ; Brush has alpha channel?
+    haveTransparency = False,     ; Brush has transparency color?
+    isVector         = False,     ; Brush is a vector?
     
-    isVisible        = True,
-    isClone          = False,
+    isVisible        = True,      ; Sprite is visible?
+    isClone          = False,     ; Sprite is a clone of another sprite?
     
-    isParallax       = False,
-    isParallaxMaster = False,
+    isParallax       = False,     ; Sprite is a parallax item?
+    isParallaxMaster = False,     ; Sprite is the parallax root?
     
-    isParticle       = False,
+    isParticle       = False,     ; Sprite is a particle?
     
-    isKilled         = False,
+    isKilled         = False,     ; Sprite has been killed?
     
-    isAtlas          = False,
+    isAtlas          = False,     ; Sprite is an atlas?
     
-    colorEnabled     = False,
-    angleEnabled     = False,
-    blendEnabled     = False,
+    colorEnabled     = False,     ; is color mode enabled?
+    angleEnabled     = False,     ; is rotation enabled?
+    blendEnabled     = False,     ; is blending enabled
     
-    actions          = {},
-    paths            = {},
-    collisions       = 
-      { withmouse = 
-        { enabled          = False,
-          collide          = False,
-          Events = 
-           { OnCollision      = Function() EndFunction,
-             OnCollisionStart = Function() EndFunction,
-             OnCollisionEnd   = Function() EndFunction 
+    actions          = {},        ; Actions associated with this sprite
+    paths            = {},        ; Paths associated with this sprite
+    collisions       =                                  ; Collision definitions
+      { withmouse =                                     ;  COLLISIONS WITH MOUSE
+        { enabled          = False,                     ;  Enabled/Disabled
+          collide          = False,                     ;  Collision flag
+          Events =                                      ;  Collision events
+           { OnCollision      = Function() EndFunction, ;   During collision
+             OnCollisionStart = Function() EndFunction, ;   When collision is detected for the first time
+             OnCollisionEnd   = Function() EndFunction  ;   When collision ends
              }
           },
-        withsprites =
-        { enabled       = False,
-          collide       = {},
-          polycoll      = {},
-          polyrender    = False,
-          spritelist    = {},
-          Events = 
-           { OnCollision      = Function() EndFunction,
-             OnCollisionStart = Function() EndFunction,
-             OnCollisionEnd   = Function() EndFunction 
+        withsprites =                                   ;  COLLISIONS WITH SPRITES
+        { enabled       = False,                        ;  Enabled/Disabled
+          collide       = {},                           ;   Table of collision flags with other sprites
+          polycoll      = {},                           ;   Table of polygon collisions
+          polyrender    = False,                        ;   Flag to enable the polygon collision rendering
+          spritelist    = {},                           ;   Sprite list to monitor for collisions
+          Events =                                      ;   Collision events
+           { OnCollision      = Function() EndFunction, ;    During collisions
+             OnCollisionStart = Function() EndFunction, ;    When collision starts
+             OnCollisionEnd   = Function() EndFunction  ;    When collision ends
              }
           },
-        withgroups =
-        { enabled = False,
-          collide       = {},
-          polycoll      = {},
-          polyrender    = False,
-          grouplist     = {},
-          Events =
-           { OnCollision      = Function() EndFunction,
-             OnCollisionStart = Function() EndFunction,
-             OnCollisionEnd   = Function() EndFunction 
+        withgroups =                                    ;  COLLISIONS WITH GROUPS
+        { enabled = False,                              ;  Enabled/Disabled
+          collide       = {},                           ;   Table of collision flags with other sprites
+          polycoll      = {},                           ;   Table of polygon collisions
+          polyrender    = False,                        ;   Flag to enable the polygon collision rendering
+          grouplist     = {},                           ;   Group list to monitor for collisions
+          Events =                                      ;   Collision events
+           { OnCollision      = Function() EndFunction, ;    During collisions
+             OnCollisionStart = Function() EndFunction, ;    When collision starts
+             OnCollisionEnd   = Function() EndFunction  ;    When collision ends
              }
 
           }
           
         },
     
-    boundaries       = Nil,
-    sortedIndex      = -1000000
-    
+    boundaries       = Nil,        ; Sprite boundaries      
+    sortedIndex      = -1000000    ; Internal index
     }
 
-Function GLFX.Sprite:_UpdateAnimation()
+Function GLFX.Sprite:_UpdateAnimation() ; 26/11/2020
+  ;| This func is called by the :draw() method, it's an internal func to
+  ;| update the animation's frame of animated sprites.
+  ;+-------------------------------------------------------
   If self.Animated
-    If self.AnimationPaused Then Return()
+    If self.AnimationPaused
+      ; No need to update paused sprites
+      Return()
+      
+    EndIf
     
+    ; Use the engine timer to check when to change frame
     Local now = GetTimer(self.Engine.Framework.TimerID)
+    
     If now > self.NextFrameTime
       Local delta = now - self.NextFrameTime
       self:NextAnimationFrame()
       Local frameDuration = self.Animations[self.CurrentAnimation].frames[self.CurrentFrame].Duration
+      
+      ; It could be possible that we need to change more than
+      ; one frame.
       While delta > frameDuration
         self:NextAnimationFrame()
         delta = delta - frameDuration
@@ -3911,76 +3434,80 @@ Function GLFX.Sprite:_UpdateAnimation()
       Wend
       self.NextFrameTime = self.NextFrameTime - delta
       self:SetAnimationFrame(self.currentAnimation, self.currentFrame)
+      
     EndIf
+    
   EndIf
+  
 EndFunction
 
-Function GLFX.Sprite:SetAnimationFrame(animation, frame)
+Function GLFX.Sprite:SetAnimationFrame(animation, frame) ; 26/11/2020
+  ;| Used with animated sprites, it sets the givend 'frame' number
+  ;| as current frame in the specified 'animation'.
+  ;+-------------------------------------------------------
  self.currentFrame = frame
  self.id = self.frameList[self.Animations[animation].frames[frame].frame].brush
 
- ;DebugPrint("Frame : ", frame, ", Brush : ", self.id)
-  /*
-  SelectBrush(self.id, #SELMODE_COMBO)
-    DisplayBrush(f, #CENTER, #CENTER)
-  EndSelect() */
-  ;GLFX._TexInit(self.id)
 EndFunction
 
-Function GLFX.Sprite:_UpdatePolyColl()
-    Local PolyColl = self.Collisions.WithSprites.PolyColl
-    Local Cloned   = self.Collisions.WithSprites.PolyCollClone
-    Local Angle    = Rad(self.Angle)
-    Local s = Sin(Angle)
-    Local c = Cos(Angle)
-    Local ssw = PolyColl.SpriteScale.w * self.ScaleW
-    Local ssh = PolyColl.SpriteScale.h * self.ScaleH
-    Local verts = ListItems(PolyColl.Vertices) ; bufferizzare
+Function GLFX.Sprite:_UpdatePolyColl() ; 26/11/2020
+  ;| Internal func used to update the collisions between object
+  ;| using the surrounding polygons.
+  ;+-------------------------------------------------------
+  Local PolyColl = self.Collisions.WithSprites.PolyColl
+  Local Cloned   = self.Collisions.WithSprites.PolyCollClone
+  Local Angle    = Rad(self.Angle)
+  Local s = Sin(Angle)
+  Local c = Cos(Angle)
+  Local ssw = PolyColl.SpriteScale.w * self.ScaleW
+  Local ssh = PolyColl.SpriteScale.h * self.ScaleH
+  Local verts = ListItems(PolyColl.Vertices) ; bufferizzare
 
-    For Local i = 0 To verts-2 Step 2
-      ; Ancoraggio
-      cloned.Vertices[i]   = PolyColl.Vertices[i] - self.AnchorX
-      cloned.Vertices[i+1] = PolyColl.Vertices[i+1] - self.AnchorY
+  For Local i = 0 To verts-2 Step 2
+    ; Ancoraggio
+    cloned.Vertices[i]   = PolyColl.Vertices[i] - self.AnchorX
+    cloned.Vertices[i+1] = PolyColl.Vertices[i+1] - self.AnchorY
       
-      ; Dimensione
-      cloned.Vertices[i]   = cloned.Vertices[i] * ssw
-      cloned.vertices[i+1] = cloned.Vertices[i+1] * ssh
+    ; Dimensione
+    cloned.Vertices[i]   = cloned.Vertices[i] * ssw
+    cloned.vertices[i+1] = cloned.Vertices[i+1] * ssh
       
-      ; Rotazione
-      Local v1 = cloned.Vertices[i]   ; x
-      Local v2 = cloned.Vertices[i+1] ; y
-      cloned.Vertices[i]   = c*v1 - s*v2
-      cloned.Vertices[i+1] = s*v1 + c*v2
+    ; Rotazione
+    Local v1 = cloned.Vertices[i]   ; x
+    Local v2 = cloned.Vertices[i+1] ; y
+    cloned.Vertices[i]   = c*v1 - s*v2
+    cloned.Vertices[i+1] = s*v1 + c*v2
       
-      ; Posizione
-      cloned.Vertices[i]   = cloned.Vertices[i] + self.x
-      cloned.Vertices[i+1] = cloned.Vertices[i+1] + self.y
-    Next
+    ; Posizione
+    cloned.Vertices[i]   = cloned.Vertices[i] + self.x
+    cloned.Vertices[i+1] = cloned.Vertices[i+1] + self.y
+  Next
     
-    ; provare a sviluppare il codice per recuperare qualche ciclo
-    For Local i = 0 To verts-4 Step 2
-      Local p1 = G2D.Point:New(cloned.vertices[i], cloned.vertices[i+1])
-      Local p2 = G2D.Point:New(cloned.vertices[i+2], cloned.vertices[i+3])
-      cloned.normals[i/2] = p1:Normal2D(p2, 0)
-    Next
+  ; #TODO#
+  ; I could try to expand this loop avoiding the G2D:Point objects
+  ; to try to speed it up a bit.
+  For Local i = 0 To verts-4 Step 2
+    Local p1 = G2D.Point:New(cloned.vertices[i], cloned.vertices[i+1])
+    Local p2 = G2D.Point:New(cloned.vertices[i+2], cloned.vertices[i+3])
+    cloned.normals[i/2] = p1:Normal2D(p2, 0)
+  Next
 
 EndFunction
 
-Function GLFX.Sprite:SetBoundaries(boundaries)
-/******************************************************************************
-GLFX.Sprite:SetBoundaries(boundaries)
-
-Set sprite boundaries, it can be used also to clear previously
-set boundaries.
-Set boundaries to NIL to remove any existing boundary
----------------------------------------------------------------------
-INPUT
-  boundaries
-    top     Top boundary
-    bottom  Bottom boundary
-    left    Left boundary
-    right   Right boundary   
-******************************************************************************/
+Function GLFX.Sprite:SetBoundaries(boundaries) ; 26/11/2020
+  ;| GLFX.Sprite:SetBoundaries(boundaries)
+  ;|
+  ;| Set sprite boundaries, it can be used also to clear previously
+  ;| set boundaries.
+  ;| Set boundaries to NIL to remove any existing boundary
+  ;|
+  ;| INPUT
+  ;|   boundaries : Boundaries table
+  ;|    top : Top boundary
+  ;|    bottom : Bottom boundary
+  ;|    left : Left boundary
+  ;|    right : Right boundary
+  ;+-------------------------------------------------------
   self.boundaries = boundaries
 
 EndFunction
@@ -10423,6 +9950,7 @@ Function GLFX.Test_AnimatedSprites()
   
 EndFunction
 
+
 DBG.Console.Enable(True, True)
 DBG.Console.AddChannel(GLFXCh)
 
@@ -10430,6 +9958,7 @@ DBG.Console.AddChannel(GLFXCh)
 ; OpenResourceMonitor()
 
 ;GLFX.TEST()
+;GLFX.Test_HeightMap()
 ;GLFX.Test_AnimatedSprites()
 ;GLFX.Test_Background()
 ;GLFX.Test_Parallax()
