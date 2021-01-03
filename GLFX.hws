@@ -113,7 +113,7 @@
 
 
 @REQUIRE "GLGalore"
-@INCLUDE "C:/Users/Fabio.NB-FABIO/Dropbox/+HWLibs/+Includes.hws"
+@INCLUDE "+Includes.hws"
 @INCLUDE #INC_HELPERS
 @INCLUDE #INC_TABLES
 @INCLUDE #INC_DEBUG
@@ -9629,38 +9629,63 @@ Function GLFX.Test_Parallax()
 EndFunction
 
 Function GLFX.Test_AnimatedSprites()
+  /* This test shows how you can deal with animated sprites, it offers 3 examples
+     you can select at runtime using the keys 1, 2, 3, you can also use the + key
+     to clone the single sprite that is initially displayed.
+     In the bottom left corner a box will show informations about the current scene.
+     
+     Method 1 : Use single frames loaded from the disk or preloaded into brushes
+     Methos 2 : Use a sprite sheet
+     Method 3 : Use an animated GIF
+     */
 
-  Local prefs = { width = 1024, 
-                  height = 600, 
-                  FlipSync = False, 
-                  FPS = 120 }
+  ; Let's store our preferences in a table
+  Local prefs = { width    = 1024,      ; Screen width
+                  height   = 600,       ; Screen Height
+                  FlipSync = False,     ; WaitVBL setting
+                  FPS      = 120 }      ; Target FPS
   
+  ; Create a new context where the test will be built
   Local fw = GLFX:New(
-    { Display  = 1, 
-      Width    = prefs.Width,
-      Height   = Prefs.Height,
-      FlipSync = Prefs.FlipSync,
-      FPS      = Prefs.FPS,
-      Title    = "GLFX DEMO",
-      UserMessage = "---"
+    { Display  = 1,                     ; Display number to use
+      Width    = prefs.Width,           ; Display width
+      Height   = Prefs.Height,          ; Display Height
+      FlipSync = Prefs.FlipSync,        ; WaitVBL setting
+      FPS      = Prefs.FPS,             ; Target FPS
+      Title    = "GLFX DEMO",           ; Window title
+      UserMessage = "---"               ; User message to show in bottom left corner
+                                        ; along with all the other informations
       })
       
+  ; Let's create a function to check the user input
   Local checkInput = 
     Function()
       If IsKeyDown("1")
-        While IsKeyDown("1")
+      ;----------------
+       ; Check for the '1' key
+       ; It is used to switch to the 'AnimatedSprites 1' scene
+       While IsKeyDown("1")
+          ; Wait for the key release before proceeding
           Wait(5)
         Wend
         fw:ChangeScene("AnimatedSprites 1")
         
       ElseIf IsKeyDown("2")
+      ;--------------------
+        ; Check for the '2' key
+        ; It is used to switch to the 'AnimatedSprites 2' scene
         While IsKeyDown("2")
+          ; Wait for the key release before proceeding
           Wait(5)
         Wend
         fw:ChangeScene("AnimatedSprites 2")
       
       ElseIf IsKeyDown("3")
+      ;--------------------
+        ; Check for the '3' key
+        ; It is used to switch to the 'AnimatedSprites 2' scene
         While IsKeyDown("3")
+          ; Wait for the key release before proceeding
           Wait(5)
         Wend
         fw:ChangeScene("AnimatedSprites 3")
@@ -9668,28 +9693,49 @@ Function GLFX.Test_AnimatedSprites()
       EndIf
     EndFunction
       
-  
+  ; Initialize the created context
   fw:Init()
   
 
-  Local scene = fw.Scene:New()
+  ; ---------------------------------------------------------------------
+  ; Now we are going to create and setup the 3 scenes used to demonstrate
+  ; and test the animated sprites.
+  ; ---------------------------------------------------------------------
+  
+  ; SCENE 1 (Binded to the '1' key)
+  Local scene = fw.Scene:New()          ; Create a new, empty scene
   scene:Setup(
     { Name   = "AnimatedSprites 1",
       Init   = Function(scene)
-                 ;::: METODO 1 :::
-                 ; Creazione dello SpriteEngine
-                 scene.SpriteEngine = fw.SpriteEngine:Create(fw)
-                 fw.UserMessage = "+ to clone - 1, 2, 3 change scene"
+                 ; FIRST METHOD
+                 ; ------------
+                 ; In this test we will create an animated sprite defining every
+                 ; single frame and loading the single frame from the disk.
+                 ; ------------------------------------------------------------
+                 scene.SpriteEngine = fw.SpriteEngine:Create(fw)      ; Create the sprite engine
+                 fw.UserMessage = "+ to clone - 1, 2, 3 change scene" ; Setup the message to show in the info box
                  
-                 ; Dobbiamo innanzitutto creare un sprite da animare
-                 scene.sprite = fw.Sprite:New(scene.SpriteEngine, { x=600, y = 300, width = 48, height = 90, haveAlpha = True, bgColor = $FF0000, blendEnabled = True })
+                 ; Now we have to create a sprite
+                 scene.sprite = fw.Sprite:New(scene.SpriteEngine,     ; Reference to the created sprite engine
+                                              { x         = 600,      ; Initial horizontal position
+                                                y         = 300,      ; Initial vertical position
+                                                width     = 48,       ; Sprite Width
+                                                height    = 90,       ; Sprite Height
+                                                haveAlpha = True,     ; Have alpha channel?
+                                                bgColor   = $FF0000,  ; Background color
+                                                blendEnabled = True   ; Rendering enabled?
+                                                })
                  
-                 ; Creo una animazione passando come sorgenti dei fotogrammi
-                 ; delle singole immagini caricate al momento della creazione
-                 ; SE SI DEVONO CREARE SPRITE CON ANIMAZIONI IDENTICHE UTILIZZARE
-                 ; IL METODO :Clone() CHE E' MOLTO PIU' VELOCE
-                 ; E' possibile passare anche degli ID di brush precaricati, anche in
-                 ; maniera mista.
+                 ; As said we are going to create the animation loading each needed
+                 ; frame, if you want to create an identical sprite with the same
+                 ; animations, you should be use the :Clone() method instead of loading
+                 ; over and over the animation frames.
+                 ; You can also pass brushId instead of file names, in case you have
+                 ; preloaded your frames.
+
+                 ; So, here is how to setup the frames we will use to create the
+                 ; sprite animations: it's a list of the resources to be loaded,
+                 ; image files or brushIds.
                  scene.sprite:SetAnimationFrames(
                   { "glfx_test/f1_32x60.png", 
                     "glfx_test/f2_32x60.png",
@@ -9698,13 +9744,24 @@ Function GLFX.Test_AnimatedSprites()
                     "glfx_test/f5_32x60.png",
                     "glfx_test/f6_32x60.png" }) 
                     
-                 ; Con i frames specificati creo una o più sequenze di animazione
-                 ; ognuna con il numero del fotogramma (partendo da 0 e riferito ai
-                 ; fotogrammi precedentemente specificati), la durata, ed eventualmente
-                 ; una funzione di callback legata alla visualizzazione di un determinato
-                 ; fotogramma.
+                 ; Now that we have defined which frames we need we can build
+                 ; the animation sequences using those frames, animations are very
+                 ; flexible and generally each frame has the following format:
+                 ;   frame    = <frame reference number>            Mandatory
+                 ;   duration = <frame duration in milliseconds>    Mandatory
+                 ;   callback = <callback function to call when
+                 ;               this frame is reached>             Optional
+                 ; The callback function will receive in the <msg> table also
+                 ; the <sprite> field which is the owner of the animation.
+                 ; The callback function is useful in many cases, for example
+                 ; to play a sound, to check for specific conditions, or to
+                 ; chain animations, and so on...
+                 ; In this example we have used it to move the sprite when the
+                 ; 'walk' animation is running.
+                 
+                 ; So here is how you can define an animation sequence:
                  scene.sprite:NewAnimationSequence(
-                   { frames = { { frame = 0, duration = 1000 },
+                   { frames = { { frame = 0, duration = 1000 },       ; Defines all the needed frames
                                 { frame = 1, duration = 150, 
                                     Callback = Function(msg) 
                                                  Local dy = msg.sprite.y + 30
@@ -9718,77 +9775,95 @@ Function GLFX.Test_AnimatedSprites()
                                 { frame = 3, duration = 150 },
                                 { frame = 4, duration = 150 },
                                 { frame = 5, duration = 150 } },
-                     name = "walking1",
-                     type = "loop",
+                     name = "walking1",                               ; Setup the animation name
+                     type = "loop",                                   ; Define the animation type which
+                                                                      ; can be "oneshot", "loop", "pingpong", "random"
                      })                                
                       
-                    
-                 ; Il passo successivo è l'impostazione dell'animazione da utilizzare
-                 ; con lo sprite.
+                 ; Now that we have defined the animation we can set it as the current animation
+                 ; The first argument is the animation name, the second argument is
+                 ; the first animation frame to render.
                  scene.sprite:SetAnimationSequence("walking1", 0)
                  
-                 ; Per concludere avvio il playback dell'animazione corrente con
+                 ; Finally we can start to playback the current sprite animation
                  scene.sprite:AnimationStart()
                 
                EndFunction,
+               
       UnInit = Function(scene)
+                 ; When we UnInit the scene we have to destroy the sprite engine
                  scene.SpriteEngine:Destroy()
                EndFunction,
-      Clear  = Function() EndFunction,
+               
+      Clear  = Function() 
+                 ; We don't have any custo clear screen function
+               EndFunction,
+               
       Render = Function(scene)
+                 ; Render all the sprites without any particular order
                  scene.SpriteEngine:All_DrawUnorderedLayered()
                EndFunction,
+               
       Update = Function(scene)
+                 ; During the update call we have to check the input and
+                 ; If the user hits the '+' key we will clone the sprite,
+                 ; all will be cloned! Animations, callbacks, collisions, etc...
                  checkInput()
                  If IsKeyDown("+")
                    Local s = scene.sprite:Clone()
+                   s:SetAnimationSequence("walking1", 0) ; We want to make every frame walk on its own
+                                                         ; and not to move with the other ones
                    s.x = Rnd(900)+50
                    s.y = Rnd(500)+50
                  EndIf
                EndFunction })
-      
+
+  ; Let's add the first scene to the GLFX context.
   fw:AddScene(scene)
   
 
-  Local scene2 = fw.Scene:New()
+  ; SCENE 2 (Binded to the '2' key
+  Local scene2 = fw.Scene:New()           ; Create a new, empty scene
   scene2:Setup(
     { Name   = "AnimatedSprites 2",
       Init   = Function(scene)
-                 ;::: METODO 2 :::
-                 ; Creazione dello SpriteEngine
-                 scene.SpriteEngine = fw.SpriteEngine:Create(fw)
-                 fw.UserMessage = "+ to clone - 1, 2, 3 change scene"
+                 ; SECOND METHOD
+                 ; -------------
+                 ; In this test we will create an animated sprite using a 
+                 ; spritesheet loaded from the disk.
+                 ; ------------------------------------------------------------
+                 scene.SpriteEngine = fw.SpriteEngine:Create(fw)          ; Create the SpriteEngine
+                 fw.UserMessage = "+ to clone - 1, 2, 3 change scene"     ; Setup the user message in the info box
                  
-                 ; Dobbiamo innanzitutto creare un sprite da animare
-                 scene.sprite = fw.Sprite:New(scene.SpriteEngine, { x=600, y = 300, width = 48, height = 90, haveAlpha = True, bgColor = $FF0000, blendEnabled = True })
-                 
-                 ; Creo una animazione passando come sorgente uno sprite sheet
-                 ; contenente i singole fotogrammi delle animazioni
-                 ; SE SI DEVONO CREARE SPRITE CON ANIMAZIONI IDENTICHE UTILIZZARE
-                 ; IL METODO :Clone() CHE E' MOLTO PIU' VELOCE
-                 ; E' possibile passare anche un ID di un brush precaricato.
-                 ; In questo caso devo usare il prefisso SPRITESHEET:: seguito
-                 ; dal nome del file nel parametro <frameList> e specificare nella
-                 ; tabella args i parametri per estrarre i fotogrammi
-                 ; Nel caso si voglia passare un brush precaricato il nome del file
-                 ; deve essere BRUSH e il brush deve essere specificato in args
-                 ; nell'elemento <brush>.
-                 scene.sprite:SetAnimationFrames("SPRITESHEET::glfx_test/framesheet_tiny.png",
-                                           { x = 0, y = 0,
-                                             width = 30, height = 37,
-                                             frames_per_row = 6,
-                                             frames = 30
+                 ; Let's create a sprite
+                 scene.sprite = fw.Sprite:New(scene.SpriteEngine,         ; Reference to the created sprite engine
+                                              { x         = 600,          ; Initial horizontal position
+                                                y         = 300,          ; Initial vertical position
+                                                width     = 48,           ; Sprite Width
+                                                height    = 90,           ; Sprite Height
+                                                haveAlpha = True,         ; Have alpha channel?
+                                                bgColor   = $FF0000,      ; Background color
+                                                blendEnabled = True       ; Rendering enabled?
+                                                })
+
+                 ; Now we are going to define the animation frames using a spritesheet,
+                 ; it's simple, just look below:
+                 scene.sprite:SetAnimationFrames(
+                                           "SPRITESHEET::glfx_test/framesheet_tiny.png",  ; The spritesheet we want to use
+                                           { x = 0, y = 0,                                ; Coordinates of the first frame
+                                             width = 30, height = 37,                     ; Frame width & height
+                                             frames_per_row = 6,                          ; How many frames are in each row
+                                             frames = 30                                  ; How many frames we want to load
                                              })
                  
-                 ; Con i frames specificati creo una o più sequenze di animazione
-                 ; ognuna con il numero del fotogramma (partendo da 0 e riferito ai
-                 ; fotogrammi precedentemente specificati), la durata, ed eventualmente
-                 ; una funzione di callback legata alla visualizzazione di un determinato
-                 ; fotogramma.
-                 Local speed = 30
+                 ; Now we are going to create a new animation sequence, for details please
+                 ; have a look at the first created scene:
+                 Local speed = 30       ; Shortcut for the frame speed (delay)
                  scene.sprite:NewAnimationSequence(
                     { frames = { { frame = 0, duration = speed, callback =
                                    Function(msg)
+                                     ; In the first frame we check for the respawn to 
+                                     ; the left and we also move the sprite to the right
                                      Local s = msg.sprite
                                      If s.x > 1080
                                        s.x = -50
@@ -9826,16 +9901,15 @@ Function GLFX.Test_AnimatedSprites()
                                  { frame = 27, duration = speed },
                                  { frame = 28, duration = speed },
                                  { frame = 29, duration = speed } },
-                     name = "walking1",
-                     type = "loop",
+                     name = "walking1",       ; The animation sequence name
+                     type = "loop",           ; The animation sequence mode
                      })                                
                       
                     
-                 ; Il passo successivo è l'impostazione dell'animazione da utilizzare
-                 ; con lo sprite.
+                 ; Like for the scene 1 we set the current animation
                  scene.sprite:SetAnimationSequence("walking1", 0)
                  
-                 ; Per concludere avvio il playback dell'animazione corrente con
+                 ; And finally we start the animation playback
                  scene.sprite:AnimationStart()
                  
                EndFunction,
@@ -9843,10 +9917,13 @@ Function GLFX.Test_AnimatedSprites()
       UnInit = Function(scene)
                  scene.SpriteEngine:Destroy()
                EndFunction,
+               
       Clear  = Function() EndFunction,
+      
       Render = Function(scene)
                  scene.SpriteEngine:All_DrawUnorderedLayered()
                EndFunction,
+               
       Update = Function(scene)
                  checkInput()
                  If IsKeyDown("+")
@@ -9856,35 +9933,45 @@ Function GLFX.Test_AnimatedSprites()
                    s:SetAnimationSequence("walking1", 0)
                  EndIf
                EndFunction })
-      
+  
+  ; Add this newly created scene to the GLFX context
   fw:AddScene(scene2)
 
 
-  
-  Local scene3 = fw.Scene:New()
+  ; SCENE 3 (Binded to the '3' key)
+  Local scene3 = fw.Scene:New()           ; Create a new, empty scene
   scene3:Setup(
-    { Name   = "AnimatedSprites 3",
+    { Name   = "AnimatedSprites 3", 
       Init   = Function(scene)
-                 ;::: METODO 3 :::
-                 ; Creazione dello SpriteEngine
-                 scene.SpriteEngine = fw.SpriteEngine:Create(fw)
-                 fw.UserMessage = "+ to clone - 1, 2, 3 change scene"
+                 ; THIRD METHOD
+                 ; ------------
+                 ; In this test we will use an animated Gif image as our source
+                 ; but this method is more generic, you can use any supported animation
+                 ; for this prupose.
+                 ; ------------------------------------------------------------
+                 scene.SpriteEngine = fw.SpriteEngine:Create(fw)        ; Create the new sprite engine
+                 fw.UserMessage = "+ to clone - 1, 2, 3 change scene"   ; Setup the user message for the info box
                  
-                 ; Dobbiamo innanzitutto creare un sprite da animare
-                 scene.sprite = fw.Sprite:New(scene.SpriteEngine, { x=600, y = 300, width = 79, height = 111, haveAlpha = True, bgColor = $FF0000, blendEnabled = True })
+                 ; Let's create a sprite
+                 scene.sprite = fw.Sprite:New(scene.SpriteEngine,         ; Reference to the created sprite engine
+                                              { x         = 600,          ; Initial horizontal position
+                                                y         = 300,          ; Initial vertical position
+                                                width     = 79,           ; Sprite Width
+                                                height    = 111,          ; Sprite Height
+                                                haveAlpha = True,         ; Have alpha channel?
+                                                bgColor   = $FF0000,      ; Background color
+                                                blendEnabled = True       ; Rendering enabled?
+                                                })
                  
-                 ; Creo una animazione passando come sorgente una animazione
+                 ; Now we define the animation frames using an animated gif as soruce
                  scene.sprite:SetAnimationFrames("ANIMATION::glfx_test/anim.gif",
-                                           { x = 0, y = 0,
-                                             width = 79, height = 111,
-                                             transparency = $080000
+                                           { x = 0, y = 0,                ; Starting position
+                                             width = 79, height = 111,    ; Frames size
+                                             transparency = $080000       ; Transparent color
                                              })
                  
-                 ; Con i frames specificati creo una o più sequenze di animazione
-                 ; ognuna con il numero del fotogramma (partendo da 0 e riferito ai
-                 ; fotogrammi precedentemente specificati), la durata, ed eventualmente
-                 ; una funzione di callback legata alla visualizzazione di un determinato
-                 ; fotogramma.
+                 ; Now we are going to create a new animation sequence, for details please
+                 ; have a look at the first created scene:
                  Local speed = 100
                  scene.sprite:NewAnimationSequence(
                     { frames = { { frame = 0, duration = speed },
@@ -9909,11 +9996,8 @@ Function GLFX.Test_AnimatedSprites()
                      })                                
                       
                     
-                 ; Il passo successivo è l'impostazione dell'animazione da utilizzare
-                 ; con lo sprite.
+                 ; As before, define the animation sequence and start its playback
                  scene.sprite:SetAnimationSequence("walking1", 0)
-                 
-                 ; Per concludere avvio il playback dell'animazione corrente con
                  scene.sprite:AnimationStart()
                  
                EndFunction,
@@ -9921,10 +10005,13 @@ Function GLFX.Test_AnimatedSprites()
       UnInit = Function(scene)
                  scene.SpriteEngine:Destroy()
                EndFunction,
+               
       Clear  = Function() EndFunction,
+      
       Render = Function(scene)
                  scene.SpriteEngine:All_DrawUnorderedLayered()
                EndFunction,
+               
       Update = Function(scene)
                  checkInput()
                  If IsKeyDown("+")
@@ -9934,23 +10021,27 @@ Function GLFX.Test_AnimatedSprites()
                    s:SetAnimationSequence("walking1", 0)
                  EndIf
                EndFunction })
-      
+  
+  ; Add this scene too, to the the context
   fw:AddScene(scene3)
 
-  
+  ; Now that we hace all the scenes ready we can initialize GLFX
   fw:Init()
   
+  ; ...and start it!
   fw:Start()
   
+  ; Switch to the scene 1, we are ready!
   fw:ChangeScene("AnimatedSprites 1")
 
+  ; Loop where all events are processed and handled
   Repeat
     WaitEvent()
   Forever
   
 EndFunction
 
-
+; Debug log to the console is enabled so you can view what's appening
 DBG.Console.Enable(True, True)
 DBG.Console.AddChannel(GLFXCh)
 
