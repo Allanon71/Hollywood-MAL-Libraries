@@ -477,6 +477,7 @@ INPUT
   Message => The message to log, can be a STRING, NUMBER, NIL, TABLE.
              The following special strings are also supported:
              ->#SYSINFO# : Will log current system informations
+             ->#VERSION# : Will log informations about the player version & host machine
              ->#COMMANDLINE# : Will log the command line used to execute
                                the current program.
   Mode => Can be one of the following:
@@ -528,7 +529,8 @@ NOTES
         Message.Version_Date = Nil
         Message.Demo = Nil
         Message.Beta = Nil
-        Message.MbMemory = Int((GetMemoryInfo(#CHIPMEMORY) + GetMemoryInfo(#FASTMEMORY))/1024/1024)
+        Message.Memory = "C:" .. Int(GetMemoryInfo(#CHIPMEMORY)/1024/1024) .. "Mb, F:" .. Int(GetMemoryInfo(#FASTMEMORY)/1024/1024) .. "Mb"
+        
         If TB.Item.Exists(Message, "plugins")
           For i, v In Pairs(Message.Plugins)
             v.capabilities = Nil
