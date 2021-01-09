@@ -168,7 +168,8 @@ CONTENTS
  DBG.Console.Enable()
  DBG.Console.Out()
  DBG.Console.RemoveChannel()
- DBG.Console.SkipNormalLevel()
+ DBG.Console.SkipNormalLevel() ; OBSOLETE
+ DBG.Console.ignoreNormalMsg()
  
  :: FILE DEBUG ::
  DBG.Log.Disable()
@@ -488,5 +489,5 @@ Have a look at the TEST 02 to see how it works, TEST 01 instead shows why it is 
 ``` 
 
  ---
- Latest update: 07/10/2020
+ Latest update: 09/01/2021
  ---

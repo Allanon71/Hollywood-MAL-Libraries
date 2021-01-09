@@ -24,7 +24,8 @@
  DBG.Console.Enable()
  DBG.Console.Out()
  DBG.Console.RemoveChannel()
- DBG.Console.SkipNormalLevel()
+ DBG.Console.SkipNormalLevel()          OBSOLETE
+ DBG.Console.setIgnoreNormalMsg(value)
  
  :: FILE DEBUG ::
  DBG.Log.Disable()
@@ -44,9 +45,13 @@
 Global  DBG = {}
         DBG.Console = {}
         DBG.Log     = {}
-        DBG.Version = "1.6"
-        DBG.Build   = "15/07/2017"
+        DBG.Version = "1.7"
+        DBG.Build   = "09/01/2021"
 
+        ; 09/01/2021 : Changed how memory informations are logged using #SYSINFO# tag
+        ;              Added DBG.Console.ignoreNormalMsg(value), this will replace
+        ;              DBG.Console.SkipNormalLevel(value), still available but obsolete
+        ;              changed because of the misleading func name.
         ; 27/12/2017 : FIX ident on DBG.Console.Out()
         ; 01/07/2017 : Many optimizations and bug fixing.
         ; 30/12/2015 : Added DBG.Hilight message type.
@@ -79,8 +84,8 @@ DBG.Console_Ident    = 0         ;    Current Ident level for the Console output
 DBG.Console_Ident2   = 0         ;   Current Ident level for the Log file output
 DBG.Console_IdentStep= 3         ;                                    Ident step
 
-DBG.OpenFunc         = 1
-DBG.CloseFunc        = 2
+DBG.OpenFunc         = 1         ;  Valiable used to classify the message and to
+DBG.CloseFunc        = 2         ;     use a proper ANSI color if it was enabled
 DBG.Warning          = 3
 DBG.Error            = 4
 DBG.Hilight          = 5
@@ -150,8 +155,38 @@ EXAMPLE
   Return(True)
 EndFunction
 
+Function DBG.Console.ignoreNormalMsg(value)
+  /* ----------------------------------------------------------------
+  result = DBG.Console.ignoreNormalMsg(value)
+  
+  This function is used to skip all debug messages that are not classified
+  an are considered as normal logging messages.
+  The message classification is determined by the 'Mode' parameter in both
+  DBG.Console.Out() and DBG.Log.Out() funcs, when you set Mode=Nil you are
+  logging a normal message.
+  -------------------------------------------------------------------
+  INPUT
+    value   BLN, Set to True if you want to skip all 'normal' debug messages.
+    
+  OUTPUT
+    result  BLN, True if all is fine, False if there was an error.
+    msg     TXT, If result=False msg will hold an error message.
 
-Function DBG.Console.SkipNormalLevel(value) ; OK
+  EXAMPLE
+    DBG.Console.ignoreNormalMsg(True)
+  ------------------------------------------------------------------- */
+  If DBG.Console.SkipNormal = Value
+    Return(False, "Already set")
+
+  Else
+    DBG.Console.SkipNormal = value
+    Return(True)
+
+  EndIf
+  
+EndFunction
+
+Function DBG.Console.SkipNormalLevel(value) ; OBSOLETE
 /******************************************************************************
 result = DBG.Console.SkipNormalLevel(value)
 
