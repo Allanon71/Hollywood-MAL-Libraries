@@ -123,10 +123,73 @@ OUTPUT
 
 EXAMPLE
 -------
- not yet
+ not yet available
 ```
 
+#### CTextObj:set(options, ignoreCaption)
+Set the object properties using the given <options> table.
 
-*** UNFINISHED DOC ***
+```plaintext
+INPUT
+  options     Options table to change (refers to the HGui.CText:new()
+              method for the available arguments).
 
+OUTPUT
 
+```
+
+#### CTextObj:render(area, cliparea)
+Renders the CText object in the linked window and using the linked area.
+You can override the area using a custom <area>, furthermore you can apply a 
+cliparea to delimit the rendering area.
+
+```plaintext
+INPUT
+  area            A table with the following fields:
+    position      Area position table
+      x           Horizontal coordinate
+      y           Vertical coordinate
+    size          Area size table
+      w           Width
+      h           Height
+  cliparea        Table with the following fields:
+    x             Horizontal coordinate
+    y             Vertical coordinate
+    w             Width
+    h             Height
+
+OUTPUT
+
+NOTES (TODO)
+  This function needs improvements to render only the visible lines, 
+  actually it renders all the text lines from the first to the last.
+
+```
+
+#### CTextObj:free()
+
+Free a CText object.
+
+```plaintext
+INPUT
+
+OUTPUT
+  result        TRUE if the object has been freed without errors.
+
+```
+
+## CTEXT OBJECT FUNCTIONS
+There are also some utility functions suited for several tasks:
+
+#### HGui.cTextFindByName(name)
+
+Search a cText object by its name.
+
+```plaintext
+INPUT
+  name          Name of the cText object we are looking for
+
+OUTPUT
+  cText         cText object found or False
+  index         cText object index in HGui.CTexts table.
+```
