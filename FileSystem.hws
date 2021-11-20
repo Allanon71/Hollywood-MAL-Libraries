@@ -2,8 +2,8 @@
  * FS LIBRARY                                                        *
  * Author : Fabio Falcucci (Allanon)                                 *
  * License : Donationware                                            *
- * Version : 2.0                                                     *
- * Release : 04.08.2020                                              *
+ * Version : 2.1                                                     *
+ * Release : 19.11.2021                                              *
  * Dependancies : HELPERS, TABLES, DEBUG Libraries                   *
  *--------------------------------------------------------------------
  
@@ -13,70 +13,71 @@
  CONTENTS
  ========
  :: MISC ::
- FS.AppDataLocation()
- FS.CutLastFolder()
- FS.OpenFolder()
- FS.ParseFilename()
+ FS.AppDataLocation(AppName, DefaultPath, Test)
+ FS.CutLastFolder(path)
+ FS.OpenFolder(path)
+ FS.ParseFilename(filename)
  
  :: TASKS ::
- FS.Task.IsRunning()
- FS.Task.Kill()
+ FS.Task.IsRunning(taskName, winHelper)
+ FS.Task.Kill(taskName)
  
  :: SCRIPTS ::
- FS.Build_Script()
- FS.ExecuteSynch_SCript()
- FS:Execute_Script()
+ FS.Build_Script(scriptFile, commands, execute)
+ FS.ExecuteSynch_Script(scriptFile, logFile, stdErr, append)
+ FS:Execute_Script(scriptFile)
  
  :: CONFIG FILES ::
- FS.Config.Add()
- FS.Config.Load()
- FS.Config.Remove()
- FS.Config.Set()
- FS.Config.Write()
+ FS.Config.Add(table, source, index, value, category, type, subtype)
+ FS.Config.Load(file, header, updFunc, fileId, recursive, source, lineCount)
+ FS.Config.Remove(subtable, source, index, category) *** Unfinished ***
+ FS.Config.Set(table, source, index, value, type, subtype)
+ FS.Config.Write(file, source, fileId)
  
  :: FILES ::
- FS.Files.ChangeExistingName()
- FS.Files.CheckLastChar()
+ FS.Files.ChangeExistingName(fileName, filePath)
+ FS.Files.CheckLastChar(fileName, ascValue)
  FS.Files.ClearCache()
- FS.Files.Delete()
- FS.Files.ExtractFromZip()
- FS.Files.Find()
- FS.Files.FindByCRC32()
- FS.Files.GetDirectories()
- FS.Files.GetExtention()
- FS.Files.GetLastLine()
- FS.Files.GoDirectoryUp()
- FS.Files.IsAvailable()
- FS.Files.IsPathRelative()
- FS.Files.LoadToTable()
- FS.Files.Open()
- FS.Files.ReadFloat()
- FS.Files.ReadString()
- FS.Files.ReadTable()
- FS.Files.RemoveExtention()
- FS.Files.SaveFromTable()
- FS.Files.Script_Build()
- FS.Files.Search()
- FS.Files.ToTable()
- FS.Files.Validate()
- FS.Files.WriteInt()
- FS.Files.WriteString()
- FS.Files.WriteTable()
- FS.Files.applyQuotes()
+ FS.Files.Delete(filename)
+ FS.Files.ExtractFromZip(archive, sourceFile, destFile, pwd, continueOnError)
+ FS.Files.Find(startDir, pattern, recursive, dirProgressCB, fileProgressCB, foundProgressCB, breakKey, userData, results)
+ FS.Files.FindByCRC32(startDir, crc, recursive, dirProgressCB, fileProgressCB, foundProgressCB, breakKey, singleFile, userData, results)
+ FS.Files.GetDirectories(startDir, getFiles, recursive, checksum, notNested)
+ FS.Files.GetExtention(fileName)
+ FS.Files.GetLastLine(fileName)
+ FS.Files.GoDirectoryUp(path, levels)
+ FS.Files.IsAvailable(fileName, useCache)
+ FS.Files.IsPathRelative(path)
+ FS.Files.LoadToTable(fileName)
+ FS.Files.Open(id, fileName, mode)
+ FS.Files.ReadFloat(handler)
+ FS.Files.ReadString(handler, length, bytes)
+ FS.Files.ReadTable(handler)
+ FS.Files.RemoveExtention(filename)
+ FS.Files.SaveFromTable(table, filename, backup, noLineFeed)
+ FS.Files.Script_Build(scriptFile, commands, execute)
+ FS.Files.Search(params, results)
+ FS.Files.SetExecutable(filename)
+ FS.Files.ToTable(filename)
+ FS.Files.Validate(prefix, filename, searchPaths)
+ FS.Files.WriteInt(handler, value)
+ FS.Files.WriteString(handler, string, bytes)
+ FS.Files.WriteTable(handler, table)
+ FS.Files.applyQuotes(filename)
  
  :: INI FILES ::
- FS.Ini.ReadValue()
+ FS.Ini.ReadValue(filename, key, separator)
  
  :: TEXT FILES ::
- FS.TxtFiles.InsertBefore()
+ FS.TxtFiles.InsertBefore(filename, marker, newLine, allowMultiple, caseSensistive, makeBackup)
  
  :: VOLUMES ::
  FS.Volumes.ClearCache()
- FS.Volumes.Get()
- FS.Volumes.GetPart()
- FS.Volumes.IsAvailable()
+ FS.Volumes.Get(useCache)
+ FS.Volumes.GetPart(fullPath)
+ FS.Volumes.IsAvailable(volumeName)
  FS.Volumes.Monitor_Check()
- FS.Volumes.Monitor_Start()
+ FS.Volumes.Monitor_Start(callback, scanDelay)
  FS.Volumes.Monitor_Stop()
  
  */
@@ -84,7 +85,7 @@
 @INCLUDE "+Includes.hws"
 @INCLUDE #INC_HELPERS
 @INCLUDE #INC_TABLES
-@INCLUDE #INC_DEBUG
+;@INCLUDE #INC_DEBUG
 
 
 Global FS  = {}                ;                           Main FileSystem table
@@ -103,13 +104,13 @@ Global FS  = {}                ;                           Main FileSystem table
        FS.Cfg = {}             ;                      Loaded configuration files
        FS.Ini = {}             ;                          Ini files manipulation
        
-       FS.Version = "2020.07.15:2.0"
+       FS.Version = "2021.11.19:2.1"
 
 Function FS.AppDataLocation(AppName, DefaultPath, Test)                   ; v2.0
 /*******************************************************************************
 path = FS.AppDataLocation(AppName, DefaultPath, Test)
 
-Returns the app data folder and create it if it is missing.
+Returns the app data folder and/or create it if it is missing.
 -------------------------------------------------------------------------------
 INPUT
   AppName       Application Name
@@ -191,7 +192,7 @@ EXAMPLE
   
 EndFunction
 
-Function FS.Files.SaveFromTable(table, file, backup)                    ; v2.0
+Function FS.Files.SaveFromTable(table, file, backup, noLineFeed)         ; v2.1
 /******************************************************************************
 result = FS.Files.SaveFromTable(table, file, backup)
 
@@ -199,10 +200,11 @@ Saves a table previously loaded with FS.Files.ToTable() to the given file or
 any other suitable table.
 -------------------------------------------------------------------------------
 INPUT
-  table     Table to save (a one-level table of strings)
-  file      File name where the table will be saved
-  backup    Set to TRUE to make a backup if the destination file exists
-  
+  table       Table to save (a one-level table of strings)
+  file        File name where the table will be saved
+  backup      Set to TRUE to make a backup if the destination file exists
+  noLineFeed  If True no additional line feeds will be added, useful for
+              tables that already have linefeeds on each line, default False
 OUTPUT
   result    TRUE if the table is saved without errors
   
@@ -227,11 +229,15 @@ NOTE
     EndIf
   EndIf
   
+  ; Check noLineFeed option
+  Local writeFunc = WriteLine
+  If noLineFeed Then writeFunc = WriteString
+  
   Local result = FS.Files.Open(Nil, file, #MODE_WRITE)
   If result.ok
     Local c = ListItems(table)
-    For i = 0 To c-1
-      WriteLine(result.handler, table[i])
+    For Local i = 0 To c-1
+      writeFunc(result.handler, table[i])
     Next
     CloseFile(result.handler)
     
@@ -283,7 +289,7 @@ Function FS.Files.CheckLastChar(Filename, AscValue)
 /******************************************************************************
 result = FS.Files.CheckLastChar(filename, ascvalue)
 
-Read the last character of <filename> and returns TRUE if ti's equal
+Read the last character of <filename> and returns TRUE if it's equal
 to the <ascvalue> specified.
 ---------------------------------------------------------------------
 INPUT
@@ -426,6 +432,8 @@ Improved version of FS.Files.Find() used to find files on media devices.
 ---------------------------------------------------------------------
 INPUT
   params              A table with search parameters
+    searchInFile      True if you want to search inside the file instead of looking in the name
+                      Default to False.
     startingDir       Root directory where the search must start, default is current Directory()
     pattern           A string or a table of strings where the matching pattern
                       is specified. See MatchPattern() for details on recognized patterns.
@@ -464,6 +472,7 @@ OUTPUT
   If IsNil(params) Then params = {}
   
   ; Parameters
+  If TB.Item.IsNil(params, "searchinfile") Then params.searchInFile = False
   If TB.Item.IsNil(params, "startingdir") Then params.startingDir = GetCurrentDirectory()
   If TB.Item.IsNil(params, "pattern") Then params.pattern = "*"
   If TB.Item.IsNil(params, "casesensitive") Then params.caseSensitive = True
@@ -488,57 +497,108 @@ OUTPUT
   ExitOnError(True)
   
   If lastErrorCode = 0
-    Local entry = NextDirectoryEntry(DirID)
+    Local entry, i, v = NextDirectoryEntry(DirID)
     While entry <> Nil
       If entry.Type = #DOSTYPE_FILE
         ; A file has been detected
         ; CALLBACK : FileProgressFunc
         params.fileProgressFunc(params.startingDir, entry.Name, params.userData)
         
-        ; If Pattern is a single string...
-        If GetType(params.pattern) = #STRING
-          Local entry_name = entry.Name
-          Local pattern    = params.pattern
-          If params.CaseSensitive
-            entry_name = LowerStr(entry.Name)
-            pattern    = LowerStr(params.pattern)
-          EndIf
-          If MatchPattern(entry_name, pattern)
-            If TB.Item.IsNil(results, params.pattern) Then results[params.pattern] = {}
-            ; CALLBACK : FoundProgressFunc
-            params.foundProgressFunc(params.startingDir, entry.Name, params.userData)
-            Local _md5 = 0
-            If params.md5calc Then _md5 = MD5(FullPath(params.startingDir, entry.Name))
-            InsertItem(results[params.pattern], { Folder = params.startingDir,
-                                           File   = entry.Name,
-                                           Size   = entry.Size,
-                                           MD5    = _md5 })
-          EndIf
+        ; Should search the string inside the file?
+        If params.searchInFile
+          ; === SEARCH WITHIN THE FILE ===
+          ; Try to open the file
+          Local result = FS.Files.Open(Nil, FullPath(params.startingDir, entry.name), #MODE_READ)
+          If result.ok
+            SetFileEncoding(result.handler, #ENCODING_ISO8859_1)
 
-        ; If Pattern is a table...
-        ElseIf GetType(params.pattern) = #TABLE
-          For i, v In Pairs(params.pattern)
-          Local entry_name = entry.Name
+            ; Opened succesfully, load chunks
+            Local chunkSize    = 256*1024 ; 256k
+            Local currentPoint = 0
+            Local fileSize     = entry.size
+            Local found        = False
+
+            If chunkSize > fileSize Then chunkSize = fileSize
+            While currentPoint <= fileSize
+              ; Load chunk
+              Local chunk = ReadBytes(result.handler, chunkSize)
+              currentPoint = currentPoint + chunkSize
+              If FindStr(chunk, params.pattern, params.caseSensitive, 0) <> -1
+                ; String has been found
+                If TB.Item.IsNil(results, params.pattern) Then results[params.pattern] = {}
+                ; CALLBACK : FoundProgressFunc
+                params.foundProgressFunc(params.startingDir, entry.Name, params.userData)
+                Local _md5 = 0
+                If params.md5calc Then _md5 = MD5(FullPath(params.startingDir, entry.Name))
+                InsertItem(results[params.pattern], { Folder = params.startingDir,
+                                               File   = entry.Name,
+                                               Size   = entry.Size,
+                                               MD5    = _md5 })
+                Break
+              Else
+                ; Prepare for the next chunk
+                If chunkSize = ByteLen(params.pattern) Then Break
+                currentPoint = currentPoint - ByteLen(params.pattern)
+                If currentPoint + chunkSize > fileSize Then chunkSize = fileSize - currentPoint
+                Seek(result.handler, currentPoint)
+
+              EndIf
+            Wend
+            
+            CloseFile(result.handler)
+          Else
+            ;DebugPrint("ERROR OPENING ", entry.File)
+          EndIf
+          
+          
+        Else
+          ;=== SEARCH IN FILE NAME ===
+          ; If Pattern is a single string...
+          If GetType(params.pattern) = #STRING
+            Local entry_name = entry.Name
             Local pattern    = params.pattern
-            If params.CaseSensitive
+            If Not(params.CaseSensitive)
               entry_name = LowerStr(entry.Name)
-              pattern    = LowerStr(v)
-            EndIf        
-            If params.CaseSensitive Then entry_name = LowerStr(entry.Name)
+              pattern    = LowerStr(params.pattern)
+            EndIf
             If MatchPattern(entry_name, pattern)
-              If TB.Item.IsNil(results, v) Then results[v] = {}
+              If TB.Item.IsNil(results, params.pattern) Then results[params.pattern] = {}
               ; CALLBACK : FoundProgressFunc
               params.foundProgressFunc(params.startingDir, entry.Name, params.userData)
               Local _md5 = 0
               If params.md5calc Then _md5 = MD5(FullPath(params.startingDir, entry.Name))
-              InsertItem(results[v], { Folder = params.startingDir,
-                                       File   = entry.Name,
-                                       Size   = entry.Size,
-                                       MD5    = _md5 })
+              InsertItem(results[params.pattern], { Folder = params.startingDir,
+                                             File   = entry.Name,
+                                             Size   = entry.Size,
+                                             MD5    = _md5 })
             EndIf
-          Next
-        EndIf
 
+          ; If Pattern is a table...
+          ElseIf GetType(params.pattern) = #TABLE
+            For i, v In Pairs(params.pattern)
+            Local entry_name = entry.Name
+              Local pattern    = params.pattern
+              If params.CaseSensitive
+                entry_name = LowerStr(entry.Name)
+                pattern    = LowerStr(v)
+              EndIf        
+              If params.CaseSensitive Then entry_name = LowerStr(entry.Name)
+              If MatchPattern(entry_name, pattern)
+                If TB.Item.IsNil(results, v) Then results[v] = {}
+                ; CALLBACK : FoundProgressFunc
+                params.foundProgressFunc(params.startingDir, entry.Name, params.userData)
+                Local _md5 = 0
+                If params.md5calc Then _md5 = MD5(FullPath(params.startingDir, entry.Name))
+                InsertItem(results[v], { Folder = params.startingDir,
+                                         File   = entry.Name,
+                                         Size   = entry.Size,
+                                         MD5    = _md5 })
+              EndIf
+            Next
+          EndIf
+
+        EndIf
+        
       Else
         ; A Directory has been detected, check if we must do a recursive scan
         If params.recursive
@@ -1363,6 +1423,7 @@ the table
          {COMMA}         If you have to pass the comma character , in a multiple
                          string you have to encode it with this tag.
          {ENTER}         Useful to insert line feeds in your strings.
+         {SPACE}
          {EQUAL}         Used to encode the equal character = in your strings.
          $RELPATH\       This is a placeholder for the path of the configuration
                          file being processed.
@@ -1663,6 +1724,7 @@ the table
             n[1] = ReplaceStr(n[1], "{EQUAL}", "=")
             n[1] = ReplaceStr(n[1], "{ENTER}", "\n")
             n[1] = ReplaceStr(n[1], "{COMMA}", ",")
+            n[1] = ReplaceStr(n[1], "{SPACE}", " ")
             n[1] = ReplaceStr(n[1], "{TAB}", "\t")
             Result[UnrightStr(n[0], 5)] = n[1]
 
@@ -2713,7 +2775,7 @@ NOTES
 EndFunction
 
 FS.Task = {}
-
+/*
 Function FS.Task.Kill(taskName, supportApp_Win)
   ; taskkill /IM "notepad.exe" /F
   
@@ -2747,7 +2809,39 @@ Function FS.Task.Kill(taskName, supportApp_Win)
   Return(False)
   
 EndFunction
+*/
+
+Function FS.Task.Kill(taskName)
+  Local v = GetVersion()
   
+  Switch v.platform
+  
+    Case "Win32"
+    ;===========
+    Run("C:/Windows/System32/taskkill.exe", "/IM " .. "\"" .. taskName .. "\" /F")
+    
+    Case "Linux"
+    ;===========
+    Run("pkill " .. taskName)
+    
+    Case "MacOS"
+    ;===========
+    Run("pkill " .. taskName)
+
+    Default
+      Local msg = "FS.Task.Kill(taskName)\n" ..
+                  "SYSTEM " .. v.Platform .. " is not supported.\n" ..
+                  "-- Hit Enter to continue --"
+      DebugPrompt(msg)
+      
+      Return(False, "SYSTEM " .. v.Platform .. " is not supported.")
+      
+  EndSwitch
+  
+  Return(True)
+  
+EndFunction
+
 Function FS.Task.IsRunning(taskName, supportApp_Win)
 /*******************************************************************************
 FS.Task.IsRunning(taskName, supportApp_Win)
@@ -2759,7 +2853,7 @@ silently, for example using silentBatch.exe program
 INPUT
   taskName        Task name to check
   supportApp_Win  Optional windows command to avoid black window popping
-  
+
 OUTPUT
   result          True if the task is running otherwise false,
                   if an error was raised a seconds parameter with
@@ -2790,13 +2884,14 @@ NOTES
       Local tmpFile   = GetTempFileName() .. ".bat"
       Local tmpResult = GetTempFileName()
       Local fid       = OpenFile(Nil, tmpFile, #MODE_READWRITE)
-      Local cmd       = "tasklist /nh /fi \"imagename eq " .. taskName .. "\" | find /i \"" .. taskName .. "\" > nul || (echo not_running >\"" .. tmpResult .. "\")"
+      Local cmd       = "tasklist /nh /fi \"imagename eq " .. taskName .. "\" /fo csv | find /i \"" .. taskName .. "\" > nul || (echo not_running >\"" .. tmpResult .. "\")"
       WriteLine(fid, cmd)
       CloseFile(fid)
-      
+
       ; Execute the script
       Execute(supportApp_Win .. "\"" .. tmpFile .. "\"")
-      
+      Wait(1000, #MILLISECONDS)
+
       If Not(Exists(tmpResult))
         ; Running
         DeleteFile(tmpFile)
@@ -2951,11 +3046,11 @@ NOTES
 
     Default
       Local msg = "FS.Task.IsRunning(taskName, supportApp_Win)\n" ..
-                  "SYSTEM " .. SystemInfos.Platform .. " is not supported.\n" ..
+                  "SYSTEM " .. v.Platform .. " is not supported.\n" ..
                   "-- Hit Enter to continue --"
       DebugPrompt(msg)
       
-      Return(False, "SYSTEM " .. SystemInfos.Platform .. " is not supported.")
+      Return(False, "SYSTEM " .. v.Platform .. " is not supported.")
       
   EndSwitch
   
@@ -3006,7 +3101,7 @@ Function FS.Ini.ReadValue(file, key, sep)
   
 EndFunction
 
-Function FS.Files.ExtractFromZip(archive, file, dest, pwd)
+Function FS.Files.ExtractFromZip(archive, file, dest, pwd, continueOnError)
   ; Extract a single, named file from a zip archive
   ; *** REQUIRES THE ZIP MODULE ***
   ; *** @REQUIRE "zip", { InstallAdapter = True }
@@ -3021,6 +3116,8 @@ Function FS.Files.ExtractFromZip(archive, file, dest, pwd)
   ;   result          True -> Ok, False -> Error
   ;   data            Error description if result = False
   ; -------------------------------------------------
+  If IsNil(continueOnError) Then continueOnError = False
+  
   If Exists(archive)
     ; Archive exists, open the archive
     Local arcId = zip.OpenArchive(Nil, archive, #MODE_READ)
@@ -3031,12 +3128,13 @@ Function FS.Files.ExtractFromZip(archive, file, dest, pwd)
     
     ; Locate the file to extract
     For i, v In Pairs(file)
+
       Local fileId = zip.LocateFile(arcId, v)
       If fileId <> -1
         ; File was found, extract it!
         If IsNil(pwd)
           zip.ExtractFile(arcId, fileId, dest[i])
-          
+       
         Else
           zip.ExtractFile(arcId, fileId, dest[i], { password = pwd })
           
@@ -3050,8 +3148,11 @@ Function FS.Files.ExtractFromZip(archive, file, dest, pwd)
       
       Else
         ; File not found!
-        zip.CloseArchive(arcId)
-        Return(False, "File '" .. file[i] .. "' not found in the archive '" .. archive .."'.")
+        If Not(continueOnError)
+          zip.CloseArchive(arcId)
+          Return(False, "File '" .. file[i] .. "' not found in the archive '" .. archive .."'.")
+          
+        EndIf
 
       EndIf
     
@@ -3154,7 +3255,7 @@ EndFunction
 
 Function FS.Build_Script(script_file, commands, execute)
 /*******************************************************************************
-FS.Build_Script(scriptFile)
+FS.Build_Script(scriptFile, commands, execute)
 
 Build & Execute silently and asynchronously the given <scriptFile>.
 ---------------------------------------------------------------------
@@ -3736,6 +3837,36 @@ OUTPUT
                arguments = args })
    EndIf
 
+EndFunction
+
+Function FS.Files.SetExecutable(file)
+  /* Set the executable flag for the given file if it is missing
+     This is applied on all not-Win32 systems
+     
+     Returns True if the flag has been set or it is already set
+     Returns False if the flag has not been set, or if the file does not exists
+     */
+  
+  If Not(Exists(file)) Then Return(False)
+  
+  Local sysinfo = GetVersion()
+  
+  ; Verifica che l'eseguibile abbia il flag settato
+  Local exeAttrs = GetFileAttributes(file)
+  If (exeAttrs.flags & #FILEATTR_EXECUTE_USR <> 0) Or sysinfo.Platform = "Win32"
+    ; Executable flag is set
+    Return(True)
+    
+  ElseIf exeAttrs.flags & #FILEATTR_EXECUTE_USR = 0
+    SetFileAttributes(file, { Flags = exeAttrs.flags | #FILEATTR_EXECUTE_USR })
+    
+    Return(True)
+  
+  Else
+    Return(True)
+
+  EndIf
+  
 EndFunction
 
 Function FS.Files.WriteInt(handler, value)
