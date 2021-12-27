@@ -6,17 +6,21 @@
 
 /* CHANGE LOG
    ==========
+   11/04/2021
+    Clean up and source docs and notes
+   10/04/2021
+    Removed : Useless functions from the previous version
    25/11/2020
     Removed : Background class, all can be done with the sprite class.
-      Removed : GLFX.HeightMap_Generate() -> Not needed anymore
-      Removed : GLFX.Background:HMap_GetTerrainHeight() -> Not needed anymore
-      Removed : GLFX.Background:Create() -> Not needed anymore
-      Removed : GLFX.Background:Move() -> Not needed anymore
-      Removed : GLFX.Background:HMap_AddSerie() -> Not needed anymore
-      Removed : GLFX.Background:HMap_AttachSprite() -> Not needed anymore
-      Removed : GLFX.Background:HMap_DetachSprite() -> Not needed anymore
-      Removed : GLFX.Background:Draw() -> Not needed anymore
-      Removed : GLFX.Background:Update() -> Not needed anymore
+    Removed : GLFX.HeightMap_Generate() -> Not needed anymore
+    Removed : GLFX.Background:HMap_GetTerrainHeight() -> Not needed anymore
+    Removed : GLFX.Background:Create() -> Not needed anymore
+    Removed : GLFX.Background:Move() -> Not needed anymore
+    Removed : GLFX.Background:HMap_AddSerie() -> Not needed anymore
+    Removed : GLFX.Background:HMap_AttachSprite() -> Not needed anymore
+    Removed : GLFX.Background:HMap_DetachSprite() -> Not needed anymore
+    Removed : GLFX.Background:Draw() -> Not needed anymore
+    Removed : GLFX.Background:Update() -> Not needed anymore
    26/11/2020
     Docs : Doc comments for the SPRITE Object
     Docs : GLFX.Sprite:_UpdateAnimation() doc comments added
@@ -157,7 +161,7 @@ Global GLFX = {}
        GLFX.Title       = "GLFX App"          ; Display Title
        GLFX.Fixed       = False               ; Is fixed?
        GLFX.NoHide      = True                ; Can't be hided?
-       GLFX.NoModeSwitch = False              ; Switch to fullscreen locked?
+       GLFX.NoModeSwitch = True               ; Switch to fullscreen locked?
        GLFX.NoClose     = False               ; Can't be closed?
        GLFX.Borderless  = False               ; Is borderless?
        GLFX.HideFromTaskBar = False           ; Hide from taskbar?
@@ -210,20 +214,22 @@ Global GLFX = {}
        GLFX.Hiscore      = {}
        
 
-Function GLFX.GetNearestPowerOfTwo(value)
-/****************************************
+Function GLFX.GetNearestPowerOfTwo(value) ; 04/2021
+/******************************************************************************
 result = GLFX.GetNearestPowerOfTwo(value)
 
 Returns the nearest power of 2 of the given value.
+This is needed in some Amiga-like systems that does not accept textures of
+any sizes.
 -------------------------------------------------------------------------------
 INPUT
-  - value : The value to process
+  value : The value to process
   
 OUTPUT
-  - result : The nearest power of 2 of the given value
+  result : The nearest power of 2 of the given value
   
 EXAMPLE
-  | DebugPrint(GLFX.GetNearestPowerOfTwo(20))
+  DebugPrint(GLFX.GetNearestPowerOfTwo(20))
   Will print 32 to the screen.
 ******************************************************************************/
   Local done    = False
@@ -242,7 +248,7 @@ EXAMPLE
 EndFunction
 
 Function GLFX:New(args) ; OK / DOCS
-/**********************
+/******************************************************************************
 Engine = GLFX:New(args)
 
 Create a new GLFX engine instance. A GLFX engine is needed to access all
@@ -250,7 +256,7 @@ engine's capabilities like sprites and particle systems.
 -------------------------------------------------------------------------------
 INPUT
   - args : A table where all engine's object fields can be tuned at creation
-           time.
+           time. See GLFX table for all possible arguments.
 
 OUTPUT
   - engine : The created engine object.
@@ -268,14 +274,14 @@ OUTPUT
 EndFunction
 
 Function GLFX:Init(args) ; OK / DOCS
-/***********************
+/******************************************************************************
 GLFX:Init(args)
 
 Initialize the engine.
 -------------------------------------------------------------------------------
 INPUT
   - args : A table where all engine's object fields can be redefined and tuned.
-
+           See GLFX table for all possible arguments.
 NOTES
   This method will initialize the engine, will create the output screen and
   will initialize the OpenGL library.
@@ -315,6 +321,7 @@ NOTES
     
   Else
     DBG.Console.Out("Display Already initialized.", DBG.Warning, GLFXCh)
+
   EndIf
   
   DBG.Console.Out("Setting display attribute :", Nil, GLFXCh)
@@ -344,10 +351,10 @@ NOTES
 	gl.Disable(#GL_DEPTH_TEST)
 	gl.Clear(#GL_COLOR_BUFFER_BIT|#GL_DEPTH_BUFFER_BIT)
 
-  ; Ri-Creazione display list
+  ;Re-create the display list
   DBG.Console.Out("Processing existing display lists...", Nil, GLFXCh)
   ; self.DListCnt = 0
-  Local si, se
+  Local si, se, i, v, li, pso
   For si, se In Pairs(self.SpriteEngines)
     DBG.Console.Out("  Sprite Engine : " .. ToString(si), Nil, GLFXCh)
     For i, v In Pairs(se.PartSystems)
@@ -414,13 +421,13 @@ All defined objects will be rendered and all events managers will be started.
     Return()
   EndIf
   
-  self.IntervalRate = Int(1000/self.FPS)
+  self.IntervalRate = Int(1000/self.FPS) ; Scene updater
   self.IntervalID = SetInterval(Nil, self._Handler, self.intervalRate, self)
   DBG.Console.Out("Setting Renderer Interval @ " .. self.FPS .. " fps (" .. self.IntervalRate .. "ms)", Nil, GLFXCh)
   
   DBG.Console.Out("Adding callback functions on:", Nil, GLFXCh)
   DBG.Console.Out("- SizeWindow -> GLFX:Reshape()", Nil, GLFXCh)
-  DBG.Console.Out("- ModeSwitch -> GLFX:Init()", Nil, GLFXCh)
+  DBG.Console.Out("- ModeSwitch -> GLFX:Init() *** BUGGED ***", Nil, GLFXCh)
   DBG.Console.Out("- OnKeyDown  -> NOT YET IMPLEMENTED", DBG.Warning, GLFXCh)
   InstallEventHandler(
     { SizeWindow = Function(msg) self:Reshape(msg) EndFunction, 
@@ -1068,21 +1075,30 @@ GLFX.Input.Keyboard.Events = {}
 ; :Disable()
 ; :Reset()
 
-Function GLFX.Input.Keyboard.HandleKeyPress(msg)
-  ; Callback function used to track the keypresses and their status
-  ; Caller -> GLFX.Input.Keyboard:Enable() which sets an interval
-  ;           routine.
+Function GLFX.Input.Keyboard.HandleKeyPress(msg) ; 04/2021
+/******************************************************************************
+GLFX.Input.Keyboard.HandleKeyPress(msg)
+
+Interval function used to track the keypresses and their status, with OpenGL is
+not possible to install a proper keyboard handler.
+The callback to this function is installed by GLFX.Input.Keyboard:Enable()
+;--------------------------------------------------------------------
+INPUT
+  msg : Standard Hollywood message
   
-  Local object  = msg.userdata
+OUTPUT
+
+******************************************************************************/  
+  Local object, i, v, k, w  = msg.userdata
 
   For i, v In Pairs(object.Events)
     For k, w In Pairs(v)
       If IsKeyDown(k)
         If w.IsDown
-          ; L'ultima volta che ho controllato il pulsante era down
-          ; verifico se è ora di generare un evento
+          ; Last check time the key was down, verify if it is time to generate
+          ; a new event.
           If GetTimer(object.Timer) >= w.NextRead
-            ; E' ora! Verifico se è un charge o no
+            ; It's time! Check if it a 'charge'-type event or not
             Switch w.mode
               Case "normal"
                 w.Callback(
@@ -1093,8 +1109,8 @@ Function GLFX.Input.Keyboard.HandleKeyPress(msg)
 
               Case "charge"
                 w.Charge = w.Charge + w.Charger
-                ; Se la funzione di callback restituisce True significa
-                ; che il charger va resettato ***
+                ; If the callback function returns 'True' then we have to reset
+                ; the charger value.
                 If w.Callback(
                     { event   = i,
                       key     = k,
@@ -1102,6 +1118,7 @@ Function GLFX.Input.Keyboard.HandleKeyPress(msg)
                       details = w })
                   w.Charge = 0
                   w.IsDown = False
+
                 EndIf
                 
             EndSwitch
@@ -1111,8 +1128,7 @@ Function GLFX.Input.Keyboard.HandleKeyPress(msg)
           EndIf
             
         Else
-          ; L'ultima volta che ho controllato il pulsante non era
-          ; premuto
+          ; Last check time the key was not pressed
           Switch w.mode
             Case "normal"
               w.Callback(
@@ -1123,8 +1139,8 @@ Function GLFX.Input.Keyboard.HandleKeyPress(msg)
 
             Case "charge"
               w.Charge = w.Charge + w.Charger
-              ; Se la funzione di callback restituisce True significa
-              ; che il charger va resettato ***
+              ; If the callback function returns 'True' then we have to reset
+              ; the charger value.
               w.Charge = 0
               If w.Callback(
                   { event   = i,
@@ -1142,87 +1158,134 @@ Function GLFX.Input.Keyboard.HandleKeyPress(msg)
         
         
       Else
-        ; Il tasto non è premuto, ma prima com'era?
+        ; The key is not pressed, check the previous check state
         If w.IsDown
-          ; Prima era premuto!
+          ; Previously it was pressed!
           w.Callback(
             { event   = i,
               key     = k,
               action  = "released",
               details = w })
           w.IsDown = False
+          
         EndIf
+        
       EndIf
+      
     Next
+    
   Next
   
 EndFunction
 
-Function GLFX.Input.Keyboard:Enable(freq)
-  ; Enables the keyboard tracker
+Function GLFX.Input.Keyboard:Enable(freq) ; 04/2021
+/******************************************************************************
+GLFX.Input.Keyboard:Enable(freq)
+
+Enables the keyboard handler and starts to detect defined key presses
+;--------------------------------------------------------------------
+INPUT
+  freq : Monitor frequency in milliseconds, defaults to 20ms
+******************************************************************************/
   
   If IsNil(freq) Then freq = 20
-  If TB.Item.Exists(self, "interval")
+  If HaveItem(self, "interval")
+    ; If it already exist removes it
     ClearInterval(self.Interval)
     StopTimer(self.Timer)
+    
   EndIf
+  
+  ; Start the insterval routine and the dedicated timer
   self.Interval = SetInterval(Nil, self.HandleKeyPress, freq, self)
-  self.Timer = StartTimer(Nil)
+  self.Timer    = StartTimer(Nil)
 
 EndFunction
 
-Function GLFX.Input.Keyboard:Reset()
-  ; Reset the keyboard tracker
+Function GLFX.Input.Keyboard:Reset() ; 04/2021
+/******************************************************************************
+GLFX.Input.Keyboard:Reset()
+
+Resets the keyboard handler removing all events defined and keys
+;--------------------------------------------------------------------
+
+******************************************************************************/
   
   self.Events = {}
   self.LastKey = ""
+
 EndFunction
 
-Function GLFX.Input.Keyboard:RemoveKey(event, key)
-  ; Remove the specified key from the keyboard tracker
-  
-  If TB.Item.IsNil(args, "event") Then args.event = "OnKeyDown"
-  If TB.Item.IsNil(args, "key")
+Function GLFX.Input.Keyboard:RemoveKey(event, key) ; 04/2021
+/******************************************************************************
+GLFX.Input.Keyboard:RemoveKey(event, key)
+
+Removes the specified key from the keyboard handler
+;--------------------------------------------------------------------
+INPUT
+  event : The event to remove, defaults to "OnKeyDown"
+  key : The key to remove
+******************************************************************************/  
+  If Not(HaveItem(args, "event")) Then args.event = "OnKeyDown"
+  If Not(HaveItem(args, "key"))
     DBG.Console.Out("No key specified!", DBG.Error, GLFXCh)
     Return()
   EndIf
   
   event = LowerStr(event)
-  key = UpperStr(key)
-  If TB.Item.Exists(self.Events, event)
-    If TB.Item.Exists(self.Events[Event], key)
+  key   = UpperStr(key)
+  
+  ; Check if the event exists
+  If HaveItem(self.Events, event)
+    ; Check if the key exists
+    If HaveItem(self.Events[Event], key)
       self.Events[Event][key] = Nil
+      
     EndIf
+    
   EndIf
+  
 EndFunction
 
-Function GLFX.Input.Keyboard:AddKey(args)
-  ; Adds a key to the keyboard tracker
-  ;
-  ; args
-  ; - event
-  ; - key       -> can be any key or "ANY"
-  ; - cooldown
-  ; - callback
-  ; - userdata
-  ; - mode
-  If TB.Item.IsNil(args, "event") Then args.event = "OnKeyDown"
-  If TB.Item.IsNil(args, "mode") Then args.mode = "normal"
-  If TB.Item.IsNil(args, "charger") Then args.charger = 1
-  If TB.Item.IsNil(args, "key")
+Function GLFX.Input.Keyboard:AddKey(args) ; 04/2021
+/******************************************************************************
+GLFX.Input.Keyboard:AddKey(args)
+
+Add a keyboard key to the keyboard handler
+;--------------------------------------------------------------------
+INPUT
+  args : A table with the following fields
+         .event : The event to track, defaults to "OnKeyDown"
+         .key : The character to monitor or "ANY"
+         .cooldown : An optional cooldown time for the next detection in ms, defaults to 20ms
+         .callback : A callback function to trigger, it will be called with a
+                     table with the following fields:
+                     .event : The detected event
+                     .key : The pressed key (no casing detected)
+                     .action : The action detected
+                     .details : The original 'args' table
+         .userdata : An optional userdata field
+         .mode : The detection mode, can be "charge" or "normal", defaults to "normal"
+         .charge : An optional charge starting level, defaults to 1
+******************************************************************************/
+  If Not(HaveItem(args, "event"))   Then args.event = "OnKeyDown"
+  If Not(HaveItem(args, "mode"))    Then args.mode = "normal"
+  If Not(HaveItem(args, "charger")) Then args.charger = 1
+  If Not(HaveItem(args, "key"))
     DBG.Console.Out("No key field defined!", DBG.Error, GLFXCh)
     Return()
   EndIf
-  If TB.Item.IsNil(args, "cooldown") Then args.cooldown = 20
-  If TB.Item.IsNil(args, "userdata") Then args.userdata = {}
-  If TB.Item.IsNil(args, "callback")
+  If Not(HaveItem(args, "cooldown")) Then args.cooldown = 20
+  If Not(HaveItem(args, "userdata")) Then args.userdata = {}
+  If Not(HaveItem(args, "callback"))
     DBG.Console.Out("No callback field defined!", DBG.Error, GLFXCh)
     Return()
   EndIf
   args.Event = LowerStr(args.Event)
   args.Key   = UpperStr(args.Key)
   
-  If TB.Item.IsNil(self.Events, args.event) Then self.Events[args.event] = {}
+  ; Init the field if not defined
+  If Not(HaveItem(self.Events, args.event)) Then self.Events[args.event] = {}
   self.Events[args.event][args.key] = { cooldown = args.cooldown,
                                         nextread = 0,
                                         mode     = args.mode,
@@ -1234,13 +1297,23 @@ Function GLFX.Input.Keyboard:AddKey(args)
 
 EndFunction
 
-Function GLFX.Input.Keyboard:Disable()
-  ; Disable the keyboard tracker
-  
+Function GLFX.Input.Keyboard:Disable() ; 04/2021
+/******************************************************************************
+GLFX.Input.Keyboard:Disable()
+
+Disable the keyboard handler
+;--------------------------------------------------------------------
+
+******************************************************************************/
+  ; Removes the interval function
   ClearInterval(self.Interval)
+  
+  ; Stop the keyboard timer
   StopTimer(self.Timer)
+  
   self.Interval = Nil
-  self.Timer = Nil
+  self.Timer    = Nil
+
 EndFunction
 
 
@@ -1591,11 +1664,13 @@ GLFX.Scene.Render = Function() EndFunction
 GLFX.Scene.Init   = Function() EndFunction
 GLFX.Scene.UnInit = Function() EndFunction
 
-Function GLFX.Scene:New() ; *
+Function GLFX.Scene:New() ; 04/2021
 /******************************************************************************
 sceneObject = GLFX.Scene:New()
 
 Create a new, blank scene object.
+---------------------------------------------------------------------
+
 ******************************************************************************/
   DBG.Console.Out(".Scene:New()", DBG.OpenFunc, GLFXCh)
   
@@ -1605,40 +1680,55 @@ Create a new, blank scene object.
   DBG.Console.Out(Nil, DBG.CloseFunc, GLFXCh)
   
   Return(obj)
+
 EndFunction
 
-Function GLFX.Scene:Setup(Params) ; *
+Function GLFX.Scene:Setup(Params) ; 04/2021
 /******************************************************************************
 GLFX.Scene:Setup(params)
 
-Setup a scene object, here you can override methods and define scene variables.
+Setup a scene object, where you can override methods and define scene variables.
+Each scene is composed by 5 functions that can be freely overrided, at
+least you should set the 'render' and 'init' function and 'uninit' to
+release loaded resources when a scene changes.
 ---------------------------------------------------------------------
 INPUT
-  params    A table with all variable you want to change in the scene
-    Name    Scene Name
-    Update  Function to update the scene (every frame)
-    Clear   Function to clear the screen (every frame)
-    Render  Function to render the screen (every frame)
-    Init    Function to initialize the scene (on scene change)
-    UnInit  Function to uninitialize the scene (on scene change)
+  params : A table with all variable you want to change in the scene
+    Name : Scene Name
+    Update : Function to update the scene (every frame)
+    Clear : Function to clear the screen (every frame)
+    Render : Function to render the screen (every frame)
+    Init : Function to initialize the scene (on scene change)
+    UnInit : Function to uninitialize the scene (on scene change)
 ******************************************************************************/
   TB.Set(self, params, False)
   
 EndFunction
 
-Function GLFX.Scene:TransitionSetup(args)
-  ; type
-  ;   CROSSFADE
-  ;   [calculated] brushid
-  ;   startColor
-  ;   endColor
-  ;   time
-  ;   easing
-  ;   framework
+Function GLFX.Scene:TransitionSetup(args) ; 04/2021
+/******************************************************************************
+GLFX.Scene:TransitionSetup(args)
+
+Setup an optional transition effect between scenes.
+---------------------------------------------------------------------
+INPUT
+  args : A table where you have to configure the transition effect
+    framework : Framework pointer
+    time : Transition duration in milliseconds, defaults to 1000ms
+    easing : Easing function, defaults to 'linear' 
+    type : The transition type that can be (each with its own additional parameters)
+           'crossfade'
+             startcolor : A table with the starting color, defaults to { 1.0, 1.0, 1.0, 1.0 }
+             endcolor : A table with the ending color, defaults to { 1.0, 1.0, 1.0, 0.0 }
+           'move'
+             target : Target point, defaults to { x = 0, y = args.Framework.Height } which
+                      is a scroll-down effect
+******************************************************************************/
   
-  If TB.Item.Exists(args.Framework, "scenetransition")
+  If HaveItem(args.Framework, "scenetransition")
     DBG.Console.Out("Stopping previous transition!", DBG.Hilight, GLFXCh)
     tween.stop(args.Framework.SceneTransition.Tween, True)
+
   EndIf
   
   Local w = args.framework.width
@@ -1646,8 +1736,7 @@ Function GLFX.Scene:TransitionSetup(args)
   Local b = args.FrameWork.BrushID
   args.FrameWork.BrushID = args.FrameWork.BrushID + 1
   
-  ; Questo flip qua sotto sembra necessario per accertarsi che
-  ; lo schermo da grabbare non sia vuoto
+  ; This flip() below seems needed to avoid to grab a blank screen
   Flip()
   
   gl.ReadPixelsToBrush(0, 0, w, h, b)
@@ -1657,49 +1746,65 @@ Function GLFX.Scene:TransitionSetup(args)
 
   Switch args.type
     Case "crossfade"
-      If TB.Item.Exists(args, "startcolor")
+      If HaveItem(args, "startcolor")
         args.FrameWork.SceneTransition.StartColor = args.StartColor
+        
       Else
         args.FrameWork.SceneTransition.StartColor = { 1.0, 1.0, 1.0, 1.0 }
+        
       EndIf
       
-      If TB.Item.Exists(args, "endcolor")
+      If HaveItem(args, "endcolor")
         args.FrameWork.SceneTransition.EndColor = args.EndColor
+        
       Else
         args.FrameWork.SceneTransition.EndColor = { 1.0, 1.0, 1.0, 0.0 }
+        
       EndIf
       
-      If TB.Item.Exists(args, "time")
+      If HaveItem(args, "time")
         args.FrameWork.SceneTransition.Time = args.Time
+        
       Else
         args.FrameWork.SceneTransition.Time = 1000
+        
       EndIf
 
-      If TB.Item.Exists(args, "easing")
+      If HaveItem(args, "easing")
         args.FrameWork.SceneTransition.Easing = args.Easing
+        
       Else
         args.FrameWork.SceneTransition.Easing = "linear"
+        
       EndIf
       
       args.Framework.SceneTransition.BrushID = b
     
+    
+    
     Case "move"
-      If TB.Item.Exists(args, "time")
+      If HaveItem(args, "time")
         args.FrameWork.SceneTransition.Time = args.Time
+        
       Else
         args.FrameWork.SceneTransition.Time = 1000
+        
       EndIf
 
-      If TB.Item.Exists(args, "easing")
+      If HaveItem(args, "easing")
         args.FrameWork.SceneTransition.Easing = args.Easing
+        
       Else
         args.FrameWork.SceneTransition.Easing = "linear"
+        
       EndIf
       
-      If TB.Item.Exists(args, "target")
+      If HaveItem(args, "target")
         args.FrameWork.SceneTransition.Target = args.Target
+        
       Else
         args.FrameWork.SceneTransition.Target = { x = 0, y = args.Framework.Height }
+        
       EndIf
 
 
@@ -1707,6 +1812,7 @@ Function GLFX.Scene:TransitionSetup(args)
       
     Default
       DBG.Console.Out("UNKNOW SCENE TRANSITION : " .. self.SceneTransition.Type, DBG.Error, GLFXCh)
+      
   EndSwitch
   
 EndFunction
@@ -1717,85 +1823,103 @@ EndFunction
 ;::::::::::::::::::: STORYBOARD SCENE'S SUBCLASS ::::::::::::::::::::::::::::::
 ;::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-Function GLFX.Scene.Storyboard:Start()
+Function GLFX.Scene.Storyboard:Start() ; 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Start()
 
-Start the storyboard processing all events.
+Start the storyboard processing all the events.
+---------------------------------------------------------------------
+
 ******************************************************************************/
   self.IsPaused = False
   If GetType(self.Timer) <> #NUMBER Then StopTimer(self.Timer)
+  Local i, v
   For i, v In IPairs(self.TimedEvents) Do v.Executed = False
   self.Timer = StartTimer(Nil)
   self.LastTE = 0
+
 EndFunction
 
-Function GLFX.Scene.Storyboard:Pause()
+Function GLFX.Scene.Storyboard:Pause() ; 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Pause()
 
 Pause the storyboard execution.
+---------------------------------------------------------------------
+
 ******************************************************************************/
   self.IsPaused = True
   PauseTimer(self.Timer)
+
 EndFunction
 
-Function GLFX.Scene.Storyboard:Resume()
+Function GLFX.Scene.Storyboard:Resume() ; 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Resume()
 
 Resume a previously paused storyboard
+---------------------------------------------------------------------
+
 ******************************************************************************/
   self.IsPaused = False
   ResumeTimer(self.Timer)
+
 EndFunction
 
-Function GLFX.Scene.Storyboard:Stop()
+Function GLFX.Scene.Storyboard:Stop() ; 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Stop()
 
 Stop a storyboard execution.
+---------------------------------------------------------------------
+
 ******************************************************************************/
   self.IsPaused = True
   StopTimer(self.Timer)
   self.Timer = 0
+
 EndFunction
 
-Function GLFX.Scene.Storyboard:New()
+Function GLFX.Scene.Storyboard:New() ; 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:New()
 
 Initialize a scene's storyboard
+---------------------------------------------------------------------
+
 ******************************************************************************/
   If GetType(self.Timer) <> #NUMBER
     StopTimer(self.Timer)
+    
   EndIf
   self.Events = {}
+  
 EndFunction
 
-Function GLFX.Scene.Storyboard:AddTimedEvent(event)
+Function GLFX.Scene.Storyboard:AddTimedEvent(event) ; 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:AddTimedEvent(event)
 
 Add a timed event to storyboard.
 ---------------------------------------------------------------------
 INPUT
-  event       A table defining the event
-    name      Event name
-    time      Event time (ms), when the event must be executed
-    callback  Callback function, this function will be called with
-              the following arguments:
-                callback(userdata, time, scene)
-    userdata  Free field to pass data to the callback function
+  event : A table defining the event
+    name : Event name
+    time : Event time (ms), when the event must be executed
+    callback : Callback function, this function will be called with
+               the following arguments:
+                 callback(userdata, time, scene)
+    userdata : Free field to pass data to the callback function
 ******************************************************************************/
   self.TimedEvents[event.time] =
     { name     = event.name,
       callback = event.callback,
       userdata = event.userdata,
-      executed = False } 
+      executed = False }
+
 EndFunction
 
-Function GLFX.Scene.Storyboard:AddTriggeredEvent(event)
+Function GLFX.Scene.Storyboard:AddTriggeredEvent(event) ; 04/2021, NOT YET IMPLEMENTED INTO THE ENGINE
 /******************************************************************************
 GLFX.Scene.Storyboard:AddTriggeredEvent(event)
 
@@ -1806,14 +1930,15 @@ Add a condition that will trigger an event.
 ******************************************************************************/
   ; event
   ;   - name
-  ;   - triggers
+  ;   - trigger -> { target=What object, param=Which parameter, cond=Condition, value=value to compare}
   ;   - callback
   ;   - userdata
   self.TriggeredEvents[name] =
   { name = event.name,
-    triggers = event.trigger,
+    trigger  = event.trigger,
     callback = event.callback,
     userdata = event.userdata }
+
 EndFunction
 
 
@@ -2600,36 +2725,43 @@ GLFX.PathNode.modey = "linear"       ; Movement y easing (see tween library)
 ; startPos = JUMPSEQ <sequence name>  Jump to a sequence    
 ; startPos = PAUSE <milliseconds>     Call the next node after <milliseconds>
 
-Function GLFX.PathNode:New(params)
+Function GLFX.PathNode:New(params) ; 04/2021
 /******************************************************************************
 node = GLFX.PathNode:New(params)
 
-Create a PathNode object
+Create a PathNode object, used when sequences are defined
 ---------------------------------------------------------------------
 INPUT
-  params          A table to setup the node
-    startPos      Node starting position, must have x and y fields
-    startOffset   Optional offset, must have x and y fields
-    endPos        Node ending position, must have x and y fields
-    endOffset     Optional offset, must have x and y fields
-    runtime       Movement duration in milliseconds
-    mode          Movement easing, see tween library for a complete list
+  params : A table to setup the node
+    startPos : Node starting position, must have x and y fields
+    startOffset : Optional offset, must have x and y fields
+    endPos : Node ending position, must have x and y fields
+    endOffset : Optional offset, must have x and y fields
+    runtime : Movement duration in milliseconds
+    mode : Movement easing, see tween library for a complete list
+
 OUTPUT
-  node            The created node
+  node : The created node
+
 NOTE
   startPos and endPos can be anything that have x and y fields, so
   you can pass here also a sprite because it have the x and y fields.
-  startPos can be a string, in this case it will interpreted as a special
-  command as follow:
+  startPos can also be a string, in this case it will be interpreted as a
+  special command as follow:
     JUMPNODE:<nodenumber>     Jump to the given node number
     JUMPSEQ:<sequencename>    Jump to the given sequence name
     PAUSE:<milliseconds>      Pause the path for the given milliseconds
 ******************************************************************************/
+  ; Create a new PathNode instance
   Local obj = CopyTable(self)
+  
+  ; Setup all passed parameters
   TB.Set(obj, params, False)
   obj.startPos = params.startPos
-  If TB.Item.Exists(params, "endpos") Then obj.endPos = params.endPos
+  If HaveItem(params, "endpos") Then obj.endPos = params.endPos
+  
   Return(obj)
+  
 EndFunction
 
 
@@ -2651,52 +2783,59 @@ GLFX.PathSequence.Loop = False         ; TRUE to enable path loops
 GLFX.PathSequence.onEnd = Function() EndFunction   ; onEnd event callback function
 
   
-Function GLFX.PathSequences:New()
+Function GLFX.PathSequences:New() ; 04/2021
 /******************************************************************************
 obj = GLFX.PathSequences:New()
 
 Create a new PathSequences object.
+---------------------------------------------------------------------
+
 ******************************************************************************/
   Local obj = CopyTable(self)
+  
   Return(Obj)
+  
 EndFunction
 
-Function GLFX.PathSequences:AddSequence(name, nodes, loop, onEnd)
+Function GLFX.PathSequences:AddSequence(name, nodes, loop, onEnd) ; 04/2021
 /******************************************************************************
 GLFX.PathSequences:AddSequence(name, nodes, loop, onEnd)
 
 Add a new path sequence to a PathSequences object.
 ---------------------------------------------------------------------
 INPUT
-  name          Sequence name
-  nodes         A list of PathNode objects
-  loop          TRUE to make this sequence loop
-  onEnd         Callback function called at the end of the sequence
+  name : Sequence name
+  nodes : A list of PathNode objects
+  loop : TRUE to make this sequence loop
+  onEnd : Callback function called at the end of the sequence
 ******************************************************************************/
   Local seq = CopyTable(GLFX.PathSequence)
   seq.Name = name
   seq.Nodes = nodes
   seq.NodeCount = ListItems(nodes)
   seq.Loop = loop
-  If HL.IsNotNil(onEnd) Then seq.onEnd = onEnd
+  If Not(IsNil(onEnd)) Then seq.onEnd = onEnd
   
   self.sequences[name] = seq
   self.sequenceCount = self.sequenceCount + 1
+
 EndFunction
 
-Function GLFX.PathSequences:SetSequence(name)
+Function GLFX.PathSequences:SetSequence(name) ; 04/2021
 /******************************************************************************
 GLFX.PathSequences:SetSequence(name)
 
 Set an existing sequence active in a PathSequences object.
 ---------------------------------------------------------------------
 INPUT
-  name        Sequence name to activate
+  name : Sequence name to activate
 ******************************************************************************/
   If TB.Item.Exists(self.sequences, name)
     self.currentSequence = self.Sequences[name]
     self.currentNode = 0
+    
   EndIf
+  
 EndFunction 
 
 ;::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2790,61 +2929,71 @@ GLFX.SimpleSprite.GroupColls = {}        ; Used to cache group collisions
 
 
 
-Function GLFX.SimpleSprite:SetCollisionsWithSprites(params)
+Function GLFX.SimpleSprite:SetCollisionsWithSprites(params) ; 04/2021
 /******************************************************************************
 GLFX.SimpleSprite:SetCollisionsWithSprites(params)
 
 Enable collisions handling between this sprite and a list of sprites.
 ---------------------------------------------------------------------
 INPUT
-  params              A table that defines the collision behaviours.
-    spriteList        A table with all sprite objects to check
-    onCollision       Raised when this sprite collide with one of the list
-    onCollisionStart  Raised when the collision begins
-    onCollisionEnd    Raised when the collision ends
+  params : A table that defines the collision behaviours.
+    spriteList : A table with all sprite objects to check
+    onCollision : Raised when this sprite collide with one of the list
+    onCollisionStart : Raised when the collision begins
+    onCollisionEnd : Raised when the collision ends
+
 NOTE
   Callback functions will be called with two arguments:
-    sprite1           This sprite
-    sprite2           The colliding sprite in the list
+    sprite1 : This sprite
+    sprite2 : The colliding sprite in the list
 ******************************************************************************/
   self.Collisions.WithSprites.Enabled = True
-  If TB.Item.Exists(params, "oncollision") Then self.Collisions.WithSprites.OnCollision = Params.OnCollision
-  If TB.Item.Exists(params, "oncollisionstart") Then self.Collisions.WithSprites.OnCollisionStart = Params.OnCollisionStart
-  If TB.Item.Exists(params, "oncollisionend") Then self.Collisions.WithSprites.OnCollisionEnd = Params.OnCollisionEnd
-  If TB.Item.Exists(params, "spritelist")
+  If HaveItem(params, "oncollision")      Then self.Collisions.WithSprites.OnCollision = Params.OnCollision
+  If HaveItem(params, "oncollisionstart") Then self.Collisions.WithSprites.OnCollisionStart = Params.OnCollisionStart
+  If HaveItem(params, "oncollisionend")   Then self.Collisions.WithSprites.OnCollisionEnd = Params.OnCollisionEnd
+  If HaveItem(params, "spritelist")
     self.Collisions.WithSprites.SpriteList = Params.SpriteList
     For Local i = 0 To ListItems(Params.SpriteList) Do self.Collisions.WithSprites.Collide[i] = False
+    
   EndIf
+
 EndFunction
 
-Function GLFX.SimpleSprite:ClearCollisionsWithSprites(events)
+Function GLFX.SimpleSprite:ClearCollisionsWithSprites(events) ; 04/2021
 /******************************************************************************
 GLFX.SimpleSprite:ClearCollisionsWithSprites(events)
 
 Remove collisions detection with previous specified sprites.
 ---------------------------------------------------------------------
 INPUT
-  events              Table with the events to clear
-    onCollision       TRUE, clear this event detection
-    onCollisionStart  TRUE, clear this event detection
-    onCollisionEnd    TRUE, clear this event detection
+  events : Table with the events to clear
+    onCollision : TRUE, clear this event detection
+    onCollisionStart : TRUE, clear this event detection
+    onCollisionEnd : TRUE, clear this event detection
 *******************************************************************************/
-  If TB.Item.Exists(events, "oncollision")
+  If HaveItem(events, "oncollision")
     If events.OnCollision Then self.Collisions.WithSprites.OnCollision = Nil
+    
   EndIf
-  If TB.Item.Exists(events, "oncollisionstart")
+  
+  If HaveItem(events, "oncollisionstart")
     If events.OnCollisionStart Then self.Collisions.WithSprites.OnCollisionStart = Nil
-  EndIf
-  If TB.Item.Exists(events, "oncollisionend")
-    If events.OnCollisionEnd Then self.Collisions.WithSprites.OnCollisionEnd = Nil
+    
   EndIf
 
-  If HL.IsNil(self.Collisions.WithSprites.OnCollision) And 
-     HL.IsNil(self.Collisions.WithSprites.OnCollisionOnCollisionStart) And 
-     HL.IsNil(self.Collisions.WithSprites.OnCollisionOnCollisionEnd)
+  If HaveItem(events, "oncollisionend")
+    If events.OnCollisionEnd Then self.Collisions.WithSprites.OnCollisionEnd = Nil
+    
+  EndIf
+
+  If IsNil(self.Collisions.WithSprites.OnCollision) And 
+     IsNil(self.Collisions.WithSprites.OnCollisionOnCollisionStart) And 
+     IsNil(self.Collisions.WithSprites.OnCollisionOnCollisionEnd)
     self.Collisions.WithSprites.Enabled = False
     self.Collisions.WithSprites.Collide = {}
+    
   EndIf
+  
 EndFunction
 
 
@@ -2867,376 +3016,6 @@ GLFX.ComplexSprite.Anim.SequenceFrames  = -1
 GLFX.ComplexSprite.Anim.Sequences = {}
 GLFX.ComplexSprite.Anim.EndEvent = Nil
 GLFX.ComplexSprite.Anim.Anim_ID = -1
-
-
-Function GLFX.ComplexSprite:AnimStop() ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:AnimStop()
-
-Stop the current animation sequence.
-******************************************************************************/
-  self.Anim.Enabled = False
-EndFunction
-
-Function GLFX.ComplexSprite:AnimResume() ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:AnimResume()
-
-Resume a stopped animation sequence.
-******************************************************************************/
-  self.Anim.Enabled = True
-  self.Anim.NextTimeout = GetTimer(self.Engine.UpdateTimer)
-EndFunction
-
-Function GLFX.ComplexSprite:AnimStart() ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:AnimStart()
-
-Start the current animation
-******************************************************************************/
-  self.Anim.Enabled = True
-  self.Anim.NextTimeout = GetTimer(self.Engine.UpdateTimer)
-  self.Anim.CurrentFrame = 0
-EndFunction
-
-Function GLFX.ComplexSprite:_UpdateAnim() ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:_UpdateAnim()
-
-Internal method used to update the animation
-******************************************************************************/
-  If self.Anim.Enabled
-    Local CurrentTime = GetTimer(self.Engine.UpdateTimer)
-
-    Local Anim = self.Anim
-
-    If Anim.NextTimeout <= CurrentTime
-      self:AnimFrameNext()
-      Local delta = CurrentTime - Anim.NextTimeout
-      Anim.NextTimeout = CurrentTime + Anim.Sequences[Anim.CurrentSequence][Anim.CurrentFrame].Delay - Delta
-    EndIf
-  EndIf
-EndFunction
-
-Function GLFX.ComplexSprite:Update() ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:Update()
-
-Update the sprite
-******************************************************************************/
-  ; Aggiornamento COLLISIONS
-  self:_UpdateCollisions()
-
-  ; Aggiornamento PATH
-  ;self:_UpdatePath()
-
-  ; Aggiornamento ANIM
-  self:_UpdateAnim()
-
-  ; Aggiornamento Fade
-  self:_UpdateFade()
-
-  ; Aggiornamento Zoom
-  self:_UpdateZoom()
-
-EndFunction
-
-Function GLFX.ComplexSprite:AnimFrameNext() ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:AnimFrameNext()
-
-Move to the next frame of the current animation
-******************************************************************************/
-  Local Anim = self.Anim
-
-  If Anim.Enabled
-
-    Anim.CurrentFrame = Anim.CurrentFrame + 1
-
-    If Anim.CurrentFrame > (Anim.SequenceFrames-1)
-      If Anim.Sequences[Anim.CurrentSequence].Loop
-        Anim.CurrentFrame = 0
-      Else
-        Anim.CurrentFrame = Anim.SequenceFrames - 1
-        Anim.Enabled = False
-
-        If GetType(self.Anim.EndEvent) = #FUNCTION
-          self.Anim.EndEvent(self)
-        EndIf
-      EndIf
-    EndIf
-
-  EndIf
-EndFunction
-
-Function GLFX.ComplexSprite:AnimFramePrev() ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:AnimFramePrev()
-
-Move to the previous frame of the current animation
-******************************************************************************/
-  Local Anim = self.Anim
-
-  If Anim.Enabled
-
-    Anim.CurrentFrame = Anim.CurrentFrame - 1
-
-    If Anim.CurrentFrame < 0
-      If Anim.Sequences[Anim.CurrentSequence].Loop
-        Anim.CurrentFrame = Anim.SequenceFrames - 1
-      Else
-        Anim.CurrentFrame = 0
-        Anim.Enabled = False
-
-        If GetType(self.EndEvent) = #FUNCTION
-          self.EndEvent(self)
-        EndIf
-      EndIf
-    EndIf
-
-  EndIf
-EndFunction
-
-Function GLFX.ComplexSprite:AnimSetSequence(sequence, EndEvent, Force) ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:AnimSetSequence(sequence, EndEvent, Force)
-
-Set an animation sequence.
----------------------------------------------------------------------
-INPUT
-  sequence      Animation sequence name
-  EndEvent      Callback to call when the animation ends
-  Force         Force the animation setting even if the same sequence
-                is already up.
-NOTE
-  The callback will be called with the sprite as argument
-******************************************************************************/
-  Local Anim = self.Anim
-  If Anim.CurrentSequence = sequence And Not(Force) Then Return()
-
-  If TB.Item.Exists(Anim.Sequences, LowerStr(sequence))
-    Anim.CurrentSequence = sequence
-    Anim.CurrentFrame = 0
-    Anim.SequenceFrames = TB.Count(Anim.Sequences[sequence]) - 1
-
-    If HL.IsNotNil(EndEvent) Then Anim.EndEvent = EndEvent
-  EndIf
-EndFunction
-
-Function GLFX.ComplexSprite:Draw(offsetx, offsety) ; NOT USED
-/******************************************************************************
-GLFX.ComplexSprite:Draw(offsetx, offsety)
-
-Draw the complex sprite.
----------------------------------------------------------------------
-INPUT
-  offsetx       Offset x
-  offsety       Offset y
-******************************************************************************/
-  self:Update()
-
-  If self.Hidden Then Return()
-
-  Local Anim = self.Anim
-  Local CurrentSequence = Anim.Sequences[Anim.CurrentSequence]
-  Local Frame = CurrentSequence[Anim.CurrentFrame].Frame
-
-  DisplayAnimFrame(self.Anim.Anim_id, self.x + offsetx, self.y + offsety, frame, self.Attributes)
-EndFunction
-
-Function GLFX.ComplexSprite:Create(engine, name, layer, attributes, filters, animations, group) ; NOT USED
-/******************************************************************************
-obj = GLFX.ComplexSprite:Create(engine, name, layer, attributes, filters, 
-                               animations, group)
-
-Create a new Complex sprite.
----------------------------------------------------------------------
-INPUT
-  engine      Sprite engine to use
-  name        Sprite name
-  layer       Sprite layer (draw level)
-  attributes  Rendering attributes
-  filters     Filters settings
-  animations  Animations definition
-  group       Sprite group
-OUTPUT
-  obj         Complex sprite object
-******************************************************************************/
-; Verifica il nome, se non specificato oppure se specificata una stringa
-; vuota sarà assegnato un nome casuale unico.
-  If HL.IsNil(name) Or name = "" Then name = HL.GetRndName()
-
-  ;| Genera il nuovo oggetto
-  NewObj = CopyTable(GLFX.ComplexSprite)
-  NewObj.Name = Name
-
-  ;| Attributes
-  If HL.IsNil(Attributes) Then Attributes =  {}
-  NewObj.Attributes = Attributes
-
-  ;| Coordinates
-  If TB.Item.Exists(Attributes, "x")
-    NewObj.x = Attributes.x
-    Attributes.x = Nil
-  EndIf
-
-  If TB.Item.Exists(Attributes, "y")
-    NewObj.y = Attributes.y
-    Attributes.y = Nil
-  EndIf
-
-  ;| LAYER check
-  If HL.IsNotNil(Layer) Then NewObj.Layer = Layer
-
-  ;| FILTERS check
-  If HL.IsNotNil(Filters) Then NewObj.Attributes.Filters = CopyTable(Filters)
-
-  ;| GROUP Check
-  If HL.IsNotNil(Group) Then NewObj.Group = Group
-  
-  ;| ANIMATION check
-
-  If TB.Item.Exists(Animations, "framesheet")
-    ;| LOAD FRAMESHEET
-    Local Filename = Animations.Framesheet
-    If Exists(Filename)
-      Local c, i = IsPicture(Filename)
-      If c
-        If i.Alpha And NewObj.AlphaChannel
-          NewObj.Anim.Anim_ID = LoadAnim(Nil, Filename, 
-                                  { LoadAlpha = i.Alpha,
-                                    x         = IIF(HL.IsNil(Animations.x), 0, Animations.x),
-                                    y         = IIF(HL.IsNil(Animations.y), 0, Animations.y),
-                                    width     = Animations.width,
-                                    height    = Animations.height,
-                                    fpr       = Animations.frames_per_row,
-                                    frames    = Animations.frames })
-
-        ElseIf TB.Item.Exists(Animations, "traspcolor") And NewObj.Mask
-          NewObj.Anim.Anim_ID = LoadAnim(Nil, Filename, 
-                                  { Transparency = Animations.TranspColor,
-                                    x            = IIF(HL.IsNil(Animations.x), 0, Animations.x),
-                                    y            = IIF(HL.IsNil(Animations.y), 0, Animations.y),
-                                    width        = Animations.width,
-                                    height       = Animations.height,
-                                    fpr          = Animations.frames_per_row,
-                                    frames       = Animations.frames })
-        Else
-          NewObj.Anim.Anim_ID = LoadAnim(Nil, Filename, 
-                                  { x      = IIf(HL.IsNil(Animations.x), 0, Animations.x),
-                                    y      = IIf(HL.IsNil(Animations.y), 0, Animations.y),
-                                    width  = Animations.width,
-                                    height = Animations.height,
-                                    fpr    = Animations.frames_per_row,
-                                    frames = Animations.frames })
-        EndIf
-
-      Else
-        Return(Nil)
-      EndIf
-
-    Else
-      Return(Nil)
-    EndIf
-
-  ElseIf TB.Item.Exists(Animations, "animfile")
-    ;| LOAD ANIMATION
-    Local Filename = Animations.AnimFile
-    If Exists(Filename)
-      Local c, i = IsPicture(Filename)
-      If IsAnim(Filename)
-        If i.Alpha And NewObj.AlphaChannel
-          NewObj.Anim.Anim_ID = LoadAnim(Nil, Filename, { LoadAlpha = i.Alpha })
-        ElseIf TB.Item.Exists(Animations, "transpcolor") And NewObj.Attributes.Mask
-          NewObj.Anim.Anim_ID = LoadAnim(Nil, Filename, { Transparency = Animations.TranspColor })
-        Else
-          NewObj.Anim.Anim_ID = LoadAnim(Nil, Filename)
-        EndIf
-
-      Else
-        Return(Nil)
-      EndIf
-    Else
-      Return(Nil)
-    EndIf
-
-  Else
-    ;| MISSING RESOURCES
-    Return(Nil)
-  EndIf
-
-  ;| Salva lo sprite nella SpriteList dell'Engine
-  InsertItem(Engine.SpriteList, NewObj)
-  Engine.Brushes[self.Anim.Anim_ID] = 1
-
-  ;| Inserisce lo sprite nella SortedList dell'Engine
-  If TB.Item.IsNil(Engine.Layers, NewObj.Layer)
-    Engine.Layers[NewObj.Layer] = { SortedList = {},
-                                    UnsortedList = {},
-                                    FirstIndex = 0,
-                                    LastIndex  = 0 }
-  EndIf
-
-  If TB.Item.IsNil(Engine.Groups, NewObj.Group)
-    Engine.Groups[NewObj.Group] = {}
-    InsertItem(Engine.Groups[NewObj.Group], NewObj)
-  Else
-    InsertItem(Engine.Groups[NewObj.Group], NewObj)
-  EndIf
-  
-  If TB.Item.Exists(Engine.Layers[NewObj.Layer].SortedList, NewObj.y)
-    InsertItem(Engine.Layers[NewObj.Layer].SortedList[NewObj.y], NewObj)
-  Else
-    Engine.Layers[NewObj.Layer].SortedList[NewObj.y] = {}
-    InsertItem(Engine.Layers[NewObj.Layer].SortedList[NewObj.y], NewObj)
-  EndIf
-
-  If TB.Item.Exists(Engine.Layers[NewObj.Layer], "unsortedlist")
-    InsertItem(Engine.Layers[NewObj.Layer].UnsortedList, NewOBj)
-  Else
-    Engine.Layers[NewObj.Layer].UnsortedList = {}
-    InsertItem(Engine.Layers[NewObj.Layer].UnsortedList, NewOBj)
-  EndIf
-  
-  If Engine.Layers[NewObj.Layer].FirstIndex > NewObj.y Then Engine.Layers[NewObj.Layer].FirstIndex = NewObj.y
-  If Engine.Layers[NewObj.Layer].LastIndex < NewObj.y Then Engine.Layers[NewObj.Layer].LastIndex = NewObj.y
-
-  NewObj.SortedIndex = NewObj.y
-  NewObj.Engine = Engine
-
-   /*
-   If attr.Alpha
-      NewObj.Attributes.AlphaChannel = True
-      NewObj.Attributes.Mask         = False
-   Else
-      NewObj.Attributes.AlphaChannel = False
-   EndIf
-   */
-
-  ;| SEQUENCES setup
-  NewObj.Anim.Sequences       = CopyTable(Animations.Sequences)
-  NewObj.Anim.CurrentSequence = Animations.CurrentSequence
-  NewObj.Anim.CurrentFrame    = Animations.CurrentFrame
-  NewObj.Anim.SequenceFrames  = TB.Count(NewObj.Anim.Sequences[Animations.CurrentSequence]) - 1
-
-  ;| Verifica la presenza di layer intermedi
-  For Local i = 0 To NewObj.Layer - 1
-    If TB.Item.IsNil(Engine.Layers, i)
-      Engine.Layers[i] = { SortedList = {},
-                           UnsortedList = {},
-                           FirstIndex = 0,
-                           LastIndex  = 0 }
-    EndIf
-  Next
-
-  If NewObj.Engine.LayerMax < NewObj.Layer Then NewObj.Engine.LayerMax = NewObj.Layer
-
-  ;| RETURN the result
-  Return(NewObj)
-EndFunction
-
-
-
 
 
 
@@ -3272,8 +3051,9 @@ EndFunction
 
 
 
-Function GLFX.Scene:Destroy()
+Function GLFX.Scene:Destroy() ; 04/2021, METHOD NOT YET IMPLEMENTED
   DebugPrint("*** GLFX.Scene:Destroy() MISSING ***")
+
 EndFunction
 
 
@@ -3530,40 +3310,42 @@ Set the sprite as hidden
   self.isVisible = False
 EndFunction
 
-Function GLFX.Sprite._TimeoutCaller(msg)
+Function GLFX.Sprite._TimeoutCaller(msg) ; 04/2021
 /******************************************************************************
 GLFX.Sprite._TimeoutCaller(msg)
 
 INTERNAL function called by the action handler associated with the sprite.
+;--------------------------------------------------------------------
 ******************************************************************************/
   If TB.Item.IsNil(msg.userdata.sprite.Actions, msg.userdata.name) Then Return()
   Local func = msg.userdata.sprite.Actions[msg.userdata.name].Func
   msg.userdata.sprite.Actions[msg.userdata.name] = Nil
   func(msg)
+
 EndFunction
 
-Function GLFX.Sprite:ActionAdd(params) ; OK
+Function GLFX.Sprite:ActionAdd(params) ; 04/2021
 /******************************************************************************
 GLFX.Sprite:ActionAdd(params)
 
 Add an action to the sprite.
 ---------------------------------------------------------------------
 INPUT
-  params
-    name    Action name
-    atype   Action type, can be one of the following
+  params : A table with the following fields:
+    name : Action name
+    atype : Action type, can be one of the following
               #SE_ATYPE_INTERVAL to assign to the sprite an interval function
               #SE_ATYPE_TIMEOUT to assign to the sprite a timeout function
-    func    Callback function to call when the event occurs
-    args    Additional args for the callback function:
-              #SE_ATYPE_INTERVAL -> args = milliseconds
-              #SE_ATYPE_TIMEOUT  -> args = milliseconds
+    func : Callback function to call when the event occurs
+    args : Additional args for the callback function:
+              #SE_ATYPE_INTERVAL -> args = milliseconds (frequency)
+              #SE_ATYPE_TIMEOUT  -> args = milliseconds (timeout)
 NOTE
-  - Callback functions will be called with a table as argument with the 
-    following fields in the userdata subtable:
-      sprite   Sprite object associated with the callback function
-      name     Action name
-  - Existing actions will be deactivated and overwritten.
+  Callback functions will be called with a table as argument with the 
+  following fields in the userdata subtable:
+    sprite   Sprite object associated with the callback function
+    name     Action name
+  Existing actions will be deactivated and overwritten.
 ******************************************************************************/
   If TB.Item.Exists(self.Actions, params.name) Then self:ActionRemove(params.name)
 
@@ -3577,46 +3359,53 @@ NOTE
       ; Add a timeout function call
       self.Actions[params.name] = { atype = params.atype, func = params.func, args = params.args }
       self.Actions[params.name].TimeoutID = SetTimeout(Nil, self._TimeoutCaller, params.args, { sprite = self, name = params.name })
+
   EndSwitch
   
 EndFunction
 
-Function GLFX.Sprite:ActionRemoveAll() ; OK
+Function GLFX.Sprite:ActionRemoveAll() ; 04/2021
 /******************************************************************************
 GLFX.Sprite:ActionRemoveAll()
 
 Remove all previously added actions to this sprite
+;--------------------------------------------------------------------
 ******************************************************************************/
+  Local i, v
   For i, v In Pairs(self.Actions)
     self:ActionRemove(i)
+    
   Next
+  
   self.Actions = {}
+
 EndFunction
 
-Function GLFX.Sprite:ActionRemove(name) ; OK
+Function GLFX.Sprite:ActionRemove(name) ; 04/2021
 /******************************************************************************
 GLFX.Sprite:ActionRemove(name)
 
 Remove the given action from this sprite, if exists.
 ---------------------------------------------------------------------
 INPUT
-  name      Name of the action(s) to remove
+  name : Name of the action(s) to remove
 ******************************************************************************/
   If TB.Item.IsNil(self.Actions, name) Then Return()
+  
   Switch self.Actions[name].atype
     Case #SE_ATYPE_INTERVAL
       ; Remove an interval function
-      ;If TB.Item.Exists(self.Actions[name], IntervalID)
-        ClearInterval(self.Actions[name].IntervalID)
-        self.Actions[name].IntervalID = Nil
-      ;EndIf
+      ClearInterval(self.Actions[name].IntervalID)
+      self.Actions[name].IntervalID = Nil
       
     Case #SE_ATYPE_TIMEOUT
       ; Remove a timeout function
-      If TB.Item.Exists(self.Actions[name], TimeoutID)
+      If HaveItem(self.Actions[name], TimeoutID)
         ClearTimeout(self.Actions[name].TimeoutID)
         self.Actions[name].TimeoutID = Nil
+
       EndIf
+
   EndSwitch
   
   self.Actions[name] = Nil
@@ -4440,22 +4229,23 @@ INTERNAL func used when the window is resized.
   
 EndFunction
 
-Function GLFX.Sprite.SetCollisions(SpriteList, WithMouse)
+Function GLFX.Sprite.SetCollisions(SpriteList, WithMouse) ; 04/2021
 /******************************************************************************
 GLFX.Sprite.SetCollisions(SpriteList, WithMouse)
 
 Enable or disable collisions for a list of sprites.
 -------------------------------------------------------------------------------
 INPUT
-  SpriteList    A list of sprite objects we want to change the collision state
-  WithMouse     TRUE or FALSE to enable or disable the collision between the
-                sprite and the mouse pointer.
+  SpriteList : A list of sprite objects we want to change the collision state
+  WithMouse : TRUE or FALSE to enable or disable the collision between the
+              sprite and the mouse pointer.
 ******************************************************************************/
   DBG.Console.Out(".Sprite.SetCollisions()", DBG.OpenFunc, GLFXCh)
   
   Local i, v
   For i, v In Pairs(SpriteList)
     v.Collisions.WithMouse.Enabled = WithMouse
+
   Next
   
   DBG.Console.Out(Nil, DBG.CloseFunc, GLFXCh)
@@ -5003,6 +4793,7 @@ OUTPUT
 
     DBG.Console.Out("Loading brush : " .. brushFile .. ", id = " .. ToString(GLFX.BrushID), Nil, GLFXCh)
     obj.id = GLFX.BrushID
+    
     LoadBrush(obj.id, obj.file, loadArgs)
     
     ; verifica se il sistema necessita del PowerOfTwo
@@ -5402,11 +5193,12 @@ Function GLFX.Sprite:FadeOut(ms, easing)
        Easing    = easing })
 EndFunction
 
-Function GLFX.Sprite._FadeHandler(sprite) ; OK
+Function GLFX.Sprite._FadeHandler(sprite) ; 04/2021
 /******************************************************************************
 GLFX.Sprite._FadeHandler(sprite)
 
 INTERNAL, called to update the ColorList.
+;--------------------------------------------------------------------
 ******************************************************************************/
   Local fade = sprite._Fade
   fade.Index = fade.Index + 1
@@ -5414,11 +5206,14 @@ INTERNAL, called to update the ColorList.
   If fade.Index > ListItems(fade.ColorList)-1
     If fade.Loop
       fade.Index = 0
+      
     Else
       sprite._FadeTween = Nil
       sprite._Fade = Nil
       Return()
+      
     EndIf
+    
   EndIf
   
   Local col = fade.ColorList[fade.Index]
@@ -5469,22 +5264,27 @@ Stop a stretch effect.
   EndIf
 EndFunction
 
-Function GLFX.Sprite._StretchHandler(sprite) ; OK
+Function GLFX.Sprite._StretchHandler(sprite) ; 04/2021
 /******************************************************************************
 GLFX.Sprite._StretchHandler(sprite)
 
 INTERNAL, called to update the StretchList.
+;--------------------------------------------------------------------
 ******************************************************************************/
   Local stretch = sprite._Stretch
   stretch.Index = stretch.Index + 1
+  
   If stretch.Index > ListItems(stretch.StretchList)-1
     If stretch.Loop
       stretch.Index = 0
+      
     Else
       sprite._Stretch = Nil
       sprite._StretchTween = Nil
       Return()
+      
     EndIf
+    
   EndIf
       
   Local ang = stretch.StretchList[stretch.Index]
@@ -5535,22 +5335,27 @@ Stop a rotation effect.
   EndIf
 EndFunction
 
-Function GLFX.Sprite._AngleHandler(sprite)
+Function GLFX.Sprite._AngleHandler(sprite) ; 04/2021
 /******************************************************************************
 GLFX.Sprite._AngleHandler(sprite)
 
 INTERNAL, called to update the AngleList.
+;--------------------------------------------------------------------
 ******************************************************************************/
   Local angle = sprite._Angle
   angle.Index = angle.Index + 1
+  
   If angle.Index > ListItems(angle.AngleList)-1
     If angle.Loop
       angle.Index = 0
+      
     Else
       sprite._AngleTween = Nil
       sprite._Angle = Nil
       Return()
+      
     EndIf
+    
   EndIf
       
   Local ang = angle.AngleList[Angle.Index]
@@ -5906,14 +5711,31 @@ Function GLFX.Sprite:SetAnimationSequence(seqName, firstFrame) ; - testare -
   
 EndFunction
 
-Function GLFX.Sprite:AnimationStart(resume) ; - testare -
+Function GLFX.Sprite:AnimationStart(resume) ; 04/2021 -> TO TEST <-
+/******************************************************************************
+GLFX.Sprite:AnimationStart(resume)
+
+Start (or resume) a sprite's animation playback.
+;--------------------------------------------------------------------
+INPUT
+  resume : Optional flag to resume the animation instead of starting it from
+           the beginning.
+******************************************************************************/
   self.AnimationPaused = False
   If Not(Resume) Then self.CurrentFrame = 0
   self.NextFrameTime = 0 ;GetTimer(self.Engine.Framework.TimerID) + self.Animations[self.CurrentAnimation].frames[self.CurrentFrame].Duration
+  
 EndFunction
 
-Function GLFX.Sprite:AnimationStop() ; - testare -
+Function GLFX.Sprite:AnimationStop() ; 04/2021 -> TO TEST <-
+/******************************************************************************
+GLFX.Sprite:AnimationStop(resume)
+
+Stop a sprite's animation playback.
+;--------------------------------------------------------------------
+******************************************************************************/
   self.AnimationPaused = True
+
 EndFunction
 
 Function GLFX.Sprite:NextAnimationFrame() ; - testare -
@@ -5988,22 +5810,26 @@ Function GLFX.Sprite:PrevAnimationFrame() ; - testare -
   EndIf
 EndFunction
 
-Function GLFX.Sprite:Attach(args) ; OK
+Function GLFX.Sprite:Attach(args) ; 04/2021
 /******************************************************************************
 GLFX.Sprite:Attach(args)
 
 Attaches the sprite to another object
 ---------------------------------------------------------------------
 INPUT
-  args
-    target          Target object
-    updateRate      Update rate in milliseconds
-    offset          Object offset
-      x
-      y
-Set an offset to nil to ignore a coordinate
+  args : A table with the following fields:
+    target : Target object, must have at least an 'x' and an 'y' fields
+    updateRate : Update rate in milliseconds
+    offset : Object offset from the target, it's a table with two fields:
+      x : Horizontal offset
+      y : Vertical offset
+
+NOTES
+You can set an offset field to nil to ignore a coordinate.
+This is a good example on how you can use the :ActionAdd() method, here it is used
+to keep the sprite position updated with the target object.
 ******************************************************************************/
-  If TB.Item.Exists(self, "_attach") Then self:Detach()
+  If HaveItem(self, "_attach") Then self:Detach()
   
   self._attach = 
     { target = args.target,
@@ -6017,6 +5843,7 @@ Set an offset to nil to ignore a coordinate
                 Local sprite = msg.userdata.sprite
                 If HaveItem(sprite._attach.offset, "x") Then sprite.x = sprite._attach.target.x + sprite._attach.offset.x
                 If HaveItem(sprite._attach.offset, "y") Then sprite.y = sprite._attach.target.y + sprite._attach.offset.y
+
               EndFunction,
       args = args.updateRate })
       
@@ -6359,12 +6186,23 @@ Function GLFX.Sprite:OrbitStop()
   
 EndFunction
 
-Function GLFX.Sprite:AttachPaths(Sequences, seqName)
-  ; Sequences -> Sequences object
-  ; seqName -> Starting sequence
-  
+Function GLFX.Sprite:AttachPaths(Sequences, seqName) ; 04/2021
+/******************************************************************************
+GLFX.Sprite:AttachPaths(Sequences, seqName)
+
+Attach a sequence to the sprite, a sequence is an object that is composed
+by 'nodes' that are points which form a path.
+Since 'Sequences' object can have multiple node-sequences (or path) inside,
+you have to specify which path name to start with using the 'seqName' argument.
+;--------------------------------------------------------------------
+INPUT
+  Sequences : An object created by GLFX.PathSequences:New() method and filled
+              by SeqObj:AddSequence() method.
+  seqName : The sequence's name to start with for the sprite path.
+******************************************************************************/
   self.Paths = Sequences
   self.Paths:SetSequence(seqName)
+
 EndFunction
 
 ;::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -6440,47 +6278,55 @@ GLFX.ParticleSystem.colorEnabled = True
 GLFX.ParticleSystem.scaleEnabled = True
 GLFX.ParticleSystem.PolyCollEnabled = False
 GLFX.ParticleSystem.PolyCollGeometry = #POLY_DOT
-;--- experimental ---
+;--- experimental, seems ok ---
 GLFX.ParticleSystem.Inverted = False
 ;--------------------
 
 
 
-Function GLFX.ParticleSystem:New(args)
+Function GLFX.ParticleSystem:New(args) ; 04/2021
 /******************************************************************************
 obj = GLFX.ParticleSystem:New(args)
                              
 Create a new particle system.
+;--------------------------------------------------------------------
+INPUT
+  args : A table with all the parameters you want to customize, all default
+         values are stored in GLFX.ParticleSystem along with all the needed
+         methods.
 ******************************************************************************/
-  ;DBG.Console.Out(".ParticleSystem:New()", DBG.OpenFunc, GLFXCh)
-  
-  ; Istanza del nuovo sistema di particelle e impostazione valori
+  ; Instantiate a new particle system object
   Local NewObj = CopyTable(GLFX.ParticleSystem)
   
-  If TB.Item.Exists(args, "layer") Then NewObj.Layer = args.Layer
-  If TB.Item.Exists(args, "updaterate") Then NewObj.UpdateRate = args.UpdateRate
-  If TB.Item.Exists(args, "emitter") Then TB.Set(NewObj.Emitter, args.Emitter, False)
-  If TB.Item.Exists(args, "particlesinfo") Then TB.Set(NewObj.ParticlesInfo, args.ParticlesInfo, False)
-  If TB.Item.Exists(args, "gravity") Then TB.Set(NewObj.Gravity, args.Gravity, False)
-  If TB.Item.Exists(args, "group") Then NewObj.Group = args.Group
-  ;--- experimental ---
-  If TB.Item.Exists(args, "inverted") Then NewObj.Inverted = args.Inverted
-  ;--------------------
+  If TB.Item.Exists(args, "layer")             Then NewObj.Layer = args.Layer
+  If TB.Item.Exists(args, "updaterate")        Then NewObj.UpdateRate = args.UpdateRate
+  If TB.Item.Exists(args, "emitter")           Then TB.Set(NewObj.Emitter, args.Emitter, False)
+  If TB.Item.Exists(args, "particlesinfo")     Then TB.Set(NewObj.ParticlesInfo, args.ParticlesInfo, False)
+  If TB.Item.Exists(args, "gravity")           Then TB.Set(NewObj.Gravity, args.Gravity, False)
+  If TB.Item.Exists(args, "group")             Then NewObj.Group = args.Group
   If TB.Item.Exists(args.textures, "useatlas") Then NewObj.UseAtlas = args.Textures.UseAtlas
-  If TB.Item.Exists(args.textures, "atlas") Then NewObj.Atlas = args.Textures.Atlas
-  
+  If TB.Item.Exists(args.textures, "atlas")    Then NewObj.Atlas = args.Textures.Atlas
+  ;--- experimental, seems ok ---
+  If TB.Item.Exists(args, "inverted")          Then NewObj.Inverted = args.Inverted
+  ;--------------------
+
+  ; Attach the sprite engine to the particle system
   NewObj.SpriteEngine = args.SpriteEngine
 
+  ; Handle the layer
   If Not(HaveItem(NewObj.SpriteEngine.PartSystems, NewObj.layer))
     NewObj.SpriteEngine.PartSystems[NewObj.layer] = {}
   EndIf
   
+  ; Handle the order into the layer
   If NewObj.order = -1
     NewObj.order = ListItems(args.SpriteEngine.PartSystems[NewObj.layer])
   EndIf
 
+  ; Finally the particle system into the sprite engine respecting the layer
   InsertItem(args.SpriteEngine.PartSystems[NewObj.layer], NewObj, NewObj.order)
  
+  ; Check if we have to use an Atlas or brushes
   If Not(NewObj.UseAtlas)
     If Not(args.Textures.Brushes)
       DBG.Console.Out("Loading textures...", Nil, GLFXCh)
@@ -6505,12 +6351,14 @@ Create a new particle system.
                               })        
           InsertItem(NewObj.Textures.Items, bid)
           GLFX.BrushID = GLFX.BrushID + 1
-          
             
         Else
           DBG.Console.Out("Error loading the texture -> " .. v, DBG.Warning, GLFXCh)
+          
         EndIf
+        
       Next
+      
     Else
       DBG.Console.Out("Setting up textures...", Nil, GLFXCh)
       Local i, v
@@ -6518,27 +6366,34 @@ Create a new particle system.
         If GetType(v) = #NUMBER
           DBG.Console.Out("- Setting up brush " .. v, Nil, GLFXCh)
           InsertItem(NewObj.Textures.Items, v)
+          
         Else
           DBG.Console.Out("Textures can be only numeric indexed brushes!", DBG.Warning, GLFXCh)
+          
         EndIf
+        
       Next
+      
     EndIf
+    
   Else
     NewObj.Textures = args.Textures
+    
   EndIf
   
   NewObj.TexturesCount = ListItems(NewObj.Textures.Items)
   
-  ; Per disegnare una particella utilizzo una DisplayList.
-  
-  ; Generazione id per la DisplayList
+  ; Use a DisplayList to draw particles
+  ; -----------------------------------
+  ; Generate an id for the DisplayList
   If NewObj.UseAtlas
     ; Generated at runtime
+    
   Else
     NewObj.DisplayList = gl.GenLists(1)
     ; self.DListCnt = self.DListCnt + 1
     DBG.Console.Out("Creating a new DisplayList : " .. NewObj.DisplayList, Nil, GLFXCh)
-    ;NewObj.DisplayList = self.DListCnt
+    ; NewObj.DisplayList = self.DListCnt
     gl.NewList(NewObj.DisplayList, #GL_COMPILE)
       gl.Begin(#GL_QUADS)
         gl.TexCoord(0.0, 1.0)
@@ -6554,167 +6409,198 @@ Create a new particle system.
     gl.EndList()
   EndIf
   
-  ; Crea la funzione di intervallo per l'emissione delle particelle, come
-  ; userdata passa il sistema stesso
+  ; Create an interval function for the particles emission, pass itself as userdata
   If NewObj.Emitter.Rate > 0 Then NewObj.IntervalID = SetInterval(Nil, GLFX.ParticleSystem._Update, NewObj.UpdateRate, NewObj)
-
-  ;DBG.Console.Out(Nil, DBG.CloseFunc, GLFXCh)
   
   Return(NewObj)
+  
 EndFunction
 
-Function GLFX.ParticleSystem:EmitON()
+Function GLFX.ParticleSystem:EmitON() ; 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:EmitON()
 
-Switch the emitter ON
+Switch on the particle-system's emitter
+;--------------------------------------------------------------------
+
 ******************************************************************************/
   self.Active = True
+  
 EndFunction
 
-Function GLFX.ParticleSystem:EmitOFF()
+Function GLFX.ParticleSystem:EmitOFF() ; 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:EmitOFF()
 
-Switch the emitter OFF
+Switch off the particle-system's emitter
+;--------------------------------------------------------------------
+
 ******************************************************************************/
   self.Active = False
+
 EndFunction
 
-Function GLFX.ParticleSystem:Move(x, y)
+Function GLFX.ParticleSystem:Move(x, y) ; 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:Move(x, y)
 
-Move the emitter to the given position
+Moves the emitter to the given position
 ---------------------------------------------------------------------
 INPUT
-  x       New x position
-  y       New y position
+  x : New x position
+  y : New y position
 ******************************************************************************/
   self.Emitter.x = x
   self.Emitter.y = y
+
 EndFunction
 
-Function GLFX.ParticleSystem:Free() 
+Function GLFX.ParticleSystem:Free() ; 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:Free() 
 
-Free the particle system and all allocated resources
+Free the particle system and all allocated resources including all
+emitted particles.
+;--------------------------------------------------------------------
+
 ******************************************************************************/
   ; Remove the Particle System from the Sprite Engine list
-  ;DBG.Console.Out(".ParticleSystem:Free()", DBG.OpenFunc, GLFXCh)
-  
   Local SE, li, psl, pi, ps = self.SpriteEngine
   For li, psl In Pairs(SE.PartSystems)
     For pi, ps In Pairs(psl)
       If ps = self
         RemoveItem(SE.PartSystems[li], pi)
         Break(2)
+        
       EndIf
+      
     Next
+    
   Next    
 
-  ; Libera i brush
+  ; Free brushes
   If self.UseAtlas
-  
+    ; Nothing to free
+    
   Else
     Local brushes = 0
     If Not(self.Textures.Brushes)
       For Local i = 0 To self.TexturesCount - 1
         brushes = brushes + 1
         FreeBrush(self.Textures.Items[i])
+        
       Next
+      
     EndIf
+    
   EndIf
 
-  ; Libera le particelle e gli sprite collegati
+  ; Free all the particles and linked sprites
   Local particles, i, v
   For i, v In Pairs(self.Particles)
     particles = particles + 1
     v.Sprite:Destroy()
     self.ParticlesCount = self.ParticlesCount - 1
     self.Particles[i] = Nil
+
   Next
 
-  ;DBG.Console.Out("Deleting DisplayList : " .. self.DisplayList, DBG.Hilight, GLFXCh)
   If self.UseAtlas
   
   Else
     gl.DeleteLists(self.DisplayList, 1)
+
   EndIf
   
-  ;DBG.Console.Out("Removed " .. brushes .. " brushes and " .. particles .. " particles", Nil, GLFXCh)
-  
-  ; Rimuove l'updater
+  ; Removes the update interval
   ClearInterval(self.IntervalID)
   self.IntervalID = -1
   
-  ;DBG.Console.Out(Nil, DBG.CloseFunc, GLFXCh)
 EndFunction
 
-Function GLFX.ParticleSystem._Update(msg)
+Function GLFX.ParticleSystem._Update(msg) ; 04/2021
 /******************************************************************************
 GLFX.ParticleSystem._Update(msg)
 
 Internal function called by the updater to update all particles.
 ---------------------------------------------------------------------
 INPUT
-  msg         Interval message
+  msg : Interval message
 ******************************************************************************/  
-  PartSys = msg.UserData
-  Emitter = PartSys.Emitter
+  Local PartSys = msg.UserData
+  Local Emitter = PartSys.Emitter
 
+  ; Step 1: Updates all particles and removes death ones
+  ; ----------------------------------------------------
   For Local i = PartSys.ParticlesCount-1 To 0 Step -1
     If PartSys.Particles[i]:Update()
       RemoveItem(PartSys.Particles, i)
       PartSys.ParticlesCount = PartSys.ParticlesCount - 1
+      
     EndIf
+
   Next
 
+  ; Step 2: Check if we have to destroy the particle system
+  ; -------------------------------------------------------
   If Emitter.Count <> -1
+    ; Established number of emissions
     If Emitter.Count > 0
-      ;Emitter.Count = Emitter.Count - 1
+      ; Do nothing emissions counter is not yet completed
+      
     Else
-      ; DISTRUZIONE SISTEMA PARTICELLARE
-      ; Attende che PartSys.ParticlesCount sia = 0 poi distrugge il sistema
+      ; Count reached, destroy the particle system
+      ; The system will be destroyed only when all particles are death
+      ; -> PartSys.ParticlesCount = 0
       If PartSys.ParticlesCount = 0
+        ; Destroy the system
         Local i, v
         For i, v In Pairs(PartSys.SpriteEngine.PartSystems)
           If v = PartSys
             RemoveItem(PartSys.SpriteEngine.PartSystems, i)
             Break()
+            
           EndIf
+          
         Next
         PartSys:Free()
+        
       EndIf
-      ;EnableLineHook()
+
+      ; No more emissions!
       Return()
+      
     EndIf
+
   EndIf
 
-  ; Se il sistema è attivo verifica l'emissione di nuove particelle
+  ; Step 3: New particles emission
+  ; ------------------------------
+  ; If the system is active verify if it's time to emit new particles
   If PartSys.Active
     If Emitter.NextEmission <= GetTimer(PartSys.SpriteEngine.Framework.TimerID)
-      ;DebugPrint("MISSING FUNC GLFX.Particle:Create(PartSys)")
-      ;Local count = (GetTimer(PartSys.SpriteEngine.TimerID) - Emitter.NextEmission)/Emitter.Rate + 1
-      ;For Local c = 1 To count
-        Local p
-        For Local p = 1 To Emitter.Quantity Do GLFX.Particle:Create(PartSys)
-      ;Next
+      ; Create the new particles
+      For Local p = 1 To Emitter.Quantity Do GLFX.Particle:Create(PartSys)
+      ; Setup the timer for the next emission
       Emitter.NextEmission = GetTimer(PartSys.SpriteEngine.Framework.TimerID) + Emitter.Rate
+      ; If needed updates the emitter counter
       If Emitter.Count > 0 Then Emitter.Count = Emitter.Count - 1
+      
     EndIf
+    
   EndIf
   
 EndFunction
 
-Function GLFX.ParticleSystem:Draw()
+Function GLFX.ParticleSystem:Draw() ; 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:Draw()
 
+Draw all particle-system's particles
+;--------------------------------------------------------------------
 INTERNAL method used to draw the particles system.
 ******************************************************************************/
-  Local ps = self
+  Local ps  = self
   Local pi0 = self.ParticlesInfo.rotoMatrix[0]
   Local pi1 = self.ParticlesInfo.rotoMatrix[1]
   Local pi2 = self.ParticlesInfo.rotoMatrix[2]
@@ -6723,25 +6609,6 @@ INTERNAL method used to draw the particles system.
 
     ; Setup
     gl.Enable(#GL_TEXTURE_2D)
-    /*
-    If GLFX.LastTexture <> ps.Textures.Items[0]
-      gl.BindTexture(#GL_TEXTURE_2D, ps.Textures.Items[0])
-      GLFX.LastTexture = ps.Textures.Items[0]
-    EndIf */
-
-    /*
-    If GLFX.GL_blendEnabled = False
-      gl.Enable(#GL_BLEND)
-      GLFX.GL_blendEnabled = True
-    EndIf
-    
-    If ps.blendSrc <> self.SpriteEngine.framework.GL_blendSrc Or
-       ps.blendDst <> self.SpriteEngine.framework.GL_blendDst
-      gl.BlendFunc(ps.blendSrc, ps.blendDst)
-      self.SpriteEngine.framework.GL_blendSrc = ps.blendSrc
-      self.SpriteEngine.framework.GL_blendDst = ps.blendDst
-    EndIf
-    */
     
     If self.blendEnabled
       gl.Enable(#GL_BLEND)
@@ -6750,45 +6617,41 @@ INTERNAL method used to draw the particles system.
         gl.BlendFunc(self.blendSrc, self.blendDst)
         self.SpriteEngine.Framework.GL_blendSrc = self.blendSrc
         self.SpriteEngine.Framework.GL_blendDst = self.blendDst
+        
       EndIf
+      
     Else
       gl.Disable(#GL_BLEND)
+      
     EndIf    
     
-    ;gl.BlendFunc(ps.blendSrc, ps.blendDst)
-
     gl.PushMatrix()
 
     Local parti, partp
     For parti, partp In IPairs(ps.particles)
-      Local partv  = partp.Sprite
-      /*
-      Local pw, ph = partv.pw, partv.ph;partv.width*partv.scaleW, partv.height*partv.scaleH
-      Local px, py = partv.px, partv.py;partv.x-partv.anchorx*pw, partv.y-partv.anchory*ph
-      */
-      
+      Local partv  = partp.Sprite     
       gl.LoadIdentity()
       
-      ; Posizione
+      ; Position
       gl.Translate(partv.px, partv.py, 0.0)
 
-      ; Colore
+      ; Color
       If self.colorEnabled Then gl.Color(partv.Color[0], partv.Color[1], partv.Color[2], partv.Color[3])
       
-      ; Scala
+      ; Scaling
       If self.scaleEnabled Then gl.Scale(partv.pw, partv.ph, 1)
       
-      ; Angolo
+      ; Angle
       If self.angleEnabled Then gl.Rotate(partv.angle, pi0, pi1, pi2)
       
       If self.UseAtlas
         If GLFX.LastTexture <> self.Atlas.id
           gl.BindTexture(#GL_TEXTURE_2D, self.Atlas.id)
           GLFX.LastTexture = self.Atlas.id
+          
         EndIf
 
         gl.Begin(#GL_QUADS)
-          ; gl.Color(self.Color[0], self.Color[1], self.Color[2], self.Color[3])
           gl.TexCoord(partv.texMapping[0], partv.texMapping[1])
           gl.Vertex(-1, -1, 0)
           gl.TexCoord(partv.texMapping[2], partv.texMapping[3])
@@ -6804,34 +6667,16 @@ INTERNAL method used to draw the particles system.
         If GLFX.LastTexture <> partv.Brush_ID
           gl.BindTexture(#GL_TEXTURE_2D, partv.Brush_ID)
           GLFX.LastTexture = partv.Brush_ID
+          
         EndIf
       
         gl.CallList(self.DisplayList)  
       EndIf
       
     Next
-    
-    /* OLD IMPLEMENTATION ***
-    gl.Begin(#GL_QUADS)
-      For parti, partp In IPairs(ps.Particles)
-        Local partv = partp.Sprite
-        Local pw, ph = partv.pw, partv.ph;partv.width*partv.scaleW, partv.height*partv.scaleH
-        Local px, py = partv.px, partv.py;partv.x-partv.anchorx*pw, partv.y-partv.anchory*ph
-        Local pxw, pyh = px+pw, py+ph
-        gl.Color(partv.Color[0], partv.Color[1], partv.Color[2], partv.Color[3])
-        gl.TexCoord(partv.texMapping[0], partv.texMapping[1])
-        gl.Vertex(px, py)
-        gl.TexCoord(partv.texMapping[2], partv.texMapping[3])
-        gl.Vertex(pxw, py)
-        gl.TexCoord(partv.texMapping[4], partv.texMapping[5])
-        gl.Vertex(pxw, pyh)
-        gl.TexCoord(partv.texMapping[6], partv.texMapping[7])
-        gl.Vertex(px, pyh)
-      Next
-    gl.End()
-    */
-    
+
     gl.PopMatrix()
+    
   EndIf
 
 EndFunction
@@ -6852,53 +6697,82 @@ GLFX.Particle.EngineTimer = -1
 GLFX.Particle.lastUpdate = 0
 GLFX.Particle.TweenColor = -1
 
-Function GLFX.Particle:Create(PartSys)
+Function GLFX.Particle:Create(PartSys) ; 04/2021
 /******************************************************************************
 particle = GLFX.Particle:Create(PartSys)
 
 Create a new particle in the give system
 ---------------------------------------------------------------------
 INPUT
-  PartSys       Particle system
+  PartSys : The particle system object that need to emit a new particle
 ******************************************************************************/
-  ;Local spreadx, spready = Rnd(PartSys.Emitter.SpreadX), Rnd(PartSys.Emitter.SpreadY)
-  ;If PartSys.Emitter.SpreadX <> 0 Then spreadx = Rnd(PartSys.Emitter.SpreadX)
-  ;If PartSys.Emitter.SpreadY <> 0 Then spready = Rnd(PartSys.Emitter.SpreadY)
-  
-  ;--- experimental ---
-  ; Inverted Particle Systems
-  ;   Particles are spawned on the ring of an outer circle
-  ;   and moved to the emitter (xpos and ypos)
-  ;--------------------
+  ; Adjust the emission point
   Local pSysEmitter = PartSys.Emitter
-  Local xpos = pSysEmitter.x + Rnd(pSysEmitter.SpreadX);SpreadX
-  Local ypos = pSysEmitter.y + Rnd(pSysEmitter.SpreadY);SpreadY
+  Local xpos = pSysEmitter.x + Rnd(pSysEmitter.SpreadX)
+  Local ypos = pSysEmitter.y + Rnd(pSysEmitter.SpreadY)
 
   Local pinfo = PartSys.ParticlesInfo
 
+  ; Create a new particle object
   Local NewPart = CopyTable(GLFX.Particle)
   NewPart.UpdateRate  = PartSys.UpdateRate
   NewPart.EngineTimer = PartSys.SpriteEngine.Framework.TimerID
   
+  ; Setup gravity
   NewPart.Gravity = PartSys.Gravity
   NewPart.Gi = { x = 0, y = 0 }
   
+  ; Setup the particle system father
   NewPart.PartSys = PartSys
 
+  ; Pick a random image/texture
   Local frame = Rnd(PartSys.TexturesCount)
   Local _text = PartSys.Textures.Items[frame]
+  
   If PartSys.UseAtlas
-    NewPart.Sprite = GLFX.Sprite:Load(
+    ; Check if we have to use an Atlas, if so picks the texture from there
+      NewPart.Sprite = GLFX.Sprite:Load(
       { AtlasSprite = PartSys.Atlas,
         FrameIndex = _text
         },
       PartSys.SpriteEngine,
-      { layer = PartSys.Layer, X = xpos, Y = ypos, AnchorX = pinfo.AnchorX, AnchorY = pinfo.AnchorY, group = PartSys.Group, Color = CopyTable(PartSys.Color), blenSrc = PartSys.blendSrc, blendDst = PartSys.blendDst, texMapping = PartSys.texMapping, blendEnabled = PartSys.blendEnabled, angleEnabled = PartSys.angleEnabled, colorEnabled = PartSys.colorEnabled })
+      { layer = PartSys.Layer, 
+        X = xpos, 
+        Y = ypos, 
+        AnchorX = pinfo.AnchorX, 
+        AnchorY = pinfo.AnchorY, 
+        group = 
+        PartSys.Group, 
+        Color = CopyTable(PartSys.Color), 
+        blenSrc = PartSys.blendSrc, 
+        blendDst = PartSys.blendDst, 
+        texMapping = PartSys.texMapping, 
+        blendEnabled = PartSys.blendEnabled, 
+        angleEnabled = PartSys.angleEnabled, 
+        colorEnabled = PartSys.colorEnabled })
+        
   Else
-    NewPart.Sprite = GLFX.Sprite:NewFromBrush(_text, PartSys.SpriteEngine, { layer = PartSys.Layer, X = xpos, Y = ypos, AnchorX = pinfo.AnchorX, AnchorY = pinfo.AnchorY, group = PartSys.Group, Color = CopyTable(PartSys.Color), blenSrc = PartSys.blendSrc, blendDst = PartSys.blendDst, texMapping = PartSys.texMapping, blendEnabled = PartSys.blendEnabled, angleEnabled = PartSys.angleEnabled, colorEnabled = PartSys.colorEnabled })
+    ; If not load the particle from a brush
+    NewPart.Sprite = GLFX.Sprite:NewFromBrush(
+      _text, 
+      PartSys.SpriteEngine, 
+      { layer = PartSys.Layer, 
+        X = xpos, 
+        Y = ypos, 
+        AnchorX = pinfo.AnchorX, 
+        AnchorY = pinfo.AnchorY, 
+        group = PartSys.Group, 
+        Color = CopyTable(PartSys.Color), 
+        blenSrc = PartSys.blendSrc, 
+        blendDst = PartSys.blendDst, 
+        texMapping = PartSys.texMapping, 
+        blendEnabled = PartSys.blendEnabled, 
+        angleEnabled = PartSys.angleEnabled, 
+        colorEnabled = PartSys.colorEnabled })
+
   EndIf
   
-  ;NewPart.Sprite = GLFX.Sprite:Load
+  ; Setup the particle sprite properties
   NewPart.Sprite.isParticle = True
   NewPart.Sprite.px = -500
   NewPart.Sprite.py = -500
@@ -6913,7 +6787,8 @@ INPUT
     NewPart.Sprite:EnablePolyCollision(True, { }, { })    
   EndIf
   
-  ;### LIFE ###
+  ; SETUP THE PARTICLE ANIMATIONS
+  ; ::: Particle Life :::
   Local var, hvar = 0, 0
   If pinfo.LifeVar <> 0
     var  = Rnd(pinfo.LifeVar)
@@ -6922,7 +6797,7 @@ INPUT
   Local life = pinfo.Life - hvar + var
   NewPart.LifeTime = life
 
-  ;### FADE ###
+  ; ::: Particle Fade & Color :::
   Local Var, HVar, Fadetime = 0, 0, Life
   If GetType(pinfo.Fade1) = #TABLE
     If Not(pinfo.LinkedFade)
@@ -6942,18 +6817,20 @@ INPUT
         (NewPart.Sprite.Color[2]-pInfo.Fade2[2])/fadetime*NewPart.updateRate,
         (NewPart.Sprite.Color[3]-pInfo.Fade2[3])/fadetime*NewPart.updateRate }
     ;NewPart.TweenColor = tween.start(fadetime, NewPart.Sprite, { color = pinfo.fade2 }, pinfo.fadeeasing, Function() EndFunction)
+  
   Else
     NewPart.pColorEnabled = False
+
   EndIf
 
-  ;### ROTO ###
+  ; :: Particle Rotation :::
   Local Var1, Var2, HVar2, RotoTime = 0, 0, 0, Life
   If pinfo.Roto1 <> -1
     If pinfo.RotoVar <> 0 Then Var1 = Rnd(pinfo.RotoVar)
     If Not(pinfo.LinkedRoto)
       If pinfo.RotoVar <> 0
         Var2  = Rnd(pinfo.RotoVar)
-        HVar2 = Shr(pinfo.RotoVar, 1);pinfo.RotoVar/2
+        HVar2 = Shr(pinfo.RotoVar, 1)
       EndIf
       rototime = pinfo.RotoTime - HVar2 + Var2
     EndIf
@@ -6962,19 +6839,19 @@ INPUT
     
     NewPart.Sprite.Angle = pinfo.Roto1
     NewPart.angleSteps = (NewPart.Sprite.Angle-pInfo.Roto2)/rototime*NewPart.updateRate
-    ;DBG.Console.Out("Missing NewPart.Sprite:RotoSet(pinfo.Roto1 + Var1, pinfo.Roto2 + Var1, rototime, False)", Nil, GLFXCh)
-    ;NewPart.Sprite:RotoSet(pinfo.Roto1 + Var1, pinfo.Roto2 + Var1, rototime, False)
+
   Else
     NewPart.pAngleEnabled = False
+
   EndIf
 
-  ;### SCALE ###
+  ; :: Particle Scaling :::
   If pinfo.Scale1 <> -1
     Local Var, HVar, ScaleTime = 0, 0, Life
     If Not(pinfo.LinkedScale)
       If pinfo.ScaleVar <> 0
         Var  = Rnd(pinfo.ScaleVar)
-        HVar = Shr(pinfo.ScaleVar, 1);pinfo.ScaleVar/2
+        HVar = Shr(pinfo.ScaleVar, 1)
       EndIf
       scaletime = pinfo.ScaleTime - HVar + Var
     EndIf
@@ -6984,27 +6861,23 @@ INPUT
     NewPart.Sprite.scaleW = pinfo.Scale1
     NewPart.Sprite.scaleH = pinfo.Scale1
     NewPart.scaleSteps = (NewPart.Sprite.scaleW-pInfo.Scale2)/scaletime*NewPart.updateRate
-    ;NewPart.TweenColor = tween.start(fadetime, NewPart.Sprite, { color = pinfo.fade2 }, pinfo.fadeeasing, Function() EndFunction)
+
   Else
     NewPart.pScaleEnabled = False
+    
   EndIf
-/*    
-    NewPart.Sprite.scaleW, NewPart.Sprite.scaleH = pinfo.scale1, pinfo.scale1
-    NewPart.TweenScaleW = tween.start(scaletime, NewPart.Sprite, { scaleW = pinfo.scale2, scaleH = pinfo.scale2 }, pinfo.scaleeasing, Function() EndFunction)
-    ;NewPart.TweenScaleH = tween.start(scaletime, NewPart.Sprite, { scaleH = pinfo.scale2 }, pinfo.scaleeasing, Function() EndFunction)
 
-    ;DBG.Console.Out("Missing NewPart.Sprite:ZoomSet(pinfo.Scale1, pinfo.Scale2, ScaleTime, False)", Nil, GLFXCh)
-    ;NewPart.Sprite:ZoomSet(pinfo.Scale1, pinfo.Scale2, ScaleTime, False)
-  EndIf */
-
-  ;### ANGLE (Direction) ###
+  ; ::: Particle Direction (Angle) :::
   Local Var, HVar = 0, 0
   If pinfo.AngleVar <> 0
-    Var = Rnd(pinfo.AngleVar);*100)/100
+    Var = Rnd(pinfo.AngleVar)
     HVar = Shr(pinfo.AngleVar, 1)
   EndIf
   NewPart.Angle = pinfo.Angle - HVar + Var
+  
   ;--- experimental ---
+  ;--- The particles are generated on the external ring and move to
+  ;--- the emitter point.
   If PartSys.Inverted
     ; Determine the starting position
     Local startX, startY = xpos, ypos
@@ -7023,35 +6896,37 @@ INPUT
     NewPart.Angle = NewPart.Angle-180
     
   EndIf
-  ;--------------------
 
-  ;### VELOCITY ###
+  ; ::: Particle Velocity :::
   Local Var, HVar = 0, 0
   If pinfo.VelocityVar <> 0
-    Var = Rnd(pinfo.VelocityVar);*100)/100
+    Var = Rnd(pinfo.VelocityVar)
     HVar = Shr(pinfo.VelocityVar, 1)
   EndIf
   NewPart.Velocity = pinfo.Velocity - HVar + Var
   
-  ;### DEATH TIME ###
+  ; ::: Particle Death Time :::
   NewPart.DeathTime = GetTimer(PartSys.SpriteEngine.Framework.TimerId) + Life
 
   ; Stores the particle and increase the counter
   InsertItem(PartSys.Particles, NewPart, PartSys.ParticlesCount)
-  ;PartSys.Particles[NewPart] = NewPart
   PartSys.ParticlesCount = PartSys.ParticlesCount + 1
   
+  ; Update the particle last update time
   NewPart.LastUpdate  = GetTimer(NewPart.EngineTimer)
 
 EndFunction
 
-Function GLFX.Particle:Update()
+Function GLFX.Particle:Update() ; 04/2021
 /******************************************************************************
 GLFX.Particle:Update()
 
 Update the particle
+;--------------------------------------------------------------------
+OUTPUT
+  death : Returns 'True' if the particle is death
 ******************************************************************************/
-  ; Aggiornamento Particle
+  ; Compute movement & rotation
   Local rs     = Rad(self.Angle)
   Local deltax = self.Velocity*Cos(rs) + self.Gi.x
   Local deltay = self.Velocity*Sin(rs) + self.Gi.y
@@ -7071,17 +6946,20 @@ Update the particle
     self.Sprite.Color[1] = self.Sprite.Color[1] - self.ColorSteps[1]*dt
     self.Sprite.Color[2] = self.Sprite.Color[2] - self.ColorSteps[2]*dt
     self.Sprite.Color[3] = self.Sprite.Color[3] - self.ColorSteps[3]*dt
+    
   EndIf
 
   ; Scale Update
   If self.pScaleEnabled
     self.Sprite.scaleW = self.Sprite.scaleW - self.scaleSteps*dt
     self.Sprite.scaleH = self.Sprite.scaleW
+    
   EndIf
   
   ; Angle Update
   If self.pAngleEnabled
     self.Sprite.Angle = self.Sprite.Angle - self.angleSteps*dt
+    
   EndIf
   
   self.Sprite.pw = self.Sprite.Width*self.Sprite.scaleW/2
@@ -7093,15 +6971,24 @@ Update the particle
   If self.DeathTime <= self.LastUpdate
     self.Sprite:Destroy()
     Return(True)
+    
   EndIf
 
   Return(False)
+  
 EndFunction
 
-Function GLFX.Particle:Free()
-  ; Mark the particle to be freed at next update
+Function GLFX.Particle:Free() ; 04/2021
+/******************************************************************************
+GLFX.Particle:Free()
+
+Mark the particle so that at the next update it will be removed
+;--------------------------------------------------------------------
+
+******************************************************************************/
   self.DeathTime = 0
   self.LastUpdate = 1
+
 EndFunction
 
 Function GLFX.Sprite:PathStart()
