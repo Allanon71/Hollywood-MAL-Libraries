@@ -930,6 +930,7 @@ OUTPUT
     p = p2 + el
     p1 = FindStr(txt, sLimit, casesense, p)
   Wend
+
   Return(results, tpos)
   
 EndFunction
@@ -1064,7 +1065,7 @@ OUTPUT
   Local temp = text
   Local pos, l  = 0, StrLen(text)
   Local found = True
-    
+;DebugPrint("CONVERT FOR TEXTOUT (Helpers) -> \n" .. text .. "\n\n" .. StrLen(text))
   ; Remove fixed tags
  
   Local tags = { "[b]", "[/b]",
