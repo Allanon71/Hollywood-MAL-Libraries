@@ -1460,10 +1460,10 @@ Function GFX.Text.WordWrap(txt, length, customLF)
     
     ; NON E' POSSIBILE GENERARE BREAKPOINT ALL'INTERNO DI
     ; UNA TAG
-    Local leftPart = LeftStr(txt, pos)
-    Local tagOnTheLeft = CountStr(leftPart, "[")
-    Local tagOnTheRight = CountStr(leftPart, "]")
-    Local openedTag = False
+    Local strPart      = LeftStr(txt, pos)
+    Local tagOnTheLeft  = CountStr(strPart, "[")
+    Local tagOnTheRight = CountStr(strPart, "]")
+    Local openedTag     = False
     If tagOnTheLeft > tagOnTheRight
       openedTag = True
     EndIf
@@ -1478,34 +1478,35 @@ Function GFX.Text.WordWrap(txt, length, customLF)
       ;DebugPrint("----------------")
       While char = "["
       
-      ;DebugPrint("  Possibile TAG, trovato -> '[' @ " .. pos .. ", cerco -> ']'")
-      If MidStr(txt, pos+1, 1) = "["
-        ;DebugPrint("    Trovato -> '[[', vado oltre...")
-        pos = pos + 1
-        char = MidStr(txt, pos, 1)
-        
-      Else
-        Local e = FindStr(txt, "]", False, pos+1)
-        If e = -1
-          ;DebugPrint("    Non trovato ']'.")
+        ;DebugPrint("  Possibile TAG, trovato -> '[' @ " .. pos .. ", cerco -> ']'")
+        If MidStr(txt, pos+1, 1) = "["
+          ;DebugPrint("    Trovato -> '[[', vado oltre...")
           pos = pos + 1
           char = MidStr(txt, pos, 1)
           
         Else
-          ;DebugPrint("    Trovato -> ']' @ " .. e .. ", salto la tag rilevata '" .. MidStr(txt, pos, e-pos+1) .. "'")
-          pos = e + 1
-          char = MidStr(txt, pos, 1)
-          
-          ;DebugPrint("NEW CHAR : " .. char .. " <- " .. MidStr(txt, pos, 30))
-          
-          ; Trick per rimediare al caso particolare del ritorno a capo dopo una ]
-          If char = Chr(10) Or char = Chr(13)
+          Local e = FindStr(txt, "]", False, pos+1)
+          If e = -1
+            ;DebugPrint("    Non trovato ']'.")
+            pos = pos + 1
+            char = MidStr(txt, pos, 1)
             
-            pos = pos - 1
+          Else
+            ;DebugPrint("    Trovato -> ']' @ " .. e .. ", salto la tag rilevata '" .. MidStr(txt, pos, e-pos+1) .. "'")
+            pos = e + 1
+            char = MidStr(txt, pos, 1)
+            
+            ;DebugPrint("NEW CHAR : " .. char .. " <- " .. MidStr(txt, pos, 30))
+            
+            ; Trick per rimediare al caso particolare del ritorno a capo dopo una ]
+            If char = Chr(10) Or char = Chr(13)
+              
+              pos = pos - 1
+              
+            EndIf
+            
           EndIf
-          
         EndIf
-      EndIf
       
       Wend
           
@@ -1535,9 +1536,12 @@ Function GFX.Text.WordWrap(txt, length, customLF)
     
     ; Verifica se la parte sinistra esce dalla larghezza
     Local strPart = LeftStr(txt, pos)
+    Local tagOnTheLeft  = CountStr(strPart, "[")
+    Local tagOnTheRight = CountStr(strPart, "]")
+    ; DebugPrint("TAGS COUNT:", tagOnTheLeft, tagOnTheRight)
     If GFX.Text.GetWidth(strPart) >= length
-      ;DebugPrint("-----------------------------")
-      ;DebugPrint(strPart, " >> OLTRE LA LARGHEZZA CONSENTITA!")
+      ; DebugPrint("-----------------------------")
+      ; DebugPrint(strPart, " >> OLTRE LA LARGHEZZA CONSENTITA!")
       
       If breakpoint = -1 
         ; DebugPrint("Nessun BreakPoint, taglio esattamente in questa posizione!")
@@ -1600,6 +1604,7 @@ Function GFX.Text.WordWrap(txt, length, customLF)
       }
 
   ; verifica delle tag su più linee
+  Local stg, stv, ctg, ctv, i
   For i = 0 To lines_count-1
     ; DebugPrint("Checking line " .. i)
 
@@ -1660,7 +1665,7 @@ Function GFX.Text.WordWrap(txt, length, customLF)
 
       If i < lines_count And stack_count > 0
         For bi = stack_count To 1 Step -1
-          If TB.Item.Exists(lines, i+1)
+          If HaveItem(lines, i+1)
             lines[i+1] = ctv.stack[bi-1] .. lines[i+1]
           EndIf
         Next
@@ -1992,6 +1997,8 @@ OUTPUT
 ******************************************************************************/
   ; [TODO] : Modificare in modo che calcoli esattamente anche
   ; le porzioni di testo con stili (tipo una parola in bold)
+  
+  /*
   Local real_txt = txt
   
   ; Non c'è nessuna tag, restituisco la lunghezza così com'è
@@ -2057,33 +2064,15 @@ OUTPUT
   real_txt = ReplaceStr(real_txt, "[/color]", "")
   real_txt = ReplaceStr(real_txt, "[/COLOR]", "")
   
-  /*
-  [b]ciao[b] come va[/b]?[/b]
-  OPPURE
-  [b]ciao [i]come va[/i]?[/b]
-  
-  Prima di ripulire il testo devo creare una stringa dove è presente solo il
-  testo in bold per poter calcolare correttamente la dimensione, come faccio?
-  
-  Lascio il bold alla fine, dopo aver tolto tutte le altre tag.
-  
-  A questo punto porto le tag bold tutte maiuscole:
-  */
-  
-  ;real_txt = ReplaceStr(real_txt, "[b]", "[B]")
-  ;real_txt = ReplaceStr(real_txt, "[/b]", "[/B]")
-  
-  /*
-  Adesso effettuo un parsing per capire quali parti del testo sono in bold
-  */
-  ;Local bold_text = ""
   
   ;::: BOLD :::
   real_txt = ReplaceStr(real_txt, "[b]", "")
   real_txt = ReplaceStr(real_txt, "[B]", "")
   real_txt = ReplaceStr(real_txt, "[/b]", "")
   real_txt = ReplaceStr(real_txt, "[/B]", "")
-
+  */
+  
+  Local real_txt = PatternReplaceStr(txt, "%[.-%]", "")
   
   Return(TextWidth(real_txt), real_txt)
 EndFunction
@@ -3352,3 +3341,10 @@ End
   ;GFX.Test_OutputDevice()
   ;GFX.Test_FontObject()
   
+/*
+Local t = "[qualsiasi cosa tra]fuori[ parentesi quadre][color=$FF0000][b]Hello World![/b][/color]"
+DebugPrint(t)
+DebugPrint(GFX.Text.GetWidth(t))
+  
+DebugPrompt("?")
+*/
