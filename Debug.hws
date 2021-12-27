@@ -45,9 +45,11 @@
 Global  DBG = {}
         DBG.Console = {}
         DBG.Log     = {}
-        DBG.Version = "1.7"
-        DBG.Build   = "09/01/2021"
+        DBG.Version = "1.8"
+        DBG.Build   = "27/12/2021" 
 
+        ; 02/06/2021 : Fixed a bug in the time padding, now when the timer exceed
+        ;              the padding the timer will be resetted.        
         ; 09/01/2021 : Changed how memory informations are logged using #SYSINFO# tag
         ;              Added DBG.Console.ignoreNormalMsg(value), this will replace
         ;              DBG.Console.SkipNormalLevel(value), still available but obsolete
