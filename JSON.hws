@@ -564,17 +564,3 @@ Function JSON.PerformanceTest()
 EndFunction
 
 ;JSON.PerformanceTest()
-
-/*
-; TEST
-Local toImport = "C:/Users/Fabio.NB-FABIO/Desktop/Software/Transcendence/2.3.0.0/listtx.txt"
-StartTimer(1)
-Local d = FileToString(toImport)
-DebugPrint("Load time  :", GetTimer(1))
-StartTimer(1)
-Local dec = JSON.Decode(d)
-DebugPrint("Decode time:", GetTimer(1))
-DebugPrompt("?")
-DBG.DumpTable(dec)
-DebugPrompt("?")
-*/
