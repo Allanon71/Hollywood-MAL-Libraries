@@ -2,8 +2,8 @@
   * SlidingText Library
   * Author : Fabio Falcucci (Allanon)
   * License : Donationware
-  * Version : 2.1
-  * Release : 05.10.2020
+  * Version : 2.2
+  * Release : 05.10.2020      Last Update : 23.05.2021
   * Dependancies : TABLES, DEBUG, GFX
   *-------------------------------------------------------------------
   The aim of this library is to handle scrolling texts using layers,
@@ -81,7 +81,8 @@ Global SLT = {}
        SLT.OnNoTasks  = Function() EndFunction  ; Function to call when all tasks ended
        SLT.TimerID    = Nil                     ; Timer id used to update the tasks
        SLT.UpdaterID  = Nil                     ; Interval ID for the updater
-
+       SLT.HWBrush    = True
+       
        SLT.Build = {
 	       Date       = "03/10/2020",           ; Build date
 	       Version    = "2.1"                   ; Build version
@@ -126,9 +127,11 @@ INPUT
   ; 'OnNoTasks' event
   If TB.Item.Exists(params, "onnotasks")
     SLT.Data.OnNoTasks = params.OnNoTasks
+    
   Else
     ; Because there could be previous callback functions
     SLT.Data.OnNoTasks = Function() EndFunction
+    
   EndIf
 
   ;---[ Setup the engine ]-----------------------------------------------------
@@ -136,18 +139,14 @@ INPUT
   SLT.Data.TasksCount = 0
 
   ; Stop the previous timer (if any) and Setup a new one
-  If TB.Item.Exists(SLT.Data, "timerid")
-    StopTimer(SLT.Data.TimerID)
-  EndIf
+  If TB.Item.Exists(SLT.Data, "timerid") Then StopTimer(SLT.Data.TimerID)
   SLT.Data.TimerID = StartTimer(Nil)
 
   ; Setup the engine state
   SLT.Data.State = #SLT_STATE_RUNNING
 
   ; Clear the previous updater (if any)
-  If TB.Item.Exists(SLT.Data, "updaterid")
-    ClearInterval(SLT.Data.UpdaterID)
-  EndIf
+  If TB.Item.Exists(SLT.Data, "updaterid") Then ClearInterval(SLT.Data.UpdaterID)
 
   ; Startup a new updater (if needed)
   If SLT.Data.Upd_Freq >= 0
@@ -179,34 +178,37 @@ OUTPUT
   EndIf
   
   ; Check if there are tasks that need to be updated
-  If SLT.Data.TasksCount = 0 And Not(SLT.Data.OnNoTask_Executed)
-  
-    ; No tasks active, execute the 'OnNoTasks' event
-    SLT.Data.OnNoTasks()
-    
-    ; It can be executed only once
-    SLT.Data.OnNoTask_Executed = True
-    Return(False)
+  If HaveItem(SLT.Data, "onnotask_executed")
+    If SLT.Data.TasksCount = 0 And Not(SLT.Data.OnNoTask_Executed)
 
-  Else
-    ; Update all active tasks, while updating it also tracks the
-    ; rendering time.
-    Local totalRenderTime, cnt = 0, 0
-    Local i, v
-    For i, v In Pairs(SLT.Tasks)
-      cnt = cnt + 1
-	    Local result, renderingTime = v:update()
-      totalRenderTime = totalRenderTime + renderingTime
-    Next
-    
-    ; Avarage rendering time for each task
-    SLT.Stats.RenderTime_Mid   = totalRenderTime/cnt
-    
-    ; Total rendering time for this frame
-    SLT.Stats.RenderTime_Frame = totalRenderTime
+      ; No tasks active, execute the 'OnNoTasks' event
+      SLT.Data.OnNoTasks()
+      
+      ; It can be executed only once
+      SLT.Data.OnNoTask_Executed = True
+      Return(False)
+
+    Else
+      ; Update all active tasks, while updating it also tracks the
+      ; rendering time.
+      Local totalRenderTime, cnt = 0, 0
+      Local i, v
+      For i, v In Pairs(SLT.Tasks)
+        cnt = cnt + 1
+        Local result, renderingTime = v:update()
+        totalRenderTime = totalRenderTime + renderingTime
+      Next
+      
+      ; Avarage rendering time for each task
+      SLT.Stats.RenderTime_Mid   = totalRenderTime/cnt
+      
+      ; Total rendering time for this frame
+      SLT.Stats.RenderTime_Frame = totalRenderTime
+
+    EndIf
 
   EndIf
-
+  
   Return(True)
   
 EndFunction
@@ -358,6 +360,7 @@ INPUT
               text, each entry represent a line of text. If you want to use the
               wordwrap its better to use only one entry.
               All Hollywood tags are fully supported.
+  - newLineReplacer : optional string to replace new lines
   - align : You can set the initial alignment using one of the following
             constants:
             For the HORIZONTAL Scrolling
@@ -416,7 +419,8 @@ OUTPUT
   
 ******************************************************************************/
   DBG.Console.Out("SLT.TaskObject:Add()", DBG.OpenFunc, SLT.DebugChannel)
-
+  Local txtParams = { Encoding = #ENCODING_UTF8 }
+  
   ;---[ Layer Target ]---------------------------------------------------------
   If TB.Item.Exists(params, "layer")
     If Not(LayerExists(params.Layer))
@@ -480,8 +484,16 @@ OUTPUT
   EndIf
 
   ; CONTENT
-  If TB.Item.Exists(params, "content") Then new_task.Content = CopyTable(params.Content)
-
+  If TB.Item.Exists(params, "content")
+    new_task.Content = CopyTable(params.Content)
+    If HaveItem(params, "newlinereplacer")
+      Local fi, fo
+      For fi, fo In Pairs(new_task.content)
+        new_task.Content[fi] = ReplaceStr(new_task.Content[fi], "\n", params.newLineReplacer)
+      Next
+    EndIf
+  EndIf
+  
   ; INTERLINE
   If TB.Item.Exists(params, "interline") Then new_task.Interline = params.Interline
 
@@ -494,22 +506,25 @@ OUTPUT
 
     ; Process the text to insert blank lines to do not overwrite text
     new_task.Font:Apply()
+    
     Local t = {}
-    Local cnt = TB.Count(params.Content) - 1
+    Local cnt = TB.Count(new_task.Content) - 1
 
-    For Local i = 0 To cnt
-      t[i] = Int(GFX.Text.GetWidth(params.Content[i])/GetAttribute(#LAYER, params.Layer, #ATTRWIDTH)) - 1
-      
-    Next
-    
-    For Local i = cnt To 0 Step -1
-      For Local it = 0 To t[i]
-        InsertItem(params.Content, "", i+1)
-        
+    If new_task.AutoWordWrap
+      Local lw = GetAttribute(#LAYER, params.Layer, #ATTRWIDTH) - params.margins.left - params.margins.right - 8
+      For Local i = 0 To cnt
+        Local wrapped = GFX.Text.WordWrap(new_task.Content[i], lw)
+        Local items = ListItems(wrapped)-1
+        new_task.Content[i] = wrapped[0]
+        For Local k = 1 To items
+          InsertItem(new_task.Content, wrapped[k], i+k)
+        Next
+        cnt = cnt + items
+        i = i + items
       Next
-      
-    Next
     
+    EndIf
+        
   EndIf
 
   ; DIRECTION
@@ -553,7 +568,6 @@ OUTPUT
   ;---[ Check if we need to PRECALCULATE the text rendering ]------------------
   Local layer_width  = GetAttribute(#LAYER, new_task.Layer, #ATTRWIDTH)
   Local layer_height = GetAttribute(#LAYER, new_task.Layer, #ATTRHEIGHT)
-  Local txtParams = {}
   
   ; Pick the longest line width
   Local m = 0
@@ -564,12 +578,12 @@ OUTPUT
     new_task.maxWidth = m
   Next
   
-  If (new_task.AutoWordWrap And new_task.Direction = #SLT_DIR_VERTICAL) Then txtParams = { WordWrap = layer_width - new_task.margins.left - new_task.margins.right }
+  ;If (new_task.AutoWordWrap And new_task.Direction = #SLT_DIR_VERTICAL) Then txtParams = { WordWrap = layer_width - new_task.margins.left - new_task.margins.right }
   If SLT.Data.RenderMode = #SLT_RENDERMODE_PRECALC
     new_task.Font:Apply()
     ;--- Horizontal Scrolling ---
     If new_task.Direction = #SLT_DIR_HORIZONTAL
-      new_task.Private.Buffer = CreateBrush(Nil, new_task.maxWidth, layer_height, #BLACK, { Alphachannel = True, Clear = True })
+      new_task.Private.Buffer = CreateBrush(Nil, new_task.maxWidth+8, layer_height+8, #BLACK, { Alphachannel = True, Clear = True, Hardware = SLT.HWBrush })
       GFX.OutputDevice.Select(#BRUSH, new_task.Private.Buffer, #SELMODE_COMBO)
         Local text_lines = TB.Count(new_task.Content)
         Local th         = TextHeight("|")
@@ -581,14 +595,15 @@ OUTPUT
     ;--- Vertical Scrolling ---
     ElseIf new_task.Direction = #SLT_DIR_VERTICAL
       Local lines = TB.Count(new_task.Content)
+      /*
       If lines = 1
         new_task.Content = GFX.Text.WordWrap(new_task.Content[0], layer_width)
         lines = TB.Count(new_task.Content)
         
-      EndIf
+      EndIf */
       
-      Local brush_height = (TB.Count(new_task.Content) * (TextHeight("jiK") + new_task.Interline))
-      new_task.Private.Buffer = CreateBrush(Nil, layer_width, brush_height, #BLACK, { Alphachannel = True, Clear = True })
+      Local brush_height = (TB.Count(new_task.Content) * (TextHeight("|") + new_task.Interline))
+      new_task.Private.Buffer = CreateBrush(Nil, layer_width+8, brush_height+8, #BLACK, { Alphachannel = True, Clear = True, Hardware = SLT.HWBrush })
       GFX.OutputDevice.Select(#BRUSH, new_task.Private.Buffer, #SELMODE_COMBO)
         Local text_lines = TB.Count(new_task.Content)
         Local th         = TextHeight("|")
@@ -683,9 +698,39 @@ EndFunction
 
 Function SLT.TaskObject:SetText(txt)
   ; Change the object contents with a new text table                            |
-
+  Local txtParams = { Encoding = #ENCODING_UTF8 }
+  
   self.Content = CopyTable(txt)
 
+  If HaveItem(self, "newlinereplacer")
+    Local fi, fo
+    For fi, fo In Pairs(self.content)
+      self.Content[fi] = ReplaceStr(self.Content[fi], "\n", params.newLineReplacer)
+    Next
+  EndIf
+  
+  ; AUTO WORDWRAP
+  self.Font:Apply()
+    
+  Local t = {}
+  Local cnt = TB.Count(self.Content) - 1
+
+  If self.AutoWordWrap
+    Local lw = GetAttribute(#LAYER, self.Layer, #ATTRWIDTH) - self.margins.left - self.margins.right - 8
+    For Local i = 0 To cnt
+      Local wrapped = GFX.Text.WordWrap(self.Content[i], lw)
+      Local items = ListItems(wrapped)-1
+      self.Content[i] = wrapped[0]
+      For Local k = 1 To items
+        InsertItem(self.Content, wrapped[k], i+k)
+      Next
+      cnt = cnt + items
+      i = i + items
+    Next
+  
+  EndIf
+    
+  
   ; Pick the longest line width
   Local m = 0
   For Local i = 0 To ListItems(self.Content)-1
@@ -696,12 +741,10 @@ Function SLT.TaskObject:SetText(txt)
   
   ;---[ If RenderMode is Precalc we need to regenerate the buffer ]------------
   If SLT.Data.RenderMode = #SLT_RENDERMODE_PRECALC
-    self.Font:Apply()
     Local layer_width  = GetAttribute(#LAYER, self.Layer, #ATTRWIDTH)
     Local layer_height = GetAttribute(#LAYER, self.Layer, #ATTRHEIGHT)
-    Local txtParams = {}
 
-    If (self.AutoWordWrap And self.Direction = #SLT_DIR_VERTICAL) Then txtParams = { WordWrap = layer_width - self.margins.left - self.margins.right }
+    ;If (self.AutoWordWrap And self.Direction = #SLT_DIR_VERTICAL) Then txtParams.WordWrap = layer_width - self.margins.left - self.margins.right }
 
     ; Free previous brush
     FreeBrush(self.Private.Buffer)
@@ -709,7 +752,7 @@ Function SLT.TaskObject:SetText(txt)
     If self.Direction = #SLT_DIR_HORIZONTAL
       ;--- Horizontal ---
       Local th = TextHeight("|")
-	    self.Private.Buffer = CreateBrush(Nil, self.maxWidth, layer_height, #BLACK, { Alphachannel = True, Clear = True })
+	    self.Private.Buffer = CreateBrush(Nil, self.maxWidth+8, layer_height+8, #BLACK, { Alphachannel = True, Clear = True, Hardware = SLT.HWBrush })
 	    GFX.OutputDevice.Select(#BRUSH, self.Private.Buffer, #SELMODE_COMBO)
 	      Local text_lines = TB.Count(self.Content)
 	      For Local i = 1 To text_lines
@@ -720,7 +763,7 @@ Function SLT.TaskObject:SetText(txt)
     ElseIf self.Direction = #SLT_DIR_VERTICAL
       ;--- Vertical ---
       Local th = TextHeight("|")
-	    self.Private.Buffer = CreateBrush(Nil, layer_width, (TB.Count(self.Content)) * (th + self.Interline) , #BLACK, { Alphachannel = True, Clear = True })
+	    self.Private.Buffer = CreateBrush(Nil, layer_width+8, (TB.Count(self.Content)) * (th + self.Interline)+8 , #BLACK, { Alphachannel = True, Clear = True, Hardware = SLT.HWBrush })
 	    GFX.OutputDevice.Select(#BRUSH, self.Private.Buffer, #SELMODE_COMBO)
 	      Local text_lines = TB.Count(self.Content)
 	      For Local i = 1 To text_lines
@@ -735,6 +778,18 @@ Function SLT.TaskObject:SetText(txt)
 
 EndFunction
 
+Function SLT.TaskObject:fClearLayer()
+  If self.ClearLayer
+    Local layer_width  = GetAttribute(#LAYER, self.Layer, #ATTRWIDTH)
+    Local layer_height = GetAttribute(#LAYER, self.Layer, #ATTRHEIGHT)
+  
+    GFX.OutputDevice.Select(#LAYER, self.Layer, #SELMODE_COMBO, Nil, 0)
+    SetFillStyle(#FILLCOLOR)
+    Box(0, 0, layer_width, layer_height, self.ClearColor)
+    GFX.OutputDevice.EndSelect()
+  EndIf
+EndFunction
+
 Function SLT.TaskObject:Draw()
 /********************************************************************
 SLT.TaskObject:Draw()
@@ -747,12 +802,14 @@ you have attached functions to this events they will be called.
   ; Draw the SLT object                                                         |
   Local layer_width  = GetAttribute(#LAYER, self.Layer, #ATTRWIDTH)
   Local layer_height = GetAttribute(#LAYER, self.Layer, #ATTRHEIGHT)
-  Local txtParams = {}
-  If (self.AutoWordWrap And self.Direction = #SLT_DIR_VERTICAL) Then txtParams = { WordWrap = layer_width - self.margins.left - self.margins.right }
+  Local txtParams = { Encoding = #ENCODING_UTF8 }
+  ;If (self.AutoWordWrap And self.Direction = #SLT_DIR_VERTICAL) Then txtParams.WordWrap = layer_width - self.margins.left - self.margins.right
+
+  self:fClearLayer()
 
   If self.Direction = #SLT_DIR_HORIZONTAL ; -----------------------------------
-    ;--- Horizontal ---
-    GFX.OutputDevice.Select(#LAYER, self.Layer, #SELMODE_NORMAL)
+    ;--- Horizontal ---    
+    GFX.OutputDevice.Select(#LAYER, self.Layer, #SELMODE_COMBO, Nil, 2)
     If SLT.Data.RenderMode = #SLT_RENDERMODE_DIRECT
       ;--- Direct Rendering ---
       Local text_width   = self.maxWidth
@@ -762,11 +819,6 @@ you have attached functions to this events they will be called.
 
       ; OnBeforeUpdate
    	  self.OnBeforeUpdate(self)
-
-   	  If self.ClearLayer
-   	    SetFillStyle(#FILLCOLOR)
-   	    Box(0, 0, layer_width, layer_height, self.ClearColor)
-   	  EndIf
 
    	  Local tmpclip = CreateClipRegion(Nil, #BOX, self.Margins.Left, self.Margins.Top, layer_width - self.Margins.Left - self.Margins.Right, layer_height - self.Margins.Top - self.Margins.Bottom )
       SetClipRegion(tmpclip)
@@ -786,11 +838,8 @@ you have attached functions to this events they will be called.
       ; OnBeforeUpdate
    	  self.OnBeforeUpdate(self)
 
-      If self.ClearLayer
-        SetFillStyle(#FILLCOLOR)
-        Box(0, 0, layer_width, layer_height, self.ClearColor)
-      EndIf
-
+      ;self:fClearLayer()
+      
       Local tmpclip = CreateClipRegion(Nil, #BOX, self.Margins.Left, self.Margins.Top, layer_width - self.Margins.Left - self.Margins.Right, layer_height - self.Margins.Top - self.Margins.Bottom )
       SetClipRegion(tmpclip)
 
@@ -807,7 +856,9 @@ you have attached functions to this events they will be called.
 
   ElseIf self.Direction = #SLT_DIR_VERTICAL ; ---------------------------------
     ;--- Vertical ---
-    GFX.OutputDevice.Select(#LAYER, self.Layer, #SELMODE_NORMAL)
+    ;self:fClearLayer()    
+    
+    GFX.OutputDevice.Select(#LAYER, self.Layer, #SELMODE_COMBO, Nil, 2)
 	    If SLT.Data.RenderMode = #SLT_RENDERMODE_DIRECT
         Local text_width   = self.maxWidth
         Local text_lines   = TB.Count(self.Content)
@@ -818,10 +869,6 @@ you have attached functions to this events they will be called.
 	      ; OnBeforeUpdate
         self.OnBeforeUpdate(self)
 
-   	    If self.ClearLayer
-   	      SetFillStyle(#FILLCOLOR)
-   	      Box(0, 0, layer_width, layer_height, self.ClearColor)
-   	    EndIf
 
         self.Font:Apply()
 
@@ -829,7 +876,7 @@ you have attached functions to this events they will be called.
  	      SetClipRegion(tmpclip)
 
  	      For Local i = 1 To text_lines
-          TextOut(self.Offset.x + self.margins-left, self.margins.top + self.Private.ScrollPos + self.Offset.y + (i-1) * line_height, self.Content[i-1], txtParams)
+          TextOut(self.Offset.x + self.margins.left, self.margins.top + self.Private.ScrollPos + self.Offset.y + (i-1) * line_height, self.Content[i-1], txtParams)
  	      Next
 
         FreeClipRegion(tmpclip)
@@ -842,11 +889,8 @@ you have attached functions to this events they will be called.
         ; OnBeforeUpdate
  	      self.OnBeforeUpdate(self)
 
- 	      If self.ClearLayer
-          SetFillStyle(#FILLCOLOR)
-          Box(0, 0, layer_width, layer_height, self.ClearColor)
- 	      EndIf
-
+        ;self:fClearLayer()
+        
  	      Local tmpclip = CreateClipRegion(Nil, #BOX, self.Margins.Left, self.Margins.Top, layer_width - self.Margins.Left - self.Margins.Right, layer_height - self.Margins.Top - self.Margins.Bottom )
  	      SetClipRegion(tmpclip)
 
@@ -1276,7 +1320,7 @@ Function SLT.TEST_01()
     
     ; First of all we need to initialize it
     SLT.Init(
-      { upd_freq   = 5,                         ; Excute an update every 5 ms
+      { upd_freq   = 20,                         ; Excute an update every 5 ms
         renderMode = #SLT_RENDERMODE_PRECALC,   ; Use the PRECAL rendering mode, you can use also the DIRECT mode
         OnNoTask   = Function() End EndFunction ; When all task are terminated you can execute a function
         })
@@ -1428,7 +1472,7 @@ Function SLT.TEST_01()
         clearlayer = True,
         
         ; Clear color
-        clearcolor = $C0005050,
+        clearcolor = $80FF0000,
         
         ; Additional time to the defaut update reate
         updfreq = 0,
@@ -1561,8 +1605,9 @@ Function SLT.TEST_01()
         })
 
     Repeat
+      BeginRefresh()
       WaitEvent()
-      
+      EndRefresh()
     Forever
     
 EndFunction
@@ -1573,7 +1618,7 @@ Function SLT.TEST_02()
 
     ; First of all we need to initialize it
     SLT.Init(
-      { upd_freq   = 5,                         ; Excute an update every 5 ms
+      { upd_freq   = -1,                        ; Excute an update every 5 ms
         renderMode = #SLT_RENDERMODE_DIRECT,    ; Use the DIRECT rendering mode
         OnNoTask   = Function() End EndFunction ; When all task are terminated you can execute a function
         })
@@ -1661,7 +1706,7 @@ Function SLT.TEST_02()
         layer = "layer",
         
         ; The text to scroll
-        content = { "Now playing [COLOR=$FFFF00]What a wonderful world[/COLOR] by Louis Armstrong..." },
+        content = { "Now playing [COLOR=$FFFF00]What a wonderful world[/COLOR] by Louis Armstrong... anyway I'm going to test a very long line to see how it performs, not sure if all is handled well, let'see!" },
         ; Offsets to adjust the text position
         offsetX = 0, 
         offsetY = 40,
@@ -1699,7 +1744,7 @@ Function SLT.TEST_02()
         direction = #SLT_DIR_HORIZONTAL, ;_VERTICAL,
         
         ; Scrolling Speed
-        speed = 0.5,
+        speed = 1,
 
         ; Clear the layer at each update?
         clearlayer = False, ; We handle it manually
@@ -1707,7 +1752,7 @@ Function SLT.TEST_02()
         ; Clear color
         clearcolor = $C0005050,
         
-        ; Additional time to the defaut update reate
+        ; Additional time to the defaut update rate
         updfreq = 0,
         
         ; Text margins
@@ -1716,12 +1761,15 @@ Function SLT.TEST_02()
         })
     
     Repeat
-      WaitEvent()
-      
+      BeginRefresh()
+      ;WaitEvent()
+      SLT.Update()
+      EndRefresh()
+      VWait()
     Forever
     
 EndFunction
-  
+
   
 ;SLT.TEST_01()
 ;SLT.TEST_02()
