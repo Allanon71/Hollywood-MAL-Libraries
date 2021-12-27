@@ -5,8 +5,8 @@
  * Dependancies : HELPERS, EASING Libraries                               *
  * PayPal Support : hijoe@tin.it                                          *
  * Patreon Support : https://www.patreon.com/Allanon71                    *
- * Version : 1.5                                                          *
- * Release : 14.11.2020                                                   *
+ * Version : 1.6                                                          *
+ * Release : 09.02.2021                                                   *
  *-------------------------------------------------------------------------
  *
  *   Tables library is an include file for Hollywood with many
@@ -48,6 +48,12 @@
  TB.Copy()
  TB.Count()
  
+ :: CHANGE LOG ::
+ 09/02/2021
+ - Optimized TB.Set() routine
+
+ 18/11/2020
+ - Fixed a bug in TB.Item.DeepFind()
  
  *********************************************************************/
 
@@ -245,19 +251,15 @@ Function TB.Count(table)
 |   count : Returns the number of items in the table or -1 if an error was
 |           occurred.
 ******************************************************************************/
-   If HL.IsNil(Table) Then Return(-1)
-   If GetType(Table) <> #TABLE Then Return(-1)
+  ; If IsNil(Table) Then Return(-1)
+  ; If GetType(Table) <> #TABLE Then Return(-1)
    
-   Local count = 0
+  Local count, i, v = 0
 
-   ; Scan the given table and count its entries
-   Local a, b = NextItem(table)
-   While GetType(a) <> #NIL
-      a, b = NextItem(table, a)
-      count = count + 1
-   Wend
-   
-   Return(count)
+  ; Scan the given table and count its entries
+  For i, v In Pairs(table) Do count = count + 1
+
+  Return(count)
 
 EndFunction
 
@@ -587,7 +589,7 @@ Function TB.Item.DeepFind(table, keyword, recflag)
 | INPUT
 |   table : Source table
 |   keyword : Value
-|   recflag : Is a flag used internally when recursion is ised
+|   recflag : Is a flag used internally when recursion is used
 |
 | OUTPUT
 |   subset : A table with all 'table' items with at least one matching field.
@@ -635,7 +637,8 @@ Function TB.Item.DeepFind(table, keyword, recflag)
       
     ElseIf GetType(v) = #NUMBER
       If kType = #STRING
-        If v = ToNumber(keyword)
+        Local conv = ToNumber(keyword)
+        If v = conv And ToString(conv) = Keyword
           found = True
           If recflag
             Return(True)
@@ -945,45 +948,55 @@ INPUT
 OUTPUT
   result => Nil in case of error or the new, updated table
 ******************************************************************************/
-   Local NewTable = {}
+  Local NewTable = {}
 
-   If IsNil(ReturnsNew) Then ReturnsNew = False
-   If IsNil(Source) Then Return()
+  If IsNil(ReturnsNew) Then ReturnsNew = False
+  If IsNil(Source)     Then Return()
 
-   If Not(IsNil(ReturnsNew))
-      If ReturnsNew
-         NewTable = CopyTable(Source)
-      Else
-         NewTable = Source
+  If Not(IsNil(ReturnsNew))
+    If ReturnsNew
+      NewTable = CopyTable(Source)
+      
+    Else
+      NewTable = Source
+      
+    EndIf
+    
+  EndIf
+
+  If IsNil(Changes) Then Return(NewTable)
+
+  ; Scan <Source> table
+  Local index, value
+  For index, value In Pairs(Changes)
+    If GetType(value) = #TABLE
+      If TB.Item.Exists(NewTable, index)
+        If GetType(NewTable[index]) = #TABLE 
+          NewTable[index] = TB.Set(NewTable[index], value, True)
+          
+        EndIf
+        
       EndIf
-   EndIf
-
-   If IsNil(Changes) Then Return(NewTable)
-
-   ; Scan <Source> table
-   Local index, value = NextItem(Changes)
-
-   While GetType(index) <> #NIL
-      If GetType(value) = #TABLE
-         If Not(TB.Item.IsNil(NewTable, index))
-            If GetType(NewTable[index]) = #TABLE
-               NewTable[index] = TB.Set(NewTable[index], value, True)
-            EndIf
-         EndIf
+      
+    Else
+      If GetType(Index) = #STRING
+        If TB.Item.Exists(NewTable, index)
+          NewTable[index] = value
+          
+        EndIf
+        
       Else
-         If GetType(Index) = #STRING
-            If Not(TB.Item.IsNil(NewTable, index))
-               NewTable[index] = value
-            EndIf
-         Else
-            ; Anything else...
-            NewTable[index] = value
-         EndIf
+        ; Anything else...
+        NewTable[index] = value
+        
       EndIf
-      index, value = NextItem(Changes, index)
-   Wend
+      
+    EndIf
+    
+  Next
 
-   Return(NewTable)
+  Return(NewTable)
+  
 EndFunction
 
 
@@ -2175,25 +2188,61 @@ Function TB.TEST_DeepFind()
 
   Local testTable =
     { ["index0"] = 
-      { ["sayhello"] = "hello",
-        ["sayhi"]    = "hi",
-        [0] = 100,
-        [1] = 
-          { [100] = 1000,
-            [120] = 2000 },
-        ["saywow"] = "Wow!",
-        },
+        { ["sayhello"] = "hello",
+          ["sayhi"]    = "hi",
+          [0] = 100,
+          [1] = 
+            { [100] = 1000,
+              [120] = 2000 },
+          ["saywow"] = "Wow!",
+          },
+          
       [0] =
-      { [5] = "five",
-        [8] = "eight",
-        [0] =
-        { ["alpha"] = "ALFA" }
-        },
-      [1] = "one1" }
+        { [5] = "five",
+          [8] = "eight",
+          [0] =
+          { ["alpha"] = "ALFA" }
+          },
+          
+      [1] = "five",
       
-  Local k = "ALFA"
+      ["nice"] =
+        { [5] = "123",
+          [8] = "345",
+          [0] =
+          { ["beta"] = "BETA",
+            ["test"] =
+              { [0] = 1234,
+                [1] = 5678,
+                [2] = 9999 },
+            ["zero"] = 0
+            }
+          },
+      
+      }
+      
+  Local k = "*"
+
   Local subset = TB.Item.DeepFind(testTable, k)
 
+  Local recursivePrint
+  
+  recursivePrint =
+    Function(t, s)
+      If IsNil(s) Then s = 0
+      Local i, v
+      For i, v In Pairs(t)
+        If GetType(v) = #TABLE
+          DebugPrint(RepeatStr(" ", s) .. ToString(i) .. " : ")
+          recursivePrint(v, s+2)
+        Else
+          DebugPrint(RepeatStr(" ", s) .. ToString(i) .. " : " .. ToString(v))
+        EndIf
+      Next
+    EndFunction
+    
+  recursivePrint(subset)
+  DebugPrompt("ENTER TO QUIT")
 EndFunction
 
 /* TEST AREA
