@@ -2100,7 +2100,7 @@ Function Term.App:ShowMenu(menuEntry)
         If cmd = v.command
           found = True
           callback = v.callback
-          If TB.Item.Exists(v, "arg1")
+          If HaveItem(v, "arg1")
             arg = v.arg1
           EndIf
           Break()
