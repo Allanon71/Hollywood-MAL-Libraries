@@ -199,55 +199,7 @@ CONTENTS
  application to accomplish the task, on my development machine, running
  Windows 10, I’m using **ansicon** program to make use of ANSI codes.
 
-CONTENTS
-```plaintext
- :: ANSI ::
- Ansi.GetClearCharacters()
- Ansi.GetCursorDown()
- Ansi.GetCursorLeft()
- Ansi.GetCursorMove()
- Ansi.GetCursorRight()
- Ansi.GetCursorUp()
- Ansi.GetDeleteCharacters()
- Ansi.GetDeleteLines()
- Ansi.GetInsertBlankLines()
- Ansi.GetRndBGColor()
- Ansi.GetRndFGColor()
- Ansi.Set()
- 
- :: TERM OBJECT ::
- Term.App:ClearInfo()
- Term.App:ClearStatus()
- Term.App:ClearWarning()
- Term.App:GridView()
- Term.App:MenuAdd()
- Term.App:New()
- Term.App:Progress()
- Term.App:SetInfo()
- Term.App:SetStatus()
- Term.App:SetWarning()
- Term.App:ShowInput()
- Term.App:ShowMenu()
- Term.App:ShowMessage()
- Term.App:Start()
- Term.App:alignNumber()
- 
- :: TERM FUNCTIONS ::
- Term.CTLine()
- Term.Clear()
- Term.GetSize()
- Term.Input()
- Term.Line()
- Term.Print()
- Term.PrintAt()
- Term.SetTermSize()
- 
- :: TERM DRAWING ::
- Term.Draw.Box()
- Term.Draw.FBox()
- Term.Draw.HLine()
- Term.Draw.VLine()
-```
+[Documentation](https://github.com/Allanon71/Hollywood-MAL-Libraries/wiki#ansi-lib)
 
 # Lib-GFX
 **Hollywood-MAL GFX Library**
