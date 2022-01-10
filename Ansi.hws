@@ -7,8 +7,46 @@
  * Dependancies : -                                                 *
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
+ * Github repository                   https://github.com/Allanon71 *
+ * ------------------------------------------------------------------
+   Ansi library is an include file for Hollywood that will help you to 
+ manage ANSI escape codes so you can print colored text in the console 
+ of your host system.
+   I’ve developed this library to have an invaluable help while I’m 
+ debugging applications because this way I’m able to spot on the fly 
+ errors and/or warning messages that are hilighted from the rest of the
+ messages.
+   Of course you need that your host system console is able to understand
+ ANSI ascape codes, but almost any OS is able to do that… except 
+ Windows! For the Windows OS you need to install any thirdy party 
+ application to accomplish the task, on my development machine, running
+ Windows 10, I’m using ansicon program to make use of ANSI codes.
+ 
+ ANSI Functions
+   All ANSI related functions are mapped on the Ansi table. These 
+ functions are used to retrieve ANSI escape sequences to accomplish 
+ various tasks like moving the cursor, clearing/deleting characters and
+ so on.
+ 
+ TERM Functions
+   All terminal related functions are mapped on the Term table. These
+ functions are used to print string to the console or the get input 
+ from the user.
+ 
+ MACROS and STYLES
+   All recognized ANSI sequences are stored in the table Ansi.Code, this
+ table is indexed with the sequence name, for each sequence a macro
+ string has been defined to simplify the use of the escape codes, for
+ example:
+   Ansi.Code.FgBlack => Holds the escape sequence needed to set the
+ foreground color to black, you can use this code in your strings
+ like this:
+   Local myBlackText = Ansi.Code.FgBlack .. "Black world!"
+ But you can also use macro strings like this:
+   Local myBlackText = "~{FBLK}Black world!"
  --------------------------------------------------------------------
  
+
  CONTENTS
  ========
  :: ANSI ::
@@ -78,42 +116,6 @@
  1.1
   01/02/2018
     Added a check to avoid error printing non-UTF8 characters.
-
-   Ansi library is an include file for Hollywood that will help you to 
- manage ANSI escape codes so you can print colored text in the console 
- of your host system.
-   I’ve developed this library to have an invaluable help while I’m 
- debugging applications because this way I’m able to spot on the fly 
- errors and/or warning messages that are hilighted from the rest of the
- messages.
-   Of course you need that your host system console is able to understand
- ANSI ascape codes, but almost any OS is able to do that… except 
- Windows! For the Windows OS you need to install any thirdy party 
- application to accomplish the task, on my development machine, running
- Windows 10, I’m using ansicon program to make use of ANSI codes.
- 
- ANSI Functions
-   All ANSI related functions are mapped on the Ansi table. These 
- functions are used to retrieve ANSI escape sequences to accomplish 
- various tasks like moving the cursor, clearing/deleting characters and
- so on.
- 
- TERM Functions
-   All terminal related functions are mapped on the Term table. These
- functions are used to print string to the console or the get input 
- from the user.
- 
- MACROS and STYLES
-   All recognized ANSI sequences are stored in the table Ansi.Code, this
- table is indexed with the sequence name, for each sequence a macro
- string has been defined to simplify the use of the escape codes, for
- example:
-   Ansi.Code.FgBlack => Holds the escape sequence needed to set the
- foreground color to black, you can use this code in your strings
- like this:
-   Local myBlackText = Ansi.Code.FgBlack .. "Black world!"
- But you can also use macro strings like this:
-   Local myBlackText = "~{FBLK}Black world!"
  
  ********************************************************************/
 /*
@@ -122,10 +124,11 @@
   - Term.Draw.FBox --> Draw Filled Box
   - Term.LPrint(...)  --> Print with coordinates
 */
+@OPTIONS { ConsoleMode = True }
 
 Ansi = {}
-Ansi.Version = "1.0"
-Ansi.Build   = "11/10/2015"
+Ansi.Version = "1.4"
+Ansi.Build   = "10/01/2022"
 Ansi.Escape  = "\27"
 Ansi.Code    =
    { Reset            = Ansi.Escape ..  "[0m",              ;~{RSET}
@@ -322,6 +325,7 @@ EndFunction
 Function Term.GetSize()
   ; If we are in a linux environment we can try to read the terminal size
   Local v = GetVersion()
+
   /*
   If v.platform = "Linux"
     ; Retrieve the terminal size using tput
@@ -332,7 +336,7 @@ Function Term.GetSize()
     WriteLine(fid, "tput cols >>" .. output)
     CloseFile(fid)
     ; Execute the script to generate the output
-    Execute(script)
+    Execute("sh " .. script)
     ; And now read the result
     If Exists(output)
       Local fid = OpenFile(Nil, output, #MODE_READ)
@@ -346,6 +350,7 @@ Function Term.GetSize()
     EndIf
   EndIf
   */
+  
   Return(Term.Size.Rows, Term.Size.Columns)
 EndFunction
 
@@ -516,6 +521,72 @@ OUTPUT
   result => String with the requested ANSI escape sequence
 ******************************************************************************/
   Return(ReplaceStr(Ansi.Code.MoveCursorLeft, "{columns}", columns))
+EndFunction
+
+Function Term.getInput(t, wordwrap, linefeed, maxLen) ; v1.0
+/******************************************************************************
+result = Term.getInput(t, wordwrap, linefeed, maxLen)
+
+Listen to stdin for a keypress
+---------------------------------------------------------------------
+INPUT
+  t => Message for the user
+  wordwrap => TRUE to enable the wordwrap
+  linefeed => TRUE to add a line feed at the end of he message
+  maxLen => Max number of characters to read (default=1)
+OUTPUT
+  result => User's answer
+******************************************************************************/
+  If Term.AnsiMode
+    Local b = IIf(Term.PromptColor.Bold,      Ansi.Code.BoldOn,      Ansi.Code.BoldOff)
+    Local i = IIf(Term.PromptColor.Italic,    Ansi.Code.ItalicsOn,   Ansi.Code.ItalicsOff)
+    Local u = IIf(Term.PromptColor.Underline, Ansi.Code.UnderlineOn, Ansi.Code.UnderlineOff)
+    prompt = prompt .. Term.PromptColor.Bg .. Term.PromptColor.Fg .. b .. i .. u
+  EndIf
+
+  If IsNil(maxLen) then maxLen = 1
+  
+  Local txt = Term.Print(t, wordwrap, 0, linefeed, True)
+  txt[0] = prompt .. txt[0]
+  Local count = ListItems(txt)
+  If count > 1
+    For Local k = 0 To ListItems(txt)-2
+      DebugPrint(txt[k])
+    Next
+  EndIf
+
+  ; INPUT
+  Local r, c = "", ""
+  SetIOMode(#IO_UNBUFFERED)
+  Local fid = OpenFile(Nil, #STDIN, #MODE_READ)
+  While True
+    ExitOnError(False)
+    Local c = ReadChr(fid)
+    Local le = GetLastError()   
+    ExitOnError(True)
+    If le <> 0 Then DebugPrint("ERROR: ", le, GetErrorName(le))
+    If Not(IsNil(c))
+      DebugPrint("-> ", c)
+    EndIf
+  Wend
+   
+  
+  If Term.AnsiMode
+    Local b = IIf(Term.PromptColor.Bold,      Ansi.Code.BoldOn,      Ansi.Code.BoldOff)
+    Local i = IIf(Term.PromptColor.Italic,    Ansi.Code.ItalicsOn,   Ansi.Code.ItalicsOff)
+    Local u = IIf(Term.PromptColor.Underline, Ansi.Code.UnderlineOn, Ansi.Code.UnderlineOff)
+    prompt = prompt .. Term.PromptColor.Bg .. Term.PromptColor.Fg .. b .. i .. u
+  EndIf
+
+  Local txt = Term.Print(t, wordwrap, 0, linefeed, True)
+  txt[0] = prompt .. txt[0]
+  Local count = ListItems(txt)
+  If count > 1
+    For Local k = 0 To ListItems(txt)-2
+      DebugPrint(txt[k])
+    Next
+  EndIf
+  
 EndFunction
 
 Function Term.Input(t, wordwrap, linefeed) ; v1.0
@@ -1172,12 +1243,12 @@ Term.App =
           },
         Info =    ; Used only by the GridView
         { Value = "",
-          Color = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgBlack,
+          Color = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgGreen,
           Row = -1
           },
         Status =
         { Value = "",
-          Color = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgGreen,
+          Color = Ansi.Code.BoldOn .. Ansi.Code.FgCyan .. Ansi.Code.BgBlue,
           Row   = -1
           },
         Warning =
@@ -1265,9 +1336,9 @@ Function Term.App:New()
   obj.TermSize[0] = r
   obj.TermSize[1] = c
   
-  obj.Layout.Status.Row = obj.TermSize[0]-1
+  obj.Layout.Status.Row  = obj.TermSize[0]-1
   obj.Layout.Warning.Row = obj.TermSize[0]-2
-  obj.Layout.Info.Row = obj.TermSize[0]
+  obj.Layout.Info.Row    = obj.TermSize[0]
   
   Return(obj)
 EndFunction
@@ -2076,6 +2147,7 @@ Function Term.App:ShowMenu(menuEntry)
     self:_DrawMenuItems(menuEntry)
     self:_DrawStatus()
     self:_DrawWarning()
+    self:_DrawInfo()
     
     Local t = Ansi.GetCursorMove(self.Layout.Prompt.Row, self.Layout.Prompt.Column) ..
               self.Layout.Prompt.Color .. 
@@ -2229,24 +2301,16 @@ This is a linefeed embedded into the string.]]
      Local r, c = Rnd(9)+13, Rnd(60)+1
      Term.PrintAt(r, c, Ansi.GetRndFgColor() .. "Print At (" .. r .. ", " .. c .. ")")
    Next
-   
-   /*
-   Term.Draw("line", { type = "horizontal", pos = 15, start = 10, end = 20, color = "~{FRED}" })
-   Term.Draw("line", { type = "horizontal", pos = 12, start = 10, end = 20, color = "~{FYEL}" })
-   
-   Term.Draw("line", { type = "vertical", pos = 15, start = 10, end = 20, color = "~{FRED}" })
-   Term.Draw("line", { type = "vertical", pos = 12, start = 10, end = 20, color = "~{FYEL}" })
-   
-   Term.Draw("box", { row = 15, column = 30, width = 25, height = 9, color = "~{FMAG}" })   
-   Term.Draw("box", { row = 17, column = 25, width = 25, height = 9, color = "~{FCYA}" })
-   
-   Term.Draw("bar", { type = "vertical", pos = 35, start = 10, end = 20, color = "~{FRED}" })
-   Term.Draw("bar", { type = "horizontal", pos = 14, start = 20, end = 40, color = "~{FWHI}" })
-   
-   Term.Draw("fbox", { row = 19, column = 21, width = 25, height = 9, color = "~{FMAG}" })   
-   Term.Draw("fbox", { row = 21, column = 28, width = 25, height = 9, color = "~{FCYA}" })
+      
+   Term.Print("TESTING 'Term.Input()'...")
+   Local xx = Term.Input("~{FCYA}Type something and hit ENTER:~{FRED}")
+  
+      
+   /* ACTUALLY NOT WORKING AS INTENDED 
+   Term.Print("-----------------------------")
+   Term.Print("TESTING 'Term.getInput()'...")
+   Local xx = Term.getInput("Type something:", True, True, 10)
    */
-   Term.Input("~{FBLU}Type something and hit ENTER:~{FRED}")
    
    DebugPrint("\nWORDWRAP")
    Term.Print(t2, True)
@@ -2291,49 +2355,42 @@ This is a linefeed embedded into the string.]]
    Local tapp = Term.App:New()
    tapp.Name = "TestApp"
    tapp.Version = "1.0"
-   tapp.Build = "13/01/2020"
+   tapp.Build = "10/01/2022"
    tapp.Copyright = "Fabio Falcucci"
    
    tapp:MenuAdd("Main",
-    { { command = "a1", description = "A1", callback = Function() EndFunction },
-      { command = "m", description = "Show Message", callback = Function() 
+    { { command = "01",  description = "Nothing here 1", callback = Function() EndFunction },
+      { command = "msg", description = "Select me to show a message", callback = 
+                                                                Function() 
                                                                   tapp:ShowMessage("Hello!This is a message box!\n\nIsn't it nice?")
                                                                 EndFunction },
-      { command = "a3", description = "A3", callback = Function() EndFunction },
-      { command = "", description = "HEADER", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "s1", description = "Submenu 1", callback = "Sub1" },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
+      { command = "02", description = "Nothing here 2", callback = Function() EndFunction },
+      { command = "", description = "HEADER (Empty cmd field)", callback = Function() EndFunction },
+      { command = "03", description = "Nothing here 3", callback = Function() EndFunction },
+      { command = "04", description = "Nothing here 4", callback = Function() EndFunction },
+      { command = "05", description = "Nothing here 5", callback = Function() EndFunction },
+      { command = "06", description = "Nothing here 6", callback = Function() EndFunction },
+      { command = "07", description = "Nothing here 7", callback = Function() EndFunction },
+      { command = "08", description = "Nothing here 8", callback = Function() EndFunction },
+      { command = "sub", description = "Go to Submenu 1", callback = "Sub1" },
+      { command = "A1", description = "Menu commands", callback = Function() EndFunction },
+      { command = "A2", description = "can be anything", callback = Function() EndFunction },
+      { command = "A3", description = "there are no", callback = Function() EndFunction },
+      { command = "B1", description = "restrictions", callback = Function() EndFunction },
+      { command = "B2", description = "Nothing", callback = Function() EndFunction },
       { command = "", description = "", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction }
+      { command = "C1", description = "Nothing", callback = Function() EndFunction },
+      { command = "C2", description = "Type 'back' to quit", callback = Function() EndFunction },
+      { command = "C3", description = "followed by ENTER", callback = Function() EndFunction }
       })
    
    tapp:MenuAdd("Sub1",
-    { { command = "a1", description = "A1", callback = Function() EndFunction },
-      { command = "a2", description = "A2", callback = Function() EndFunction },
-      { command = "a3", description = "A3", callback = Function() EndFunction },
-      { command = "", description = "HEADER", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction },
-      { command = "a4", description = "A4", callback = Function() EndFunction }
+    { { command = "this", description = "type 'back'", callback = Function() EndFunction },
+      { command = "is", description = "to return", callback = Function() EndFunction },
+      { command = "a", description = "to the previous", callback = Function() EndFunction },
+      { command = "sub", description = "menu", callback = Function() EndFunction },
+      { command = "", description = "SEPARATOR", callback = Function() EndFunction },
+      { command = "menu", description = "", callback = Function() EndFunction },
       })
    
    
@@ -2341,7 +2398,7 @@ This is a linefeed embedded into the string.]]
    tapp:SetWarning("This is a sample warning.")
    ; tapp:ShowMessage("test this is a test with a long line to check if wordwrap is handled correctly as it should\nNew line here")
    For Local i = 1 To 100
-     tapp:Progress("Testing the Progress class:" .. i .. "%", i, 100)
+     tapp:Progress("Testing the Progress method:" .. i .. "%", i, 100)
      Wait(100, #MILLISECONDS)
      ;Term.PrintAt(5, 5, ToString(i))
    Next
@@ -2355,8 +2412,14 @@ This is a linefeed embedded into the string.]]
    DebugPrompt("TEST ENDED")
 EndFunction
 
-;Term.TEST()
+  ; UNCOMMENT THE FOLLOWING FUNCTION TO PERFORM A TEST
+  ; Term.TEST()
+  
+  
 /*
+  ; UNCOMMENT THE FOLLOWING SECTION FOR AN EXAMPLE OF THE
+  ; GRID CONTROL
+  ; -----------------------------------------------------
   ; SAMPLE DATA
   data = 
     { name = 
@@ -2480,12 +2543,5 @@ tapp:GridView(data, columns, headers, positions,
 
 DebugPrompt("?")
 */
-/*
-DA FARE
-- Penultima riga : errors
-- Ultima riga    : status
-- :ShowStatus()
-- :ShowError()
-- :ShowMsg()
-*/
+
 
