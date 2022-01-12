@@ -3,11 +3,12 @@
  * Author  : Fabio Falcucci (Allanon)                               *
  * License : Donationware                                           *
  * Version : 1.4                                                    *
- * Release : 10.09.2020                                             *
+ * Release : 10/01/2022                                             *
  * Dependancies : -                                                 *
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
  * Github repository                   https://github.com/Allanon71 *
+ * Buy me a coffee!                       https://ko-fi.com/allanon * 
  * ------------------------------------------------------------------
    Ansi library is an include file for Hollywood that will help you to 
  manage ANSI escape codes so you can print colored text in the console 
