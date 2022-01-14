@@ -100,6 +100,8 @@
  
  CHANGE LOG
  ----------
+ 1.5
+    Updated the .Test() function and added the GridView() control.
  1.4
     Term.App:_FixedWidth(txt, size, align)
       Added support for center alignment
@@ -138,13 +140,19 @@ Ansi.Code    =
      ItalicsOn        = Ansi.Escape ..  "[3m",              ;~{ITA+}
      UnderlineOn      = Ansi.Escape ..  "[4m",              ;~{UND+}
      BlinkOn          = Ansi.Escape ..  "[5m",              ;~{BLI+}
+     ; [6m = Rapid Blinking Cursor
      InverseOn        = Ansi.Escape ..  "[7m",              ;~{INV+}
      HiddenOn         = Ansi.Escape ..  "[8m",              ;~{HID+}
      StrikethroughOn  = Ansi.Escape ..  "[9m",              ;~{STR+}
+     ; [10m = Default font
+     ; [<11-19>m = Alternative fonts
+     ; [20m = Gothic font
+     ; [21m = Double underline
      BoldOff          = Ansi.Escape .. "[22m",              ;~{BLD-}
      ItalicsOff       = Ansi.Escape .. "[23m",              ;~{ITA-}
      UnderlineOff     = Ansi.Escape .. "[24m",              ;~{UND-}
      BlinkOff         = Ansi.Escape .. "[25m",              ;~{BLI-}
+     ; [26m = Proportional spacing
      InverseOff       = Ansi.Escape .. "[27m",              ;~{INV-}
      HiddenOff        = Ansi.Escape .. "[28m",              ;~{HID-}
      StrikethroughOff = Ansi.Escape .. "[29m",              ;~{STR-}
@@ -156,6 +164,7 @@ Ansi.Code    =
      FgMagenta        = Ansi.Escape .. "[35m",              ;~{FMAG}
      FgCyan           = Ansi.Escape .. "[36m",              ;~{FCYA}
      FgWhite          = Ansi.Escape .. "[37m",              ;~{FWHI}
+     ; [38m =	Set foreground color	Next arguments are 5;n or 2;r;g;b
      FgDefault        = Ansi.Escape .. "[39m",              ;~{FDEF}
      BgBlack          = Ansi.Escape .. "[40m",              ;~{BBLK}
      BgRed            = Ansi.Escape .. "[41m",              ;~{BRED}
@@ -165,7 +174,9 @@ Ansi.Code    =
      BgMagenta        = Ansi.Escape .. "[45m",              ;~{BMAG}
      BgCyan           = Ansi.Escape .. "[46m",              ;~{BCYA}
      BgWhite          = Ansi.Escape .. "[47m",              ;~{BWHI}
+     ; [48m = Set background color	Next arguments are 5;n or 2;r;g;b]
      BgDefault        = Ansi.Escape .. "[49m",              ;~{BDEF}
+     ; [50m = Disable proportional spacing
      MoveCursor       = Ansi.Escape .. "[{line};{column}H", ; GetCursorMove(l, c)
      MoveCursorUp     = Ansi.Escape .. "[{lines}A",         ; GetCursorUp(l)
      MoveCursorUp1    = Ansi.Escape .. "[1A",               ;~{M1UP}
@@ -327,7 +338,6 @@ Function Term.GetSize()
   ; If we are in a linux environment we can try to read the terminal size
   Local v = GetVersion()
 
-  /*
   If v.platform = "Linux"
     ; Retrieve the terminal size using tput
     Local output = GetTempFileName()   ; Storage for the output
@@ -350,7 +360,6 @@ Function Term.GetSize()
       Return(Term.Size.Rows, Term.Size.Columns)
     EndIf
   EndIf
-  */
   
   Return(Term.Size.Rows, Term.Size.Columns)
 EndFunction
@@ -2227,25 +2236,140 @@ Term.TEST()
 Perform a test to check ANSI capabilities of the host console.
 ******************************************************************************/
   ;CloseDisplay(1)
-  Term.SetTermSize(25, 80, True)
-  Term.GetSize()
-  DebugPrint("ANSI Library Test Program")
-  DebugPrint("-------------------------")
-  DebugPrint("Terminal Size : " .. Term.Size.Rows .. "x" .. Term.Size.Columns)
-
-  t1 = [[This is just a test for the AnsiTerm library with wordwrap support, the following test will check if the text is printed as expected with Ansi support ON and OFF then the wordwrap will be turned off and the test will be repeated.
-This is a linefeed embedded into the string.]]
-  DebugPrint(t1)
-
-  DebugPrint(RepeatStr("-", 40))
+  Term.SetTermSize(25, 80, True)            ; Setup the terminal size and switch
+                                            ; on escape sequences.
+  Term.GetSize()                            ; Query the system for the terminal
+                                            ; size, it only works on Linux systems
+  ; Print the header
+  Term.Print("ANSI Library Test Program", True, Nil, True)   
+  Term.Print("-------------------------", True, Nil, True)
+  Term.Print("Terminal Size : " .. Term.Size.Rows .. "x" .. Term.Size.Columns, True, Nil, True)
+  Term.Print("", True, Nil, True)
   
-  DebugPrint("TESTING WORDWRAP=ON, ANSI=ON, Term=25x40")
-  DebugPrint(RepeatStr("-", 40))
+  ; :::::::::::::::::::
+  ; :: WORDWRAP TEST ::
+  ; :::::::::::::::::::
+  ; Setup a long string to test the wordwrap feature
+  t1 = [[This is just a test string for the ANSILib library, the following test will check if the text is printed as expected with Ansi support ON and OFF then the wordwrap will be turned off and the test will be repeated.
+This is a linefeed embedded into the string.]]
+  
+  ; We are using DebugPrint() that does not have wordwrap support
+  Term.Print("STANDARD DebugPrint() command", True, Nil, True)
+  DebugPrint(t1)
+  Term.Print(RepeatStr("-", 80), True, Nil, True)
 
-  t2 = [[~{NORM}Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin condimentum, nisl non rutrum dictum, magna nisl hendrerit sapien, vel eleifend tellus arcu sit amet ligula. Vivamus et lectus odio. Nunc dui felis, elementum in commodo sed, sagittis in justo. Mauris erat velit, varius quis elit sed, tristique varius leo. Praesent sit amet scelerisque velit, in molestie nulla. Sed eu bibendum justo. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Vestibulum rutrum viverra mauris, ut gravida enim bibendum non. Vivamus quis semper ipsum, sit amet eleifend justo. Ut in nulla arcu. Etiam quam ipsum, ultricies at turpis ut, sollicitudin tristique felis.]]
-  t3 = [[01:RESET command ->~{RSET}<- done.
+  ; Let's test wordwrap
+  Term.Print("TESTING WORDWRAP", True, Nil, True)
+  Term.Print(t1, True, Nil, True)
+  Term.Print(RepeatStr("-", 80), True, Nil, True)
+
+  Term.Print("", True, Nil, True)
+  Term.Input("Hit Enter to continue:", True, True)
+  
+  ;::::::::::::::::
+  ;:: LINES TEST ::
+  ;::::::::::::::::
+  ; Horizontal Lines
+  Term.Clear()
+  Term.AnsiMode = True  ; By default colors are switched off
+                        ; You can also use Ansi.Set() function for this
+  Term.Print("~{FGRN}~{BLD+}TESTING LINES", True, Nil, True)  ; Using the style tags
+  Term.Print("~{FCYA}Random Horizontal Lines...", True, Nil, True)
+  For Local r = 4 To 21 
+    Local c, l = Rnd(20)+1, Rnd(50)+1
+    Term.Draw.HLine({ row    = r, 
+                      column = c, 
+                      length = l, 
+                      Color  = Ansi.GetRndFgColor(), 
+                      Type   = "light" })
+  Next
+  Term.Input(Ansi.GetCursorMove(23, 1) .. "Hit Enter to continue...", True, True)
+
+  ; Vertical Lines
+  Term.Clear()
+  Term.Print("~{FGRN}~{BLD+}TESTING LINES", True, Nil, True)
+  Term.Print("~{FCYA}Random Vertical Lines...", True, Nil, True)
+  For Local c = 20 To 70 
+    Local r, l = Rnd(5)+4, Rnd(15)+1
+    Term.Draw.VLine({ row    = r, 
+                      column = c, 
+                      length = l, 
+                      Color  = Ansi.GetRndFgColor(), 
+                      Type   = "light" })
+  Next
+  Term.Input(Ansi.GetCursorMove(23, 1) .. "Hit Enter to continue...", True, True)
+  
+  ;::::::::::::::::
+  ;:: BOXES TEST ::
+  ;::::::::::::::::
+  ; Filled Boxes
+  Term.Clear()
+  Term.Print("~{FGRN}~{BLD+}TESTING BOXES", True, Nil, True)
+  Term.Print("~{FCYA}Random Filled Boxes (100ms delay)...", True, Nil, True)
+  For Local i = 1 To 15
+    Local r, c, w, h = Rnd(5)+4, Rnd(40)+1, Rnd(30)+2, Rnd(13)+2
+    Term.Draw.FBox({ row    = r, 
+                     column = c, 
+                     width  = w, 
+                     height = h, 
+                     Color  = Ansi.GetRndFgColor() })
+    Wait(100, #MILLISECONDS)
+  Next
+  Term.Input(Ansi.GetCursorMove(23, 1) .. "Hit Enter to continue...", True, True)
+  
+  ; Empty Boxes
+  Term.Clear()
+  Term.Print("~{FGRN}~{BLD+}TESTING BOXES", True, Nil, True)
+  Term.Print("~{FCYA}Random Empty Boxes (100ms delay)...", True, Nil, True)
+  For Local i = 1 To 15
+    Local r, c, w, h = Rnd(5)+4, Rnd(40)+1, Rnd(30)+2, Rnd(13)+2
+    Term.Draw.Box({ row    = r, 
+                    column = c, 
+                    width  = w, 
+                    height = h, 
+                    color  = Ansi.GetRndFgColor(), 
+                    type   = "light", 
+                    angles = IIf(RndF()>0.5, "squared", "rounded") })
+    Wait(100, #MILLISECONDS)
+  Next
+  Term.Input(Ansi.GetCursorMove(23, 1) .. "Hit Enter to continue...", True, True)
+  
+  ;::::::::::::::::::
+  ;:: PRINTAT TEST ::
+  ;::::::::::::::::::
+  Term.Clear()
+  Term.Print("~{FGRN}~{BLD+}TESTING Term.PrintAt() with 100ms delay...", True, Nil, True)
+  
+  For Local i = 1 To 15
+    Local r, c = Rnd(16)+4, Rnd(70)+1
+    Term.PrintAt(r, c, Ansi.GetRndFgColor() .. "Print At (" .. r .. "," .. c .. ")")
+    Wait(100, #MILLISECONDS)
+    
+  Next
+  Term.Input(Ansi.GetCursorMove(23, 1) .. "Hit Enter to continue...", True, True)
+  
+  ;::::::::::::::::
+  ;:: INPUT TEST ::
+  ;::::::::::::::::
+  Term.Clear()  
+  Term.Print("~{FGRN}~{BLD+}TESTING 'Term.Input()'...")
+  Local  name = Term.Input(Ansi.GetCursorMove(10, 2) .. "~{FCYA}Type your name and hit ENTER:~{FRED}")
+  Local sname = Term.Input(Ansi.GetCursorMove(12, 2) .. "~{FCYA}Type your surname and hit ENTER:~{FGRN}")
+  Term.PrintAt(14, 2, "name: " .. name .. ", surname: " .. sname)
+  Term.Input(Ansi.GetCursorMove(23, 1) .. "Hit Enter to continue...", True, True)
+  
+   /* ACTUALLY NOT WORKING AS INTENDED 
+   Term.Print("-----------------------------")
+   Term.Print("TESTING 'Term.getInput()'...")
+   Local xx = Term.getInput("Type something:", True, True, 10)
+   */
+  
+  ;::::::::::::::::
+  ;:: COLOR TEST ::
+  ;::::::::::::::::
+  Local t3 = [[01:RESET command ->~{RSET}<- done.
 02:BOLD ON/OFF      : ~{BLD+}BOLD style~{BLD-}       BOLD OFF
-03:DIM ON/OFF       : ~{DIM+}DIM style~{DIM-}        DIM OFF
+03:DIM ON/OFF       : ~{DIM+}DIM style~{RSET}        DIM OFF
 04:ITALIC ON/OFF    : ~{ITA+}ITALIC style~{ITA-}     ITALIC OFF
 05:UNDERLINE ON/OFF : ~{UND+}UNDERLINE style~{UND-}  UNDERLINE OFF
 06:BLINK ON/OFF     : ~{BLI+}BLINK style~{BLI-}      BLINK OFF
@@ -2275,90 +2399,193 @@ This is a linefeed embedded into the string.]]
 29:ADVICE SET       : ~{ADVI}ADVICE style~{NORM}     BACK TO NORMAL
 30:QUOTE SET        : ~{QUOT}QUOTE style~{NORM}      BACK TO NORMAL
 ]]
+  Term.Clear()
+  Term.Print("~{FGRN}~{BLD+}TESTING Codes...", True, Nil, True)
+  Term.Print(t3, False)   
+  Term.Print("      ~{FRED}RED~{FGRN}GREEN~{FDEF}", False)
+  Term.Print("BOLD->~{BLD+}~{FRED}RED~{FGRN}GREEN~{FDEF}~{BLD-}", False)
+  Term.Input("Hit Enter to continue...", True, True)
 
-   Term.AnsiMode = True  
-   
-   For Local i = 1 To 4
-     Local r, c, l = Rnd(9)+13, Rnd(40)+1, Rnd(40)+1
-     Term.Draw.HLine({ row = r, column = c, length = l, Color = Ansi.GetRndFgColor(), Type = "light" })
-   Next
-   
-   For Local i = 1 To 4
-     Local c, r, l = Rnd(40)+1, Rnd(9)+13, Rnd(10)+1
-     Term.Draw.VLine({ column = c, row = r, length = l, Color = Ansi.GetRndFgColor(), Type = "light" })
-   Next
-   
-   For Local i = 1 To 4
-     Local r, c, w, h = Rnd(9)+13, Rnd(60)+1, Rnd(30)+1, Rnd(10)+1
-     Term.Draw.FBox({ row = r, column = c, width = w, height = h, Color = Ansi.GetRndFgColor(), Type = "light", Angles = "squared" })
-   Next
-   
-   For Local i = 1 To 4
-     Local r, c, w, h = Rnd(9)+13, Rnd(60)+1, Rnd(30)+1, Rnd(10)+1
-     Term.Draw.Box({ row = r, column = c, width = w, height = h, Color = Ansi.GetRndFgColor(), Type = "light", Angles = "squared" })
-   Next
-   
-   For Local i = 1 To 8
-     Local r, c = Rnd(9)+13, Rnd(60)+1
-     Term.PrintAt(r, c, Ansi.GetRndFgColor() .. "Print At (" .. r .. ", " .. c .. ")")
-   Next
-      
-   Term.Print("TESTING 'Term.Input()'...")
-   Local xx = Term.Input("~{FCYA}Type something and hit ENTER:~{FRED}")
   
+  ;:::::::::::::::::::::
+  ;:: CURSOR MOVEMENT ::
+  ;:::::::::::::::::::::
+  Term.Clear()
+  Term.Print("~{FGRN}~{BLD+}TESTING Cursor's movements...", True, Nil, True)
+  
+  Term.Print("~{CLRH}Home", False, False, False)
+  Term.Print("1234567890123456789012345678901234567890")
+  Term.Print("2")
+  Term.Print("3")
+  Term.Print("4")
+  Term.Print("5")
+  Term.Print("6")
+  Term.Print("7")
+  Term.Print("8")
+  Term.Print("9")
+  Term.Print("0")
+  Term.Print("1")
+  Term.Print("2")
+  Term.Print("3")
+  Term.Print("4")
+  Term.Print("5")
+  Term.Print("6")
+  Term.Print("7")
+  Term.Print("8")
+  Term.Print("9")
+  Term.Print("0")
+  Term.Print("~{HOME}", False, False)
+  Term.Print(Ansi.GetCursorDown(8) .. Ansi.GetCursorRight(4) .. "~{FRED}01:~{FWHI} from Home go right 4 columns and down 8 lines", False, False, False)
+  Term.Print(Ansi.GetCursorUp(4)        .. "~{FRED}02:~{FWHI} then move up 4 lines", False, False, False)
+  Term.Print(Ansi.GetCursorRight(20)    .. "~{FRED}03:~{FWHI} move right 20 Columns", False, False, False)
+  Term.Print(Ansi.GetCursorDown(2)      .. "~{FRED}04:~{FWHI} and go down 2 lines", False, False, False)
+  Term.Print(Ansi.GetCursorMove(14, 10) .. "~{FRED}05:~{FWHI} Move at (14, 10)", False, False, False)
+  Term.Print(Ansi.GetCursorDown(5)      .. "~{FRED}06:~{FWHI} go down 5 rows ~{ADVI}HIT <ENTER> TO QUIT", False, False, False)
+  Term.Input(Ansi.GetCursorDown(2)      .. "Hit Enter to continue...", True, True)
+   
+  ;::::::::::::::::::::
+  ;:: Term.App Class ::
+  ;:: +ProgressBar   ::
+  ;:: +MenuSystem    ::
+  ;:: +GridView      ::
+  ;::::::::::::::::::::
+  Term.Clear()
+  
+  ; GRID VIEW SAMPLE DATA
+  Local data = 
+    { name = 
+      { "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",        
+        "Raimond" },
+        
+      surname = 
+      { "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "White" },
+        
+      age =
+      { 48.87,
+        41,
+        30,
+        58,
+        48,
+        41,
+        30,
+        58,
+        48,
+        41,
+        30,
+        58,
+        48,
+        41,
+        30,
+        58,
+        48,
+        41,
+        30,
+        58,
+        48,
+        41,
+        30,
+        58,
+        48,
+        41,
+        30,
+        58,
+        48,
+        41,
+        30,
+        58,        
+        61 },
+      }
       
-   /* ACTUALLY NOT WORKING AS INTENDED 
-   Term.Print("-----------------------------")
-   Term.Print("TESTING 'Term.getInput()'...")
-   Local xx = Term.getInput("Type something:", True, True, 10)
-   */
+  Local columns = 
+    { "name",
+      "surname",
+      ">age" }
+      
+  Local headers =
+    { "NAME",
+      "SURNAME",
+      "AGE" }
+      
+  Local positions =
+    {  1,
+      20,
+      40 }
+      
+  Local numbers =
+    { [2] = "%.4f" }
    
-   DebugPrint("\nWORDWRAP")
-   Term.Print(t2, True)
-   DebugPrint(RepeatStr("-", 40))
-   Term.Print(t3, False)   
-   Term.Print("~{FRED}ROSSO~{FGRN} VERDE~{FDEF}", False)
-   Term.Print("BOLD~{BLD+}~{FRED}ROSSO~{FGRN} VERDE~{FDEF}~{BLD-}", False)
-   Term.Input("~{FBLU}Type something and hit ENTER:~{FRED}")
-   DebugPrint("TESTING CURSOR MOVEMENT:")
-   Term.Print("~{CLRH}Home", False, False, False)
-   Term.Print("1234567890123456789012345678901234567890")
-   Term.Print("2")
-   Term.Print("3")
-   Term.Print("4")
-   Term.Print("5")
-   Term.Print("6")
-   Term.Print("7")
-   Term.Print("8")
-   Term.Print("9")
-   Term.Print("0")
-   Term.Print("1")
-   Term.Print("2")
-   Term.Print("3")
-   Term.Print("4")
-   Term.Print("5")
-   Term.Print("6")
-   Term.Print("7")
-   Term.Print("8")
-   Term.Print("9")
-   Term.Print("0")
-   Term.Print("~{HOME}", False, False)
-   Term.Print(Ansi.GetCursorDown(8) .. "[1] Down 8 lines", False, False, False)
-   Term.Print(Ansi.GetCursorUp(4) .. "[2] Up 4 lines", False, False, False)
-   Term.Print(Ansi.GetCursorRight(20) .. "[3] Right 20 Columns", False, False, False)
-   Term.Print(Ansi.GetCursorDown(2) .. "[4] Down 2 lines", False, False, False)
-   Term.Print(Ansi.GetCursorMove(10, 10) .. "[5] Moved at (10, 10)", False, False, False)
-   Term.Print(Ansi.GetCursorDown(15) .. "[6] ~{ADVI}HIT <ENTER> TO QUIT", False, False, False)
-   DebugPrompt(">")
-   
-   Term.Clear()
-   
-   Local tapp = Term.App:New()
-   tapp.Name = "TestApp"
+  Local tapp = Term.App:New()           ; Instantiate a new class
+   tapp.Name = "TestApp"                ; and setup some variables of your app
    tapp.Version = "1.0"
    tapp.Build = "10/01/2022"
    tapp.Copyright = "Fabio Falcucci"
    
+   ; Let's use the menu system defining a new menu
+   ; Every menu entry must have the following fields: command, description and callback
+   ; have a look at the docs for further details.
    tapp:MenuAdd("Main",
     { { command = "01",  description = "Nothing here 1", callback = Function() EndFunction },
       { command = "msg", description = "Select me to show a message", callback = 
@@ -2367,8 +2594,24 @@ This is a linefeed embedded into the string.]]
                                                                 EndFunction },
       { command = "02", description = "Nothing here 2", callback = Function() EndFunction },
       { command = "", description = "HEADER (Empty cmd field)", callback = Function() EndFunction },
-      { command = "03", description = "Nothing here 3", callback = Function() EndFunction },
-      { command = "04", description = "Nothing here 4", callback = Function() EndFunction },
+      { command = "prg", description = "Test progress bar", callback = Function() 
+                                                                         For Local i = 1 To 100
+                                                                           tapp:Progress("Testing the Progress method:" .. i .. "%", i, 100)
+                                                                           Wait(100, #MILLISECONDS)
+                                                                         Next
+                                                                         tapp:SetStatus("Completed!")
+                                                                         Wait(3000, #MILLISECONDS)      
+                                                                       EndFunction },
+      { command = "grid", description = "Test the grid view", callback = Function() 
+                                                                          tapp:GridView(data, columns, headers, positions, 
+                                                                                  Function(d, index) 
+                                                                                    tapp:ShowMessage(
+                                                                                      "ITEM SELECTED\n\n" ..
+                                                                                      d.Name[index] .. " " .. d.Surname[index] .. ", Age: " .. d.Age[index])
+                                                                                  EndFunction,
+                                                                                  "Hello! this is an info text...",
+                                                                                  numbers)
+                                                                         EndFunction },
       { command = "05", description = "Nothing here 5", callback = Function() EndFunction },
       { command = "06", description = "Nothing here 6", callback = Function() EndFunction },
       { command = "07", description = "Nothing here 7", callback = Function() EndFunction },
@@ -2385,6 +2628,7 @@ This is a linefeed embedded into the string.]]
       { command = "C3", description = "followed by ENTER", callback = Function() EndFunction }
       })
    
+   ; This menu is called when the user selected the menu item <sub> of the main menu.
    tapp:MenuAdd("Sub1",
     { { command = "this", description = "type 'back'", callback = Function() EndFunction },
       { command = "is", description = "to return", callback = Function() EndFunction },
@@ -2394,155 +2638,18 @@ This is a linefeed embedded into the string.]]
       { command = "menu", description = "", callback = Function() EndFunction },
       })
    
+   ; By default, typing <back> the user can go back to one menu level or quit the app if he has
+   ; reached the main menu.
    
-   tapp:SetStatus("Initialization completed.")
-   tapp:SetWarning("This is a sample warning.")
-   ; tapp:ShowMessage("test this is a test with a long line to check if wordwrap is handled correctly as it should\nNew line here")
-   For Local i = 1 To 100
-     tapp:Progress("Testing the Progress method:" .. i .. "%", i, 100)
-     Wait(100, #MILLISECONDS)
-     ;Term.PrintAt(5, 5, ToString(i))
-   Next
-   tapp:SetStatus("Completed!")
-   Wait(3000, #MILLISECONDS)
-   
-   tapp:SetStatus("Ready.")
+   tapp:SetWarning("This is a sample warning.")       ; Set the warning bar  
+   tapp:SetStatus("Ready.")                           ; Set the status bar
    tapp:Start("Main")
    
    
-   DebugPrompt("TEST ENDED")
+   DebugPrompt("\n\n\nTEST ENDED - Hit ENTER")
 EndFunction
 
-  ; UNCOMMENT THE FOLLOWING FUNCTION TO PERFORM A TEST
-  ; Term.TEST()
-  
-  
-/*
-  ; UNCOMMENT THE FOLLOWING SECTION FOR AN EXAMPLE OF THE
-  ; GRID CONTROL
-  ; -----------------------------------------------------
-  ; SAMPLE DATA
-  data = 
-    { name = 
-      { "Fabio",
-        "Mario",
-        "Pino",
-        "Jhon",
-        "Fabio",
-        "Mario",
-        "Pino",
-        "Jhon","Fabio",
-        "Mario",
-        "Pino",
-        "Jhon","Fabio",
-        "Mario",
-        "Pino",
-        "Jhon",
-"Fabio",
-        "Mario",
-        "Pino",
-        "Jhon",
-        "Fabio",
-        "Mario",
-        "Pino",
-        "Jhon","Fabio",
-        "Mario",
-        "Pino",
-        "Jhon","Fabio",
-        "Mario",
-        "Pino",
-        "Jhon",        
-        "Raimond" },
-      surname = 
-      { "Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross",
-        "Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross","Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross","Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross",
-        "Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross",
-        "Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross","Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross","Falcucci",
-        "Rossi",
-        "Bianchi",
-        "Ross",
-        "White" },
-      age =
-      { 48.87,
-        41,
-        30,
-        58,
-        48,
-        41,
-        30,
-        58,48,
-        41,
-        30,
-        58,48,
-        41,
-        30,
-        58,
-48,
-        41,
-        30,
-        58,
-        48,
-        41,
-        30,
-        58,48,
-        41,
-        30,
-        58,48,
-        41,
-        30,
-        58,        
-        61 },
-      }
-  columns = 
-    { "name",
-      "surname",
-      ">age" }
-  headers =
-    { "NAME",
-      "SURNAME",
-      "AGE" }
-  positions =
-    {  1,
-      20,
-      40 }
-      
-  numbers =
-    { [2] = "%.4f" }
-    
-@DISPLAY { Hidden = True }
-tapp = Term.App:new()
-
-tapp:GridView(data, columns, headers, positions, 
-  Function(d, index) 
-    tapp:ShowMessage(
-      "ITEM SELECTED\n\n" ..
-      d.Name[index] .. " " .. d.Surname[index] .. ", Age: " .. d.Age[index])
-  EndFunction,
-  "Hello! this is an info text...",
-  numbers)
-
-DebugPrompt("?")
-*/
+; UNCOMMENT THE FOLLOWING FUNCTION TO PERFORM A TEST
+; Term.TEST()
 
 
