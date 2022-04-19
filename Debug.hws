@@ -45,9 +45,11 @@
 Global  DBG = {}
         DBG.Console = {}
         DBG.Log     = {}
-        DBG.Version = "1.8"
-        DBG.Build   = "27/12/2021" 
-
+        DBG.Version = "1.9"
+        DBG.Build   = "19/04/2022" 
+        ; --/04/2022 : Added a new bump mode : DBG.OutMode_String to be able to dump
+        ;              tables into formatted strings. The result is available inside
+        ;              the variable 'DBG.OutString'.
         ; 02/06/2021 : Fixed a bug in the time padding, now when the timer exceed
         ;              the padding the timer will be resetted.        
         ; 09/01/2021 : Changed how memory informations are logged using #SYSINFO# tag
@@ -81,6 +83,7 @@ DBG.DumpTableHideFunctions = False;                     TableDump, hide function
 DBG.OutMode_Straight = 1         ;             Output mode to the console always
 DBG.OutMode_Console  = 2         ;         Output mode to the console if enabled
 DBG.OutMode_Log      = 3         ;             Output to the log file if enabled
+DBG.OutMode_String   = 4         ;                Output to a string & return it
 
 DBG.Console_Ident    = 0         ;    Current Ident level for the Console output
 DBG.Console_Ident2   = 0         ;   Current Ident level for the Log file output
@@ -702,6 +705,7 @@ INPUT
                                     even if the debug is disabled.
            ->DBG.OutMode_Console : Dump to the console (if active)
            ->DBG.OutMode_Log : Dump to the log file (if active)
+           ->DBG.OutMode_String : Dump a table into a formatted string
            Defaults to <DBG.OutMode_Straight>.
   sorted => Set to TRUE if you want the func output sorted
   ident => [PRIVATE] Starting identation level
@@ -736,6 +740,9 @@ NOTES
   Local space = ""
   Local stbl  = {}
   Local sidx  = -1
+  If check = Nil
+    DBG.OutString = ""
+  EndIf
    
   If IsNil(rec_count) Then rec_count = 1 Else rec_count = rec_count + 1
   If IsNil(mode) Then mode = DBG.OutMode_Straight
@@ -747,6 +754,8 @@ NOTES
     outfunc = DBG.Console.Out
   ElseIf mode = DBG.OutMode_Log
     outfunc = DBG.Log.Out
+  ElseIf mode = DBG.OutMode_String
+    outfunc = Function(s) DBG.OutString = DBG.OutString .. s .. "\n" EndFunction
   Else
     outfunc = DebugPrint3
   EndIf
@@ -879,6 +888,11 @@ Simple program to test the DBG.DumpTable() function
   DebugPrint("---------------------------")
   DBG.DumpTable(table1)
   
+  DebugPrint("\nDUMPING TO A STRING:")
+  DebugPrint("---------------------------")
+  Local r, s = DBG.DumpTable(table1, DBG.Outmode_String)
+  DebugPrint(s)
+
   DebugPrint("\nDUMPING THE SORTED TABLE CONTENTS:")
   DebugPrint("----------------------------------")
   DBG.DumpTable(table1, Nil, True)
