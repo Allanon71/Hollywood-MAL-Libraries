@@ -414,7 +414,7 @@ NOTES
     EndIf
 
     If DBG.Console.Timing
-      Local t1 = Wrap(GetTimer(DBG.Console.TimerID), 2147483647, 0)
+      Local t1 = Wrap(GetTimer(DBG.Console.TimerID), 0, 2147483647)
       Local t = PadNum(t1, DBG.Console.TimePadding)
       If Mode = DBG.OpenFunc
         Ident = t .. ident .. " +"
@@ -735,7 +735,7 @@ NOTES
 
   Local t = ""
   If ch.Timing
-    Local t1 = Wrap(GetTimer(DBG.Log.TimerID), 2147483647, 0)
+    Local t1 = Wrap(GetTimer(DBG.Log.TimerID), 0, 2147483647)
     t = " " .. PadNum(GetTimer(DBG.Log.TimerID), DBG.Log.TimePadding)
   EndIf
   
