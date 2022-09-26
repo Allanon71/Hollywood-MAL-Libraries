@@ -19,6 +19,49 @@ All you have to do is:
 
 ---
 
+# Lib-Date&Time
+ **Hollywood-MAL Date & Time Library**
+ This library holds some useful methods and functions to handle dates, source code is full with comments and examples, here is the list:
+
+CONTENTS
+```plaintext
+FUNCTIONS
+  DT.DateToDays(dd, mm, yy)
+  DT.DaysToDate(days, format)
+  DT.GetMonthDays(monthNum, year)
+  DT.IsLeap(Year)
+  DT.MillisecondsToTime(MS, decimal)
+  DT.MinutesToTime(mins)
+  DT.MonthToNumber(month)
+  DT.NDate_AddDays(dd, mm, yy, days)
+  DT.NumberToMonth(month)
+  DT.SDate_AddDays(sDate, days)
+  DT.SecondsToTime(secs)
+  DT.TimeToMinutes(Tim)
+  DT.TimeToSeconds(Tim)
+  DT._anyToSeconds(arg)
+  
+OBJECTS/METHODS
+  TimeObj:Add(tObj)
+  TimeObj:New(timedef)
+  TimeObj:NewFileLastChange(filename)
+  TimeObj:NewNow()
+  TimeObj:Sub(tObj)
+  TimeObj:dbgPrint()
+  TimeObj:equalTo(tObj, threshold)
+  TimeObj:fromSeconds(seconds)
+  TimeObj:fromString(s, mode)
+  TimeObj:fromUnixTimeStamp(timestamp)
+  TimeObj:greaterThan(tObj, threshold)
+  TimeObj:lesserThan(tObj, threshold)
+  TimeObj:toSeconds()
+  TimeObj:toString(fmt)
+  TimeObj:toUnixTimeStamp()
+
+TESTS
+  DT.TEST()
+```
+
 # Lib-Helpers
  **Hollywood-MAL Helpers Library**
  

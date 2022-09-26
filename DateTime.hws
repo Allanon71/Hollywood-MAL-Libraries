@@ -1,0 +1,1328 @@
+/********************************************************************
+ * DATE & TIME LIBRARY                                              *
+ * Author : Fabio Falcucci (Allanon)                                *
+ * License : Donationware                                           *
+ * Dependancies : TABLES                                            *
+ *                  HELPERS                                         *
+ *                  EASING                                          *
+ *                HELPERS                                           *
+ ********************************************************************/
+ 
+ /* CONTENTS
+ This library holds some useful methods and functions to handle
+ dates, here is a list:
+ 
+FUNCTIONS
+  DT.DateToDays(dd, mm, yy)
+  DT.DaysToDate(days, format)
+  DT.GetMonthDays(monthNum, year)
+  DT.IsLeap(Year)
+  DT.MillisecondsToTime(MS, decimal)
+  DT.MinutesToTime(mins)
+  DT.MonthToNumber(month)
+  DT.NDate_AddDays(dd, mm, yy, days)
+  DT.NumberToMonth(month)
+  DT.SDate_AddDays(sDate, days)
+  DT.SecondsToTime(secs)
+  DT.TimeToMinutes(Tim)
+  DT.TimeToSeconds(Tim)
+  DT._anyToSeconds(arg)
+  
+OBJECTS/METHODS
+  TimeObj:Add(tObj)
+  TimeObj:New(timedef)
+  TimeObj:NewFileLastChange(filename)
+  TimeObj:NewNow()
+  TimeObj:Sub(tObj)
+  TimeObj:dbgPrint()
+  TimeObj:equalTo(tObj, threshold)
+  TimeObj:fromSeconds(seconds)
+  TimeObj:fromString(s, mode)
+  TimeObj:fromUnixTimeStamp(timestamp)
+  TimeObj:greaterThan(tObj, threshold)
+  TimeObj:lesserThan(tObj, threshold)
+  TimeObj:toSeconds()
+  TimeObj:toString(fmt)
+  TimeObj:toUnixTimeStamp()
+
+TESTS
+  DT.TEST()
+  
+CHANGELOG
+---------
+  09.08.2021
+    ADD : DT.GetMonthDays(monthNumber, year)
+         Returns how many days the specified month has
+  15.11.2016
+    ADD : Now you can create a time object passing a string in standard
+          Hollywood format dd-mmm-yyyy hh:mm:ss
+    ADD : Method :fromString() detects automatically if you are passing
+          a string in the format dd-mm-yyyy hh:mm:ss or
+          dd-mmm-yyyy hh:mm:ss (standard Hollywood format)
+*/
+ 
+@INCLUDE "+Includes.hws"
+@INCLUDE #INC_TABLES
+;           -> Helpers
+;           -> Easing
+@INCLUDE #INC_HELPERS
+
+Global DT = {}
+       DT.Version = "1.4"
+       DT.Build   = "29.09.2022"
+
+Const #DT_FORMAT_SEPARATED = 1
+Const #DT_FORMAT_STANDARD  = 2
+Const #DT_TIME_SEPARATOR   = ":"
+Const #DT_DATE_SEPARATOR   = "-"
+
+; Standard days per months
+DT.MonthDays = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+
+; Month number <--> Hollywood month correspondence
+DT.MonthIN   = { "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec" }
+
+;::: TIME OBJECT :::
+; This object allow easy date & time operations
+TimeObj = {}
+  TimeObj.day    = 0
+  TimeObj.month  = 0
+  TimeObj.year   = 0
+  TimeObj.hour   = 0
+  TimeObj.minute = 0
+  TimeObj.second = 0
+  TimeObj.millis = 0
+
+
+;::: Methods :::
+Function TimeObj:New(timedef)
+/******************************************************************************
+timeObj = TimeObj:New(timeDef)
+
+Returns a new Time object, optionally the object can be initialized with the
+value passed by the 'timeDef' argument.
+
+INPUT
+  timeDef => This argument specify the value we want to use to intialize the
+             object, the following types are recognized:
+             -> #TABLE : You have to pass a table with the day, month, year, hour, minute, second and millis fields
+             -> #NUMBER : You have to pass a number of seconds that will be converted in a complete date
+             -> #STRING : You have to pass a string representing a date with the format dd-mm-yyyy hh:mm:ss
+OUTPUT
+  timeObj => A new time object
+EXAMPLE
+  Here is how you can create a new time object using a table:
+  | Local myTime = TimeObj:New(
+  |   { 20, 2, 2016, 18, 44, 20, 0 })
+  | ;   d   m  y     h   m   a   mi
+  
+  Now let's try using a number (of seconds):
+  | Local myTime = TimeObj:New(2736664)
+  
+  And here is how you can use a string:
+  | Local myTime = TimeObj:New("20-02-2016 18:44:20")
+  | Local myTime = TimeObj:New("20-Feb-2016 18:44:20")
+  
+  To create and empty object:
+  | Local myTime = TimeObj:New()
+******************************************************************************/
+   Local t = CopyTable(self)
+   If HL.IsNotNil(timedef)
+      If GetType(timedef) = #TABLE
+         ; timedef
+         ; [TODO] : I could use TB.Set() for initialization
+         t.day     = timedef[0]
+         t.month   = timedef[1]
+         t.year    = timedef[2]
+         t.hour    = timedef[3]
+         t.minute  = timedef[4]
+         t.second  = timedef[5]
+         If TB.Item.Exists(timedef, 6)
+           t.millis = timedef[6]
+         Else
+           t.millis  = 0
+         EndIf
+      ElseIf GetType(timedef) = #NUMBER
+         ; secondi
+         t:fromSeconds(timedef)
+      ElseIf GetType(timedef) = #STRING
+         ; timestr
+         t:fromString(timedef)
+      EndIf
+   EndIf
+   Return(t)
+EndFunction
+
+Function TimeObj:dbgPrint()
+/******************************************************************************
+TimeObj:dbgPrint()
+
+Prints to the console the current object value with the format
+dd-mm-yyyy hh:mm:ss.mmm
+******************************************************************************/
+
+  DebugPrint(PadNum(self.day, 2) .. "-" .. PadNum(self.month, 2) .. "-" .. self.year .. " " .. PadNum(self.hour,2) .. ":" .. PadNum(self.minute, 2) .. ":" .. PadNum(self.second, 2) .. "." .. PadNum(self.millis, 3))
+EndFunction
+
+Function TimeObj:toUnixTimeStamp()
+/******************************************************************************
+result = TimeObj:toUnixTimeStamp()
+
+Returns the Unix TimeStamp value
+
+OUTPUT
+  result => The time converted into Unix timestamp format
+******************************************************************************/
+  Local y = self.year
+  Local m = self.month 
+  If self.month <= 2
+    y = y - 1
+    m = m + 12
+  EndIf
+  
+  Return((365*y + y\4 - y\100 + y\400 + 3*(m+1)\5 + 30*m + self.day - 719561) * 86400 + 3600 * self.hour + 60 * self.minute + self.second)
+EndFunction
+
+Function TimeObj:fromUnixTimeStamp(timestamp)
+/******************************************************************************
+TimeObj:fromUnixTimeStamp(timeStamp)
+
+Load the time object with the given Unix TimeStamp value
+
+INPUT
+  timeStamp => Unix time stamp value
+******************************************************************************/
+  Local ts = ToNumber(timestamp)
+  s = ts%86400
+  ts = ts\86400
+  h = s\3600
+  m = s\60%60
+  s = s%60
+  x = (ts*4+102032)\146097+15
+  b = ts+2442113+x-(x\4)
+  c = (b*20-2442)\7305
+  d = b-365*c-c\4
+  e = d*1000\30601
+  f = Int(d-e*30-e*601\1000)
+
+  If e<14
+    self.year = c-4716
+    self.month = e-1
+    self.day = f
+    self.hour = h
+    self.minute = m
+    self.second = s
+    self.millis = 0
+  Else
+    self.year = c-4715
+    self.month = e-13
+    self.day = f
+    self.hour = h
+    self.minute = m
+    self.second = s
+    self.millis = 0  
+  EndIf
+  
+EndFunction
+
+Function TimeObj:toString(fmt)
+/******************************************************************************
+result = TimeObj:fromUnixTimeStamp(fmt)
+
+Returns the time object with a string notation using the optional format 'fmt'
+
+INPUT
+  fmt => The string format you want as result
+         -> NIL : dd-mm-yyyy hh:mm:ss
+         -> 1 : dd-mmm-yyyy hh:mm:ss, thisis the standard Hollywood format
+OUTPUT
+  result => The string representing the date and time
+NOTES
+  You could have also negative dates, in this case the date will be signed
+  with the minus character.
+******************************************************************************/
+  Local sign = ""
+  Local t = self:New()
+  If t.day < 0 
+    sign = "-"
+    t.day = -t.day
+  EndIf
+  If t.month < 0 
+    sign = "-"
+    t.month = -t.month
+  EndIf
+  If t.year < 0 
+    sign = "-"
+    t.year = -t.year
+  EndIf
+  If t.hour < 0 
+    sign = "-"
+    t.hour = -t.hour
+  EndIf
+  If t.minute < 0 
+    sign = "-"
+    t.minute = -t.minute
+  EndIf
+  If t.second < 0 
+    sign = "-"
+    t.second = -t.second
+  EndIf
+  
+  If IsNil(fmt)
+    Return(sign .. 
+          PadNum(t.day   , 2) .. #DT_DATE_SEPARATOR ..
+          PadNum(t.month , 2) .. #DT_DATE_SEPARATOR ..
+          PadNum(t.year  , 4) .. " " ..
+          PadNum(t.hour  , 2) .. #DT_TIME_SEPARATOR ..
+          PadNum(t.minute, 2) .. #DT_TIME_SEPARATOR ..
+          PadNum(t.second, 2))
+  ElseIf fmt = 1
+    Local m = DT.MonthIN[t.month-1]
+    Return(sign .. 
+          PadNum(t.day   , 2) .. #DT_DATE_SEPARATOR ..
+          HL.Capitalize(m) .. #DT_DATE_SEPARATOR ..
+          PadNum(t.year  , 4) .. " " ..
+          PadNum(t.hour  , 2) .. #DT_TIME_SEPARATOR ..
+          PadNum(t.minute, 2) .. #DT_TIME_SEPARATOR ..
+          PadNum(t.second, 2))
+  EndIf
+  
+EndFunction
+
+Function TimeObj:fromString(s, mode)
+/******************************************************************************
+TimeObj:fromString(str, format)
+
+Load the time object with the given string using the specified format.
+
+INPUT
+  str => The string representing the date and time
+  format => the format to use with the given string:
+            -> 0 (default) : dd-mm-yyyy hh:mm:ss
+            -> 1 : yyyy-mm-dd hh:mm:ss
+            -> 2 : dd-mmm-yyyy hh:mm:ss (Hollywood format)
+            -> 3 : yy-mm-dd hh:mm:ss
+            -> 4 : dd-mm-yy hh:mm:ss
+******************************************************************************/
+  If IsNil(mode) Then mode = 0
+  If mode = 0 And StrLen(str) = 20 Then mode = 2
+  
+  Switch mode
+    Case 0
+      self.day     = ToNumber(LeftStr(s, 2))
+      self.month   = ToNumber(MidStr(s, 3, 2))
+      self.year    = ToNumber(MidStr(s, 6, 4))
+      self.hour    = ToNumber(MidStr(s, 11, 2))
+      self.minute  = ToNumber(MidStr(s, 14, 2))
+      self.second  = ToNumber(RightStr(s, 2))
+      self.millis  = 0
+     
+    Case 1
+      self.year    = ToNumber(LeftStr(s, 4))
+      self.month   = ToNumber(MidStr(s, 5, 2))
+      self.day     = ToNumber(MidStr(s, 8, 2))
+      self.hour    = ToNumber(MidStr(s, 11, 2))
+      self.minute  = ToNumber(MidStr(s, 14, 2))
+      self.second  = ToNumber(RightStr(s, 2))
+      self.millis  = 0
+
+    Case 2
+      self.day     = ToNumber(LeftStr(s, 2))
+      self.month   = MidStr(s, 3, 3)
+      self.year    = ToNumber(MidStr(s, 7, 4))
+      self.hour    = ToNumber(MidStr(s, 12, 2))
+      self.minute  = ToNumber(MidStr(s, 15, 2))
+      self.second  = ToNumber(RightStr(s, 2))
+      self.millis  = 0
+     
+      Switch LowerStr(self.month)
+        Case "jan"
+          self.month = 1
+        Case "feb"
+          self.month = 2
+        Case "mar"
+          self.month = 3
+        Case "apr"
+          self.month = 4
+        Case "may"
+          self.month = 5
+        Case "jun"
+          self.month = 6
+        Case "jul"
+          self.month = 7
+        Case "aug"
+          self.month = 8
+        Case "sep"
+          self.month = 9
+        Case "oct"
+          self.month = 10
+        Case "nov"
+          self.month = 11
+        Case "dec"
+          self.month = 12
+      EndSwitch
+      
+    Case 3
+      self.year    = 2000 + ToNumber(LeftStr(s, 2))
+      self.month   = ToNumber(MidStr(s, 3, 2))
+      self.day     = ToNumber(MidStr(s, 6, 2))
+      self.hour    = ToNumber(MidStr(s, 9, 2))
+      self.minute  = ToNumber(MidStr(s, 12, 2))
+      self.second  = ToNumber(RightStr(s, 2))
+      self.millis  = 0
+     
+    Case 4
+      self.day     = ToNumber(LeftStr(s, 2))
+      self.month   = ToNumber(MidStr(s, 3, 2))
+      self.year    = 2000 + ToNumber(MidStr(s, 6, 2))
+      
+      self.hour    = ToNumber(MidStr(s, 9, 2))
+      self.minute  = ToNumber(MidStr(s, 12, 2))
+      self.second  = ToNumber(RightStr(s, 2))
+      self.millis  = 0
+    
+  EndSwitch
+    
+EndFunction
+
+Function TimeObj:NewNow()
+/******************************************************************************
+timeObject = TimeObj:NewNow()
+
+Returns a new time object loaded with the current date and time
+
+OUTPUT
+  timeObject => New time object
+******************************************************************************/
+
+  Local tObj = TimeObj:New()
+
+  Local today = GetDate(#DATELOCAL)
+  tObj.date   = today
+  tObj.day    = ToNumber(LeftStr(today, 2))
+  tObj.month  = DT.MonthToNumber(MidStr(today, 3, 3))
+  tObj.year   = ToNumber(MidStr(today, 7, 4))
+  tObj.hour   = ToNumber(MidStr(today, 12, 2))
+  tObj.minute = ToNumber(MidStr(today, 15, 2))
+  tObj.second = ToNumber(MidStr(today, 18, 2))
+  tObj.millis = 0
+
+  Return(tObj)
+EndFunction
+
+Function TimeObj:toSeconds()
+/******************************************************************************
+seconds = TimeObj:toSeconds()
+
+Returns the time object expressed in seconds
+
+OUTPUT
+  seconds => The date and time expressed in seconds
+******************************************************************************/
+
+  Local days_thisyear = self.day
+  For Local m = 1 To self.month-1
+    days_thisyear = days_thisyear + DT.MonthDays[m]
+  Next
+  If self.month-1 >= 2 And DT.IsLeap(self.Year) Then days_thisyear = days_thisyear + 1
+
+  Local days_pastyears = 0
+  For Local y = 0 To self.Year-1
+    days_pastyears = days_pastyears + IIf(DT.IsLeap(y), 366, 365)
+  Next
+
+  Local sec = self.second +
+              self.minute * 60 +
+              self.hour   * 3600 +
+              (days_thisyear + days_pastyears) * 86400
+  Return(sec)
+EndFunction
+
+Function TimeObj:fromSeconds(seconds)
+/******************************************************************************
+TimeObj:fromSeconds(seconds)
+
+Load the time object with the given seconds
+
+INPUT
+  seconds => A value expressed in seconds
+******************************************************************************/
+
+  Local days      = Int(seconds / 86400)
+  Local remainder = Mod(seconds, 86400)
+  Local hours     = Int(remainder / 3600)
+  Local remainder = (remainder / 3600 - hours) * 60
+  Local minutes   = Int(remainder)
+  Local seconds   = Round((remainder - Int(remainder))*60)
+
+  
+
+  Local year, loop, d = 0, True, days
+  While loop
+    Local year_days = IIf(DT.IsLeap(year), 366, 365)
+    If d - year_days => 1
+      year = year + 1
+      d = d - year_days
+    Else
+      loop = False
+    EndIf
+  Wend
+
+  
+  Local month, loop = 0, True
+  While loop
+    Local month_days = DT.MonthDays[month]
+    If month = 2 And DT.IsLeap(year) Then month_days = month_days + 1
+    If d - month_days => 1
+      month = month + 1
+      d = d - month_days
+    Else
+      loop = False
+    EndIf
+  Wend
+
+  
+  self.second = seconds
+  self.minute = minutes
+  self.hour   = hours
+  self.day    = d
+  self.month  = month
+  self.year   = year
+  self.millis = 0
+
+EndFunction
+
+Function TimeObj:Sub(tObj)
+/******************************************************************************
+result = TimeObj:Sub(tObj)
+
+Subtract from the time object the specified tObj.
+The result will be returned to a new time object.
+
+INPUT
+  tObj => A timeObject to subtract from the time object.
+OUTPUT
+  result => A new time object representing the result of the subtraction.
+EXAMPLE
+  | Local t1 = TimeObj:NewNow()
+  | Local t2 = TimeObj:New("20-00-0000 04:00:00")
+  | ; Subtract t2 from t1, t2 represents 20 days and 4 hours so we are going
+  | ; to subtract 20 days and 4 hours from the current time.
+  | Local t3 = t1:Sub(t2)
+  | t3:dbgPrint()
+******************************************************************************/
+
+  Local result = self:new()
+  Local DeltaSeconds = self:toSeconds() - tObj:toSeconds()
+  result:fromSeconds(deltaSeconds)
+  
+  Return(result)
+EndFunction
+
+Function DT.GetMonthDays(monthNum, year)
+/***************************************
+  days = DT.GetMonthDays(monthNum, year)
+  
+  Returns how many days the specified month has.
+  -----------------------------------------------
+  INPUT
+    monthNum      Month number (1-12)
+    year          Year (nnnn)
+    
+  OUTPUT
+    days          How many days in the given month
+  -----------------------------------------------
+*/
+
+  Local d = DT.MonthDays[monthNum]
+
+  If monthNum = 2
+    If Mod(year, 4) = 0
+      If Mod(year, 100) = 0
+        If Mod(year, 400) = 0
+          d = 29
+          
+        EndIf
+        
+      Else
+        d = 29
+        
+      EndIf
+      
+    EndIf
+
+  EndIf
+  
+  Return(d)
+  
+EndFunction
+
+
+Function DT._anyToSeconds(arg)
+/******************************************************************************
+seconds = DT._anyToSeconds(value)
+
+Convert the given value in seconds.
+
+INPUT
+  value => The value we want to convert in seconds, it can be:
+           -> A time object
+           -> A table with day, month, year, hour, minute, second and millis fields
+           -> A string with the format dd-mm-yyyy hh:mm:ss
+OUTPUT
+  seconds => the value converted in seconds
+******************************************************************************/
+  ; Converte arg in numero di secondi
+  If GetType(arg) = #TABLE
+    If TB.Item.Exists(arg, "new")
+      ; E' un oggetto TimeObj
+      Return(arg:toSeconds())
+    Else
+      ; E' una tabella TimeDef
+      Local o = TimeObj:new(arg)
+      Return(o:toSeconds())
+    EndIf
+  ElseIf GetType(arg) = #NUMBER
+    ; Sono secondi
+    Return(arg)
+  ElseIf GetType(arg) = #STRING
+    ; Definizione TimeStr
+    Local o = TimeObj:new(arg)
+    Return(o:toSeconds())
+  EndIf
+
+  Return(Nil)
+
+EndFunction
+
+Function TimeObj:Add(tObj)
+/******************************************************************************
+result = TimeObj:Add(tObj)
+
+Add to the time object the specified tObj.
+The result will be returned to a new time object.
+
+INPUT
+  tObj => A timeObject to add the time object.
+OUTPUT
+  result => A new time object representing the result of the addition.
+EXAMPLE
+  | Local t1 = TimeObj:NewNow()
+  | Local t2 = TimeObj:New("20-00-0000 04:00:00")
+  | ; Add t2 from t1, t2 represents 20 days and 4 hours so we are going
+  | ; to add 20 days and 4 hours from the current time.
+  | Local t3 = t1:Sub(t2)
+  | t3:dbgPrint()
+******************************************************************************/
+
+   If GetType(tObj) = #STRING
+     Local t = tObj
+     tObj = self:new()
+     tObj:fromString(t, 0)
+   EndIf
+   
+   
+   Local result = self:new()
+   Local DeltaSeconds = self:toSeconds() + tObj:toSeconds()
+   result:fromSeconds(deltaSeconds)
+
+   Return(result)
+EndFunction
+
+Function TimeObj:greaterThan(tObj, threshold)
+/******************************************************************************
+result = TimeObj:greaterThan(tObj, threshold)
+
+Check id the time object is greater than tObj using an optional threshold
+espressed in seconds.
+
+INPUT
+  tObj => Time object
+  threshold => threshold value expressed in seconds (optional)
+OUTPUT
+  result => The result of comparison: True if time object is greater than tObj
+            otherwise False.
+******************************************************************************/
+
+  If IsNil(threshold) Then threshold = 0
+   Local result = self:new()
+   Local s1, s2 = self:toSeconds(), DT._anyToSeconds(tObj)
+
+   If s1 > s2
+      If s1-s2 >= threshold Then Return(True)
+   Else
+      Return(False)
+   EndIf
+EndFunction
+
+Function TimeObj:lesserThan(tObj, threshold)
+/******************************************************************************
+result = TimeObj:lesserThan(tObj, threshold)
+
+Check id the time object is lesser than tObj using an optional threshold
+espressed in seconds.
+
+INPUT
+  tObj => Time object
+  threshold => threshold value expressed in seconds (optional)
+OUTPUT
+  result => The result of comparison: True if time object is lesser than tObj
+            otherwise False.
+******************************************************************************/
+  If IsNil(threshold) Then threshold = 0
+   Local result = self:new()
+   Local s1, s2 = self:toSeconds(), DT._anyToSeconds(tObj)
+
+   If s1 < s2
+      If s2-s1 >= threshold Then Return(True)
+   Else
+      Return(False)
+   EndIf
+EndFunction
+
+Function TimeObj:equalTo(tObj, threshold)
+/******************************************************************************
+result = TimeObj:equalThan(tObj, threshold)
+
+Check id the time object is equal to tObj using an optional threshold
+espressed in seconds.
+
+INPUT
+  tObj => Time object
+  threshold => threshold value expressed in seconds (optional)
+OUTPUT
+  result => The result of comparison: True if time object is equal to tObj
+            otherwise False.
+******************************************************************************/
+  If IsNil(threshold) Then threshold = 0
+   Local result = self:new()
+   Local s1, s2 = self:toSeconds(), DT._anyToSeconds(tObj)
+   
+   If Abs(s1-s2) < threshold
+      Return(True)
+   Else
+      Return(False)
+   EndIf
+EndFunction
+
+Function TimeObj:NewFileLastChange(filename)
+/******************************************************************************
+TimeObject = TimeObj:NewFileLastChange(filename)
+
+Create a new time object and load it with the last modify date of the given
+file.
+
+INPUT
+  filename => Where we want to pick the last modify change
+OUTPUT
+  TimeObject => The new time object or NIL if 'filename' does not exists.
+******************************************************************************/
+  If Exists(filename)
+    Local tObj = TimeObj:New()
+    Local fileAttr = GetFileAttributes(filename)
+
+    Local day = fileAttr.Time
+    tObj.date   = day
+    tObj.day    = ToNumber(LeftStr(day, 2))
+    tObj.month  = DT.MonthToNumber(MidStr(day, 3, 3))
+    tObj.year   = ToNumber(MidStr(day, 7, 4))
+    tObj.hour   = ToNumber(MidStr(day, 12, 2))
+    tObj.minute = ToNumber(MidStr(day, 15, 2))
+    tObj.second = ToNumber(MidStr(day, 18, 2))
+    Return(tObj)
+  EndIf
+EndFunction
+
+Function DT.IsLeap(Year)
+/******************************************************************************
+result = DT.IsLeap(year)
+
+Return if the given 'year' is leap or not.
+INPUT
+  year => The year to check
+OUTPUT
+  result => True if the given leaop is True, otherwise False.
+******************************************************************************/
+   If Year % 4 = 0
+      If Year % 100 = 0
+         If Year % 400 = 0
+            Return(True)
+         Else
+            Return(False)
+         EndIf
+      Else
+         Return(True)
+      EndIf
+   EndIf
+
+   Return(False)
+EndFunction
+
+Function DT.DateToDays(dd, mm, yy)
+/******************************************************************************
+result = DT.DateToDays(dd, mm, yy)
+
+Converts the given date into days count starting from year 0. You can supply
+the date using the three parameters 'dd', 'mm', 'yy' or you can pass a string
+with a date in standard Hollywood format into the argument 'dd'.
+
+INPUT
+  dd => Days of the date we want to convert or a string in the format dd-mmm-yyyy
+  mm => Month of the date we want to convert
+  yy => Year of the date we want to convert
+OUTPUT
+  result => Date representation in days.
+******************************************************************************/
+   If GetType(dd) = #STRING
+      If StrLen(dd) <> 11 Then Return(Nil)
+      yy = Val(RightStr(dd, 4))
+      mm = DT.MonthToNumber(MidStr(dd, 3, 3))
+      dd = Val(LeftStr(dd, 2))
+   EndIf
+
+   Local dcount = 0
+   For y = 0 To (yy - 1)
+      If DT.IsLeap(y)
+         dcount = dcount + 366
+      Else
+         dcount = dcount + 365
+      EndIf
+   Next
+   
+   For m = 1 To (mm - 1)
+      Switch m
+         Case 1
+         dcount = dcount + 31
+
+         Case 2
+         If DT.IsLeap(yy)
+            dcount = dcount + 29
+         Else
+            dcount = dcount + 28
+         EndIf
+
+         Case 3
+         dcount = dcount + 31
+
+         Case 4
+         dcount = dcount + 30
+
+         Case 5
+         dcount = dcount + 31
+
+         Case 6
+         dcount = dcount + 30
+
+         Case 7
+         dcount = dcount + 31
+
+         Case 8
+         dcount = dcount + 31
+
+         Case 9
+         dcount = dcount + 30
+
+         Case 10
+         dcount = dcount + 31
+
+         Case 11
+         dcount = dcount + 30
+
+         Case 12
+         dcount = dcount + 31
+
+       EndSwitch
+
+   Next
+
+   dcount = dcount + dd
+
+   Return(dcount)
+EndFunction
+
+Function DT.MonthToNumber(month)
+/******************************************************************************
+result = DT.MonthToNumber(month)
+
+Returns the month number associated with the month string <month>, it must be a
+three character month name (in english), in the standard Hollywood format.                                                        |
+
+INPUT
+  month => Month to convert (Jan, Feb, Mar, Apr, ...)
+OUTPUT
+  result => Month number or 0 if 'month' is not recognized.
+******************************************************************************/
+  Switch Month
+    Case "Jan"
+    Return(1)
+
+    Case "Feb"
+    Return(2)
+
+    Case "Mar"
+    Return(3)
+
+    Case "Apr"
+    Return(4)
+
+    Case "May"
+    Return(5)
+
+    Case "Jun"
+    Return(6)
+
+    Case "Jul"
+    Return(7)
+
+    Case "Aug"
+    Return(8)
+
+    Case "Sep"
+    Return(9)
+
+    Case "Oct"
+    Return(10)
+
+    Case "Nov"
+    Return(11)
+
+    Case "Dec"
+    Return(12)
+  
+  Default
+    Return(0)
+    
+  EndSwitch
+EndFunction
+
+Function DT.DaysToDate(days, format)
+/******************************************************************************
+result = DT.DaysToDate(days, format)
+
+Converts the number of 'days' since year 0 to a date. With 'format' you can
+specify if you need a data with separated fields or a data string in standard 
+Hollywood format.                                               |                                                   |
+
+INPUT
+  days => Number of days to convert into a date
+  format => The output date format:
+            -> #DT_FORMAT_SEPARATED : You will get dd, mm and yy variables
+            -> #DT_FORMAT_STANDARD : You will get dd-mmm-yyyy string
+OUTPUT
+  result => The result of the conversion
+******************************************************************************/
+  Local dd, mm, yy = 1, 1, 0
+
+  While days > 365
+    If DT.IsLeap(yy)
+      days = days - 366
+    Else
+      days = days - 365
+    EndIf
+    yy = yy + 1
+  Wend
+
+  Local Running = True
+  If days > 31
+    While Running
+      Switch mm
+        Case 1
+          days = days - 31
+          If DT.IsLeap(yy)
+            If days <= 29 Then Running = False
+          Else
+            If days <= 28 Then Running = False
+          EndIf
+
+        Case 2
+          If DT.IsLeap(yy)
+            days = days - 29
+          Else
+            days = days - 28
+          EndIf
+          If days <= 31 Then Running = False
+
+        Case 3
+          days = days - 31
+          If days <= 30 Then Running = False
+
+        Case 4
+          days = days - 30
+          If days <= 31 Then Running = False
+
+        Case 5
+          days = days - 31
+          If days <= 30 Then Running = False
+
+        Case 6
+          days = days - 30
+          If days <= 31 Then Running = False
+
+        Case 7
+          days = days - 31
+          If days <= 31 Then Running = False
+
+        Case 8
+          days = days - 31
+          If days <= 30 Then Running = False
+
+        Case 9
+          days = days - 30
+          If days <= 31 Then Running = False
+
+        Case 10
+          days = days - 31
+          If days <= 30 Then Running = False
+
+        Case 11
+          days = days - 30
+          If days <= 31 Then Running = False
+
+        Case 12
+          days = days - 31
+          Running = False
+
+      EndSwitch
+
+      mm = mm + 1
+    Wend
+  EndIf
+
+  dd = days
+
+  Switch Format
+    Case #DT_FORMAT_SEPARATED
+      Return(dd, mm, yy)
+
+    Case #DT_FORMAT_STANDARD
+      Local sdd = StrStr(dd)
+      Local sdd = PadNum(sdd, 2)
+      Local smm = DT.NumberToMonth(mm)
+      Local syy = StrStr(yy)
+      Local syy = PadNum(syy, 4)
+      Return(sdd .. "-" .. smm .. "-" .. syy)
+   EndSwitch
+   
+EndFunction
+
+Function DT.NumberToMonth(month)
+/******************************************************************************
+result = DT.NumberToMonth(monthNum)
+
+Returns the month name associated with the 'month' number.
+The returned month name will be in short format (three characters) in the 
+standard Hollywood format.
+
+INPUT
+  monthNum => Month number to convert
+OUTPUT
+  result => Month string
+******************************************************************************/
+  Switch Month
+    Case 1
+      Return("Jan")
+
+    Case 2
+      Return("Feb")
+
+    Case 3
+      Return("Mar")
+
+    Case 4
+      Return("Apr")
+
+   Case 5
+      Return("May")
+
+    Case 6
+      Return("Jun")
+
+    Case 7
+      Return("Jul")
+
+    Case 8
+      Return("Aug")
+
+    Case 9
+      Return("Sep")
+
+    Case 10
+      Return("Oct")
+
+    Case 11
+      Return("Nov")
+
+    Case 12
+      Return("Dec")
+
+  EndSwitch
+EndFunction
+
+Function DT.MinutesToTime(mins)
+/******************************************************************************
+result = DT.MinutesToTime(mins)
+
+Converts 'mins' in the standard time format (hh:mm).
+Returns a string representing the time in the format hh:mm, the hh value and
+the mm value.
+
+INPUT
+  mins => Minutes count to convert
+OUTPUT
+  result => A string in the hh:mm format
+******************************************************************************/
+  If GetType(mins) = #STRING Then mins = Val(mins)
+  Local l_hour = Int(mins/60)
+  Local l_min  = mins - l_hour * 60
+
+  Return(ToString(l_hour) .. #DT_TIME_SEPARATOR .. PadNum(l_min, 2), l_hour, l_min)
+EndFunction
+
+Function DT.SecondsToTime(secs)
+/******************************************************************************
+result = DT.SecondsToTime(secs)
+
+Converts the specified 'secs' seconds in a string representing the time in the
+standard format hh:mm:ss
+
+INPUT
+  secs => Seconds to convert
+OUTPUT
+  result => A string in the hh:mm:ss format
+******************************************************************************/
+  If GetType(secs) = #STRING Then secs = Val(secs)
+  Local l_min  = Int(secs/60)
+  Local l_hour = Int(l_min/60)
+  Local l_min  = l_min - l_hour * 60
+  Local secs   = secs - l_min * 60 -l_hour * 60 * 60
+
+  Return(PadNum(l_hour, 2) .. #DT_TIME_SEPARATOR .. PadNum(l_min, 2) .. #DT_TIME_SEPARATOR .. PadNum(secs, 2))
+EndFunction
+
+Function DT.TimeToSeconds(Tim)
+/******************************************************************************
+result = DT.TimeToSeconds(Tim)
+
+Convert a given time string 'tim' with the format hh:mm:ss to seconds.
+
+INPUT
+  tim => A time string in the format hh:mm:ss
+OUTPUT
+  result => Convertion to seconds
+******************************************************************************/
+  Local vlist, count = SplitStr(Tim, #DT_TIME_SEPARATOR)
+  Local secs = 0
+  If count = 3
+    secs = vlist[0]*60*60 + vlist[1]*60 + vlist[2]
+  EndIf
+
+  Return(secs)
+EndFunction
+
+Function DT.TimeToMinutes(Tim)
+/******************************************************************************
+result = DT.TimeToMinutes(Tim)
+
+Converts the given time string 'Tim' with the format hh:mm in minutes.
+
+INPUT
+  Tim => The string to convert in hh:mm format
+OUTPUT
+  result => The result in minutes
+******************************************************************************/
+  Local vlist, count = SplitStr(Tim, #DT_TIME_SEPARATOR)
+  Local Mins = 0
+  If count = 2 Then Mins = vlist[0]*60 + vlist[1]
+  Return(Mins)
+EndFunction
+
+Function DT.SDate_AddDays(sDate, days)
+/******************************************************************************
+result = DT.SDate_AddDays(sDate, days)
+
+Returns a string with the date 'sDate' plus the number of days specified in
+'days' argument.
+'sDate'' must have the format dd-mmm-yyyy
+
+INPUT
+  sDate => The date string in dd-mmm-yyyy format
+  days => The number of days to add to 'sDate'
+OUTPUT
+  result => The result of the addition in dd-mmm-yyyy format
+******************************************************************************/
+  Local d = Val(LeftStr(sDate, 2))
+  Local m = DT.MonthToNumber(MidStr(sDate, 3, 3))
+  Local y = Val(MidStr(sDate, 7, 4))
+
+  Local dd, mm, yy = DT.NDate_AddDays(d, m, y, days)
+
+  Local sd = StrStr(dd)
+  Local sm = DT.NumberToMonth(mm)
+  Local sy = StrStr(yy)
+
+  Local result = PadNum(sd, 2) .. #DT_DATE_SEPARATOR .. sm .. #DT_DATE_SEPARATOR .. sy
+
+  Return(Result)
+EndFunction
+
+Function DT.NDate_AddDays(dd, mm, yy, days)
+/******************************************************************************
+result = DT.NDate_AddDays(dd, mm, yy, days)
+
+Returns 'dd', 'mm' and 'yy' date with number of 'days' added.
+
+INPUT
+  dd => Days part of the date
+  mm => Months part of the date
+  yy => Year part of the date
+  days => The number of days we want to add
+OUTPUT
+  dd => The days part of the date after the addition
+  mm => The month part of the date after the addition
+  yy => The year part of the date after the addition
+******************************************************************************/
+  Local d = DT.DateToDays(dd, mm, yy)
+
+  d = d + days
+  Local dd, mm, yy = DT.DaysToDate(d, #DT_FORMAT_SEPARATED)
+
+  Return(dd, mm, yy)
+EndFunction
+
+Function DT.MillisecondsToTime(MS, decimal)
+/******************************************************************************
+result = DT.MillisecondsToTime(ms, decimals)
+
+Converts the 'ms' milliseconds to the format hh:mm:ss.
+If you set 'decimals' to True the output format will be: hh:mm:ss.dddd
+
+INPUT
+  ms => The amount of milliseconds to convert
+  decimals => Set to True to include decimals into the conversion
+OUTPUT
+  result => The result of the conversion in the format:
+            -> hh:mm:ss         If decimals = False
+            -> hh:mm:ss.dddd    If decimals = True
+******************************************************************************/
+  Local s = MS/1000
+
+  If decimal
+    Local f = Mod(MS, 1000)
+    Return(DT.SecondsToTime(Int(s)) .. "." .. PadNum(f, 3))
+  Else
+    Return(DT.SecondsToTime(Round(s)))
+  EndIf
+EndFunction
+
+Function DT.TEST()
+/******************************************************************************
+DT.TEST()
+
+Function used to test the library and to provide examples.
+******************************************************************************/
+  Cls()
+  
+  NPrint("PART 1 : Convertion Functions")
+  NPrint("-----------------------------")
+  ; DT.DateToDays()
+  ; DT.DaysToDate()
+  Local r1 = DT.DateToDays(23, 4, 2016)
+  NPrint(" - DT.DateToDays(23, 4, 2016)                  = ", r1)
+  Local r1a = DT.DaysToDate(r1, #DT_FORMAT_STANDARD)
+  Local r1b, r1c, r1d = DT.DaysToDate(r1, #DT_FORMAT_SEPARATED)
+  NPrint(" - DT.DaysToDate(" .. r1 .. ", #DT_FORMAT_STANDARD)  = ", r1a)
+  NPrint(" - DT.DaysToDate(" .. r1 .. ", #DT_FORMAT_SEPARATED) = ", r1b, r1c, r1d)
+  NPrint("")
+
+  ; DT.IsLeap()
+  For Local i = 0 To 5
+    Local y = Rnd(3000)
+    NPrint(" - " .. y .. " is leap? " .. IIf(DT.IsLeap(y), "YES", "NO"))
+  Next
+  NPrint(" - " .. "2020" .. " is leap? " .. IIf(DT.IsLeap(2020), "YES", "NO"))
+  NPrint("")
+  
+  ; DT.MillisecondsToTime()
+  For Local i = 0 To 5
+    Local ms = Rnd(999999999)
+    Local v1 = DT.MillisecondsToTime(ms, True)
+    Local v2 = DT.MillisecondsToTime(ms, False)
+    NPrint(" - DT.MillisecondsToTime(" .. ms .. ", True)   = " .. v1)
+    NPrint(" - DT.MillisecondsToTime(" .. ms .. ", False)  = " .. v2)
+    NPrint("")
+  Next
+  
+  ; DT.MinutesToTime()
+  ; DT.TimeToMinutes()
+  Local v1 = DT.TimeToMinutes("57:25")
+  Local v2 = DT.MinutesToTime(v1)
+  NPrint(" - DT.TimeToMinutes(\"57:25\") = ", v1)
+  NPrint(" - DT.MinutesToTime(" .. v2 .. ")   = ", v2)
+  NPrint("")
+  
+  ; DT.TimeToSeconds()
+  ; DT.SecondsToTime()
+  Local s = DT.TimeToSeconds("14:43:21")
+  Local t = DT.SecondsToTime(s)
+  NPrint(" - DT.TimeToSeconds('14:43:21') = " .. s)
+  NPrint(" - DT.SecondsToTime(" .. s .. ") = " .. t)
+  NPrint("")
+  
+  ; DT.MonthToNumber()
+  ; DT.NumberToMonth()
+  For Local i = 1 To 12
+    Local m = DT.NumberToMonth(i)
+    Local n = DT.MonthToNumber(m)
+    NPrint(" - DT.NumberToMonth(" .. i .. ") = " .. m .. ", DT.MonthToNumber(" .. m .. ") = " .. n)
+  Next
+  NPrint("")
+  
+  ; DT.NDate_AddDays()
+  Local d, m, y = DT.NDate_AddDays(21, 2, 2012, 44)
+  NPrint(" - DT.NDate_AddDays(21, 2, 2012, 44) = " .. "d:" .. d .. " m:" .. m .. " y:" .. y)
+  NPrint("")
+  
+  ; DT.SDate_AddDays()
+  Local s = DT.SDate_AddDays("21-Feb-2012", 44)
+  NPrint(" - DT.SDate_AddDays('21-Feb-2012', 44) = " .. s)
+  NPrint("")
+  
+  NPrint("=== Left Mouse Button to continue ===")
+  WaitLeftMouse()
+  
+  Cls()
+  Locate(0, 0)
+  NPrint("PART 2 : TimeObject")
+  NPrint("-------------------")
+  
+  ; TimeObj:New()
+  NPrint(" - Creating a new time object with the current date & time...")
+  Local to1 = TimeObj:NewNow()
+  NPrint(" --> " .. to1:toString())
+  NPrint("")
+  
+  NPrint(" - Creating a second time object holding 4 hours, 23 minutes and 55 seconds...")
+  Local to2 = TimeObj:New({ 0, 0, 0, 4, 23, 55, 0 })
+  NPrint(" --> " .. to2:toString())
+  NPrint("")
+  
+  NPrint(" - Add Method : Adding time 1 with time 2 with :Add() method")
+  Local to3 = to1:Add(to2)
+  NPrint(" --> " .. to3:toString())
+  NPrint("")
+  
+  NPrint(" - Sub Method : Subtracting time 2 from time 1 with :Sub() method")
+  Local to4 = to1:Sub(to2)
+  NPrint(" --> " .. to4:toString())
+  NPrint("")
+
+  NPrint("*** TEST ENDED ***")
+  NPrint("Click left mouse button to quit.")
+
+  WaitLeftMouse()
+  End
+  
+EndFunction
+
+
+;DT.TEST()
