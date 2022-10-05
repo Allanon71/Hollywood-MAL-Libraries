@@ -1,10 +1,10 @@
 /********************************************************************
- * JSON LIBRARY                                             *
+ * JSON LIBRARY                                                     *
  * Author  : Fabio Falcucci (Allanon)                               *
  * License : Donationware                                           *
- * Version : 1.4                                                    *
- * Release : 05.11.2020                                             *
- * Dependancies : Debug Lib                                                 *
+ * Version : 1.5                                                    *
+ * Release : 05.10.2022                                             *
+ * Dependancies : Debug Lib                                         *                                            *
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
  --------------------------------------------------------------------
@@ -30,6 +30,8 @@
  
  CHANGE LOG
  ----------
+ 1.5
+    Fixed a bug caused empty objects causing overflows
  1.4
     Huge code optimization
     Added func JSON.PerformanceTest() to measure performance & test
@@ -51,18 +53,12 @@ Const #JSON_OCP  = "{"
 Const #JSON_CCP  = "}"
 Const #JSON_OSP  = "["
 Const #JSON_CSP  = "]"
-
- ; 08/05/2018 : Added support fr escaped UTF-8 characters that uses
- ;              the \uXXXX escape sequence.
- ;              During the decoding the sequence will be converted
- ;              into a proper UTF-8 character.
- ; 28/08/2019 : Fixed a nasty bug in _:ReadObject(), I was setting position as local
- ;              variable...
  
 Local JSON = {}
 JSON.DebugChannel  = "JSON"
 JSON.ErrorDecoding = False
 JSON.CHR92         = Chr(92)
+
 
 Function JSON._ReadObject(source, position) ; -
   ;::: Legge il primo oggetto che trova a partire dalla posizione data, un  :::
@@ -73,6 +69,7 @@ Function JSON._ReadObject(source, position) ; -
   Local result = {}
   Local source_len = JSON._sourceLen;StrLen(source)
   Local ch = MidStr(source, position, 1)
+
   While ch <> #JSON_OCP
     position = position + 1
     If position > source_len
@@ -82,15 +79,37 @@ Function JSON._ReadObject(source, position) ; -
     EndIf
     ch = MidStr(source, position, 1)
   Wend
+  
+  ;::: Check if it is an empty object
+  ; First let's find the }
+  Local pos2 = position
+  While ch <> #JSON_CCP
+    pos2 = pos2 + 1
+    If position > source_len
+      DBG.Console.Out("Cannot found the closing marker '}'", DBG.Error, JSON.DebugChannel)
+      ; DBG.Console.Out(Nil, DBG.CloseFunc, JSON.DebugChannel)
+      Return(result, pos2)
+    EndIf
+    ch = MidStr(source, pos2, 1)
+  Wend
+  ; Let's extract the string between {} and check if
+  ; it's empty (we have to remove spaces)
+  Local mstr = MidStr(source, position, pos2-position+1)
+  mstr = ReplaceStr(mstr, " ", "")
+  If mstr = "{}"
+    ;:: EMPTY OBJECT -> mstr is {}
+    Return(result, pos2+1)
+  EndIf
 
   ;::: Adesso cerco l'inizio della chiave delimitata da doppi apici.        :::
   ; DBG.Console.Out("Reading the first key:value pair...", Nil, JSON.DebugChannel)
 
   Local looping = True
   Local r
+
   While looping
     key, value, position = JSON._ReadPair(source, position)
-      
+
     If IsNil(key) Then looping = False
 
     result[key] = value
@@ -555,7 +574,8 @@ Function JSON.PerformanceTest()
 
   StartTimer(1)
   Local decoded = JSON.Decode(data)
-  DebugPrint("Tile elapsed: " .. GetTimer(1) .. "ms")
+  DebugPrint("Time elapsed: " .. GetTimer(1) .. "ms")
+  DebugPrint("Time elapsed (SerializeTable): " .. GetTimer(1) .. "ms")
   DebugPrompt("Hit enter to dump the result...")
   DebugPrint("===============================")
   DBG.DumpTable(decoded)
@@ -563,4 +583,4 @@ Function JSON.PerformanceTest()
   DebugPrompt("Hit Enter to quit.")
 EndFunction
 
-;JSON.PerformanceTest()
+; JSON.PerformanceTest()
