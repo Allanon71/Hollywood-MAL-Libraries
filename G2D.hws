@@ -518,6 +518,7 @@ Show how to use the Poly object and test some methods.
   
   While Loop
     If refresh
+      BeginRefresh()
       Cls
       p1:Draw()
       p2:Draw()
@@ -526,14 +527,15 @@ Show how to use the Poly object and test some methods.
       Locate(0, 0)
       StartTimer(1)
       Local c, c2
-      For Local i = 0 To 200
-        c = p1:Collide(p2)
+      For Local i = 1 To 200
+        c  = p1:Collide(p2)
         c2 = p1:Collide(p3)
       Next
       NPrint(":: POLYGON OBJECT TEST ::")
       NPrint("Elapsed is the time in ms needed for collisions check.\n")
-      NPrint("Collision : " .. c .. ", " .. c2 .. ", Elapsed : ", GetTimer(1))
+      NPrint("Collision : " .. c .. ", " .. c2 .. ", Elapsed : ", GetTimer(1)/200 .. "ms")
       NPrint("Move : arrows, Rotate : a, s, Zoom : z, x, Quit: q")
+      EndRefresh()
       refresh = False
     EndIf
     
@@ -2522,4 +2524,4 @@ EndFunction
    =========
    Uncomment the test function you want to run */
 
-; G2D.TEST_Poly()
+ ; G2D.TEST_Poly()

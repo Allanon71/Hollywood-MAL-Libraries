@@ -1061,11 +1061,12 @@ INPUT
 OUTPUT
   converted => Converted text
 *******************************************************************************/
-
   Local temp = text
   Local pos, l  = 0, StrLen(text)
   Local found = True
-;DebugPrint("CONVERT FOR TEXTOUT (Helpers) -> \n" .. text .. "\n\n" .. StrLen(text))
+  
+  ;DebugPrint("CONVERT FOR TEXTOUT (Helpers) -> \n" .. text .. "\n\n" .. StrLen(text))
+  
   ; Remove fixed tags
  
   Local tags = { "[b]", "[/b]",

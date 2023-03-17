@@ -100,8 +100,12 @@
  
  CHANGE LOG
  ----------
+ ?.?
+    Fixed Term.GetSize() that was not initializing correctly the
+    terminal size under Linux systems.
  1.5
     Updated the .Test() function and added the GridView() control.
+    Fixed a bug in Term.Print() that was causing an infinite loop.
  1.4
     Term.App:_FixedWidth(txt, size, align)
       Added support for center alignment
@@ -127,8 +131,6 @@
   - Term.Draw.FBox --> Draw Filled Box
   - Term.LPrint(...)  --> Print with coordinates
 */
-@OPTIONS { ConsoleMode = True }
-
 Ansi = {}
 Ansi.Version = "1.4"
 Ansi.Build   = "10/01/2022"
@@ -340,9 +342,9 @@ Function Term.GetSize()
 
   If v.platform = "Linux"
     ; Retrieve the terminal size using tput
-    Local output = GetTempFileName()   ; Storage for the output
-    Local script = GetTempFileName()   ; We will store a simple script here
-    Local fid = OpenFile(Nil, script .. ".sh", #MODE_WRITE)
+    Local output = GetTempFileName()            ; Storage for the output
+    Local script = GetTempFileName() .. ".sh"   ; We will store a simple script here
+    Local fid = OpenFile(Nil, script, #MODE_WRITE)
     WriteLine(fid, "tput lines >" .. output)
     WriteLine(fid, "tput cols >>" .. output)
     CloseFile(fid)
@@ -702,7 +704,7 @@ INPUT
               While Loop
                 Local s = MidStr(r, kk+1, 1)
                 If s = " " Or s = "}" Or s = "." Or s = "," Or s = ":" Or s = ";" Or s = ")" Or s = "/" Or s = "{" Or s = ")" Or s = "\\"
-                  ; Devo trocare qua
+                  ; Devo troncare qua
                   r = LeftStr(r, kk+2)
                   i = i - StrLen(r1) + kk + 2
                   Loop = False
@@ -734,8 +736,8 @@ INPUT
     lines[0] = t
   EndIf
 
-  Encoded = CopyTable(lines)
-  Naked   = CopyTable(lines)
+  Local Encoded = CopyTable(lines)
+  Local Naked   = CopyTable(lines)
   
   For k = 0 To ListItems(lines)-1
     If Not(ValidateStr(Encoded[k]))
@@ -1014,8 +1016,9 @@ INPUT
   If Term.AnsiMode
     If GetData
       Return(Encoded)
+      
     Else
-      For i = 0 To ListItems(lines)-1
+      For Local i = 0 To ListItems(lines)-1
         DebugPrint(Encoded[i])
         If i = ListItems(lines)-1 And Not(Linefeed)
           DebugPrint(Ansi.GetCursorUp(2))
@@ -1026,7 +1029,7 @@ INPUT
     If GetData
       Return(Naked)
     Else
-      For i = 0 To ListItems(lines)-1
+      For Local i = 0 To ListItems(lines)-1
         DebugPrint(Naked[i])
       Next
     EndIf
@@ -1708,7 +1711,7 @@ Function Term.App:GridView(data, columns, headers, positions, callback, info, fo
   ; ---------------------------------------------
   If IsNil(info) Then info = ""
   If IsNil(formats) Then formats = {}
-  
+
   Local sizes = {}
   Local items = ListItems(positions)
   For Local i = 0 To items-2

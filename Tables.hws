@@ -5,8 +5,8 @@
  * Dependancies : HELPERS, EASING Libraries                               *
  * PayPal Support : hijoe@tin.it                                          *
  * Patreon Support : https://www.patreon.com/Allanon71                    *
- * Version : 1.6                                                          *
- * Release : 09.02.2021                                                   *
+ * Version : 1.7                                                          *
+ * Release : 27.10.2022                                                   *
  *-------------------------------------------------------------------------
  *
  *   Tables library is an include file for Hollywood with many
@@ -23,7 +23,7 @@
  TB.Item.Find()
  TB.Item.DeepFind()
  TB.Item.IsNil()
- 
+  
  :: TABLE CONVERSIONS ::
  TB.Convert.String2Table()
  TB.Convert.Table2String()
@@ -47,8 +47,12 @@
  :: MISC ::
  TB.Copy()
  TB.Count()
+ TB.PickRandom()
  
  :: CHANGE LOG ::
+ 27/10/2022
+ - Added TB.PickRandom()
+ 
  09/02/2021
  - Optimized TB.Set() routine
 
@@ -237,6 +241,25 @@ Function TB.ShiftDown(table)
 
 EndFunction
 
+Function TB.PickRandom(table)
+/******************************************************************************
+| result = TB.PickRandom(table)
+| 
+| Returns a random item from the given table
+| 
+| INPUT
+|   table : Source table
+| OUTPUT
+|   result : Returns a random item from the given table
+| NOTES
+|   This function is for tables with consecutive numeric indexes starting from 0.
+******************************************************************************/
+  Local c = ListItems(table)
+  Local r = Rnd(c)
+  
+  Return(table[r])
+
+EndFunction
 
 Function TB.Count(table)
 /******************************************************************************
@@ -348,6 +371,9 @@ Function TB.Item.Compare(record1, record2, greater, columns)
         If GetType(R2)<>#STRING Then R2 = ToString(R2)
       ElseIf GetType(R2)=#STRING
         If GetType(R1)<>#STRING Then R1 = ToString(R1)
+      ElseIf GetType(R1)=#TABLE Or GetType(R2)=#TABLE
+        ; Cannot compare tables
+        Return(False)
       EndIf
       
       If Desce

@@ -152,6 +152,7 @@ Const #POLY_TRIANGLE = 3
 Global GLFXCh = "GLFX"
 
 Global GLFX = {}
+       GLFX.Version         = "1.0"
        GLFX.SpriteEngines   = {}              ; All existing Sprite Engines
        GLFX.ParticleSystems = {}              ; All existing Particle Systems
        GLFX.Display     = 1                   ; Display used for this GLFX context
@@ -214,7 +215,7 @@ Global GLFX = {}
        GLFX.Hiscore      = {}
        
 
-Function GLFX.GetNearestPowerOfTwo(value) ; 04/2021
+Function GLFX.GetNearestPowerOfTwo(value) ; DOC 1.0 - 04/2021
 /******************************************************************************
 result = GLFX.GetNearestPowerOfTwo(value)
 
@@ -1075,7 +1076,7 @@ GLFX.Input.Keyboard.Events = {}
 ; :Disable()
 ; :Reset()
 
-Function GLFX.Input.Keyboard.HandleKeyPress(msg) ; 04/2021
+Function GLFX.Input.Keyboard.HandleKeyPress(msg) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Input.Keyboard.HandleKeyPress(msg)
 
@@ -1178,7 +1179,7 @@ OUTPUT
   
 EndFunction
 
-Function GLFX.Input.Keyboard:Enable(freq) ; 04/2021
+Function GLFX.Input.Keyboard:Enable(freq) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Input.Keyboard:Enable(freq)
 
@@ -1202,7 +1203,7 @@ INPUT
 
 EndFunction
 
-Function GLFX.Input.Keyboard:Reset() ; 04/2021
+Function GLFX.Input.Keyboard:Reset() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Input.Keyboard:Reset()
 
@@ -1216,7 +1217,7 @@ Resets the keyboard handler removing all events defined and keys
 
 EndFunction
 
-Function GLFX.Input.Keyboard:RemoveKey(event, key) ; 04/2021
+Function GLFX.Input.Keyboard:RemoveKey(event, key) ; DOC - 04/2021
 /******************************************************************************
 GLFX.Input.Keyboard:RemoveKey(event, key)
 
@@ -1247,7 +1248,7 @@ INPUT
   
 EndFunction
 
-Function GLFX.Input.Keyboard:AddKey(args) ; 04/2021
+Function GLFX.Input.Keyboard:AddKey(args) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Input.Keyboard:AddKey(args)
 
@@ -1297,7 +1298,7 @@ INPUT
 
 EndFunction
 
-Function GLFX.Input.Keyboard:Disable() ; 04/2021
+Function GLFX.Input.Keyboard:Disable() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Input.Keyboard:Disable()
 
@@ -1664,7 +1665,7 @@ GLFX.Scene.Render = Function() EndFunction
 GLFX.Scene.Init   = Function() EndFunction
 GLFX.Scene.UnInit = Function() EndFunction
 
-Function GLFX.Scene:New() ; 04/2021
+Function GLFX.Scene:New() ; DOC 1.0 - 04/2021
 /******************************************************************************
 sceneObject = GLFX.Scene:New()
 
@@ -1683,7 +1684,7 @@ Create a new, blank scene object.
 
 EndFunction
 
-Function GLFX.Scene:Setup(Params) ; 04/2021
+Function GLFX.Scene:Setup(Params) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene:Setup(params)
 
@@ -1705,7 +1706,7 @@ INPUT
   
 EndFunction
 
-Function GLFX.Scene:TransitionSetup(args) ; 04/2021
+Function GLFX.Scene:TransitionSetup(args) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene:TransitionSetup(args)
 
@@ -1823,7 +1824,7 @@ EndFunction
 ;::::::::::::::::::: STORYBOARD SCENE'S SUBCLASS ::::::::::::::::::::::::::::::
 ;::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-Function GLFX.Scene.Storyboard:Start() ; 04/2021
+Function GLFX.Scene.Storyboard:Start() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Start()
 
@@ -1840,7 +1841,7 @@ Start the storyboard processing all the events.
 
 EndFunction
 
-Function GLFX.Scene.Storyboard:Pause() ; 04/2021
+Function GLFX.Scene.Storyboard:Pause() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Pause()
 
@@ -1853,7 +1854,7 @@ Pause the storyboard execution.
 
 EndFunction
 
-Function GLFX.Scene.Storyboard:Resume() ; 04/2021
+Function GLFX.Scene.Storyboard:Resume() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Resume()
 
@@ -1866,7 +1867,7 @@ Resume a previously paused storyboard
 
 EndFunction
 
-Function GLFX.Scene.Storyboard:Stop() ; 04/2021
+Function GLFX.Scene.Storyboard:Stop() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:Stop()
 
@@ -1880,7 +1881,7 @@ Stop a storyboard execution.
 
 EndFunction
 
-Function GLFX.Scene.Storyboard:New() ; 04/2021
+Function GLFX.Scene.Storyboard:New() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:New()
 
@@ -1896,7 +1897,7 @@ Initialize a scene's storyboard
   
 EndFunction
 
-Function GLFX.Scene.Storyboard:AddTimedEvent(event) ; 04/2021
+Function GLFX.Scene.Storyboard:AddTimedEvent(event) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Scene.Storyboard:AddTimedEvent(event)
 
@@ -2692,8 +2693,8 @@ Function GLFX.TileMap:New(args)
   EndIf
     
   Local newMap = CopyTable(self)
-  If TB.Item.Exists(args, "name") Then newMap.Name = args.Name
-  If TB.Item.Exists(args, "mapsize") Then newMap.mapSize = args.mapSize
+  If TB.Item.Exists(args, "name")     Then newMap.Name = args.Name
+  If TB.Item.Exists(args, "mapsize")  Then newMap.mapSize = args.mapSize
   If TB.Item.Exists(args, "tileSize") Then newMap.tileSize = args.tileSize
   
   Return(newMap)
@@ -2725,7 +2726,7 @@ GLFX.PathNode.modey = "linear"       ; Movement y easing (see tween library)
 ; startPos = JUMPSEQ <sequence name>  Jump to a sequence    
 ; startPos = PAUSE <milliseconds>     Call the next node after <milliseconds>
 
-Function GLFX.PathNode:New(params) ; 04/2021
+Function GLFX.PathNode:New(params) ; DOC 1.0 - 04/2021
 /******************************************************************************
 node = GLFX.PathNode:New(params)
 
@@ -2783,7 +2784,7 @@ GLFX.PathSequence.Loop = False         ; TRUE to enable path loops
 GLFX.PathSequence.onEnd = Function() EndFunction   ; onEnd event callback function
 
   
-Function GLFX.PathSequences:New() ; 04/2021
+Function GLFX.PathSequences:New() ; DOC 1.0 - 05/2021
 /******************************************************************************
 obj = GLFX.PathSequences:New()
 
@@ -2797,7 +2798,7 @@ Create a new PathSequences object.
   
 EndFunction
 
-Function GLFX.PathSequences:AddSequence(name, nodes, loop, onEnd) ; 04/2021
+Function GLFX.PathSequences:AddSequence(name, nodes, loop, onEnd) ; DOC 1.0 - 05/2021
 /******************************************************************************
 GLFX.PathSequences:AddSequence(name, nodes, loop, onEnd)
 
@@ -2821,7 +2822,7 @@ INPUT
 
 EndFunction
 
-Function GLFX.PathSequences:SetSequence(name) ; 04/2021
+Function GLFX.PathSequences:SetSequence(name) ; DOC 1.0 - 05/2021
 /******************************************************************************
 GLFX.PathSequences:SetSequence(name)
 
@@ -2929,7 +2930,7 @@ GLFX.SimpleSprite.GroupColls = {}        ; Used to cache group collisions
 
 
 
-Function GLFX.SimpleSprite:SetCollisionsWithSprites(params) ; 04/2021
+Function GLFX.SimpleSprite:SetCollisionsWithSprites(params) ; TO CONVERT? OBSOLETE? 04/2021
 /******************************************************************************
 GLFX.SimpleSprite:SetCollisionsWithSprites(params)
 
@@ -2959,7 +2960,7 @@ NOTE
 
 EndFunction
 
-Function GLFX.SimpleSprite:ClearCollisionsWithSprites(events) ; 04/2021
+Function GLFX.SimpleSprite:ClearCollisionsWithSprites(events) ; TO CONVERT? OBSOLETE? 04/2021
 /******************************************************************************
 GLFX.SimpleSprite:ClearCollisionsWithSprites(events)
 
@@ -3301,7 +3302,7 @@ Set the sprite as visible
   self.isVisible = True
 EndFunction
 
-Function GLFX.Sprite:Hide()
+Function GLFX.Sprite:Hide() ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:Hide()
 
@@ -3324,7 +3325,7 @@ INTERNAL function called by the action handler associated with the sprite.
 
 EndFunction
 
-Function GLFX.Sprite:ActionAdd(params) ; 04/2021
+Function GLFX.Sprite:ActionAdd(params) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Sprite:ActionAdd(params)
 
@@ -3364,7 +3365,7 @@ NOTE
   
 EndFunction
 
-Function GLFX.Sprite:ActionRemoveAll() ; 04/2021
+Function GLFX.Sprite:ActionRemoveAll() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Sprite:ActionRemoveAll()
 
@@ -3381,7 +3382,7 @@ Remove all previously added actions to this sprite
 
 EndFunction
 
-Function GLFX.Sprite:ActionRemove(name) ; 04/2021
+Function GLFX.Sprite:ActionRemove(name) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Sprite:ActionRemove(name)
 
@@ -3412,16 +3413,16 @@ INPUT
   
 EndFunction
 
-Function GLFX.Sprite:BeginDraw(drawMode, mode)
+Function GLFX.Sprite:BeginDraw(drawMode, mode) ; DOC 1.0
 /******************************************************************************
-GLFX.Sprite:StartDraw(drawMode)
+GLFX.Sprite:BeginDraw(drawMode, mode)
 
 Target the sprite brush where we can draw additional graphics.
 ******************************************************************************/
   GFX.OutputDevice.Select(#BRUSH, self.id, drawMode, mode)
 EndFunction
 
-Function GLFX.Sprite:EndDraw()
+Function GLFX.Sprite:EndDraw() ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:EndDraw()
 
@@ -3431,7 +3432,7 @@ Ends the draw mode and update the sprite texture.
   GLFX._texInit(self.id, True)
 EndFunction
 
-Function GLFX.Sprite:Destroy()
+Function GLFX.Sprite:Destroy() ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:Destroy()
 
@@ -3545,7 +3546,7 @@ Create a new sprite from a loaded brush with the given args
 
 EndFunction
 
-Function GLFX.Sprite:Clone(args)
+Function GLFX.Sprite:Clone(args) ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:Clone(args)
 
@@ -3654,6 +3655,19 @@ Function GLFX.Sprite:New(engine, args)
 GLFX.Sprite:New(args)
 
 Create a new sprite with the given args.
+-----------------------------------------
+INPUT
+  engine      Sprite engine
+  args
+    width       Sprite's windth in pixels
+    height      Sprite's heigth in pixels
+    haveAlpha   Set to true if you want to generate a sprite with the alpha channel
+    haveTransparency  Set to true if you want to generate a sprite with a transparent color
+    transparency  Only used if haveAlpha=False, determines the transparency color
+    bgcolor     Sets the sprite background color
+  
+OUTPUT
+  spriteObj   Returns a new empty sprite
 ******************************************************************************/
   DBG.Console.Out(".Sprite:New()", DBG.OpenFunc, GLFXCh)
   
@@ -3817,13 +3831,12 @@ Updates all active sprite collisions.
       ElseIf GetType(s) = #STRING
         ; GROUP NAME
         If TB.Item.Exists(self.Engine.Groups, s)
-          ; Il gruppo <s> essite, aggiorno le collisioni
+          ; Il gruppo <s> esiste, aggiorno le collisioni
           For gi, gs In Pairs(self.Engine.Groups[s])
             gs:_UpdatePolyColl()
             
             ; Test collisioni
             If self.Collisions.WithSprites.PolyCollClone:Collide(gs.Collisions.WithSprites.PolyCollClone)
-              ;DebugPrint("COLLISION!! ", self, s, GetDate(True))
               ; COLLISIONE RILEVATA
               If TB.Item.IsNil(CWS.Collide, gs)
                 ; Inizio collisione
@@ -3970,7 +3983,7 @@ NOTES
   
 EndFunction
 
-Function GLFX.Sprite:CollisionWithMouse(args)
+Function GLFX.Sprite:CollisionWithMouse(args) ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:CollisionWithMouse(args)
 
@@ -4013,7 +4026,7 @@ NOTE
   
 EndFunction
 
-Function GLFX.Sprite:Draw()
+Function GLFX.Sprite:Draw() ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:Draw()
 
@@ -4229,7 +4242,7 @@ INTERNAL func used when the window is resized.
   
 EndFunction
 
-Function GLFX.Sprite.SetCollisions(SpriteList, WithMouse) ; 04/2021
+Function GLFX.Sprite.SetCollisions(SpriteList, WithMouse) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Sprite.SetCollisions(SpriteList, WithMouse)
 
@@ -4655,7 +4668,7 @@ INPUT
   DBG.Console.Out(Nil, DBG.CloseFunc, GLFXCh)
 EndFunction
 
-Function GLFX.Sprite:Load(brushFile, engine, args)
+Function GLFX.Sprite:Load(brushFile, engine, args) ; DOC 1.0
 /******************************************************************************
 result = GLFX.Sprite:Load(brushFile, engine, args)
 
@@ -5050,7 +5063,28 @@ INPUT
   
 EndFunction
 
-Function GLFX.Sprite:MakePolyCollision(shape, args)
+Function GLFX.Sprite:MakePolyCollision(shape, args) ; DOC 1.0
+/******************************************************************************
+GLFX.Sprite:MakePolyCollision(shape, args)
+
+This method is used to build a polygon that will be attached to the sprite and
+used as mask to detect collisions.
+---------------------------------------------------------------------
+INPUT
+  shape   One of the following constants
+          - #POLY_DOT       To generate a single dot
+          - #PLOY_BOX       To generate a box
+          - #POLY_OCTA      To generate an octagon
+          - #POLY_TRIANGLE  To generate a triangle
+  args    Additional arguments as follow:
+    scaleOffset   A table with the w and h fields used to scale the polygon
+                  size relative to the sprite size
+    translate     A table with the x and y fields used to adjust the polygon
+                  position relative to the sprite position
+NOTES
+  This method will automatically call the :SetPolyCollision() method with the
+  generated polygon object.
+******************************************************************************/
   Local poly = {}
   If IsNil(args) Then args = {}
   
@@ -5127,7 +5161,7 @@ This method is called automatically by the movement handling routines.
   
 EndFunction
 
-Function GLFX.Sprite:Fader(args) ; OK
+Function GLFX.Sprite:Fader(args) ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:Fader(args)
 
@@ -5155,7 +5189,7 @@ INPUT
   
 EndFunction
 
-Function GLFX.Sprite:FadeStop() ; OK
+Function GLFX.Sprite:FadeStop() ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:FadeStop()
 
@@ -5171,7 +5205,12 @@ Stop a fade effect.
   EndIf
 EndFunction
 
-Function GLFX.Sprite:FadeIn(ms, easing)
+Function GLFX.Sprite:FadeIn(ms, easing) ; DOC 1.0
+/******************************************************************************
+GLFX.Sprite:FadeIn(ms, easing)
+
+Starts a fade in effect with the specified duration and easing.
+******************************************************************************/
   ; Shortcut to make a sprite appear
   If IsNil(easing) Then easing = "linear"
   
@@ -5182,8 +5221,12 @@ Function GLFX.Sprite:FadeIn(ms, easing)
        Easing    = easing })
 EndFunction
 
-Function GLFX.Sprite:FadeOut(ms, easing)
-  ; Shortcut to make a sprite disappear
+Function GLFX.Sprite:FadeOut(ms, easing) ; DOC 1.0
+/******************************************************************************
+GLFX.Sprite:FadeOut(ms, easing)
+
+Starts a fade out effect with the specified duration and easing.
+******************************************************************************/
   If IsNil(easing) Then easing = "linear"
   
   self:Fader(
@@ -5363,11 +5406,11 @@ INTERNAL, called to update the AngleList.
 
 EndFunction
 
-Function GLFX.Sprite:Blink(args) ; OK
+Function GLFX.Sprite:Blink(args) ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:Blink(args)
 
-Makes the sprite blink for a given amount of time
+Makes the sprite blinking for a given amount of time
 ---------------------------------------------------------------------
 INPUT
   args          Arguments table
@@ -5395,7 +5438,7 @@ Restore the original color
   
 EndFunction
 
-Function GLFX.Sprite:BlinkStop() ; OK
+Function GLFX.Sprite:BlinkStop() ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:BlinkStop()
 
@@ -5409,7 +5452,7 @@ Stop a previously started blink effect.
 EndFunction
 
 
-Function GLFX.Sprite:Flash(args) ; OK
+Function GLFX.Sprite:Flash(args) ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:Flash(args)
 
@@ -5471,7 +5514,7 @@ INTERNAL, used to manage the flash effect
   
 EndFunction
 
-Function GLFX.Sprite:FlashStop() ; OK
+Function GLFX.Sprite:FlashStop() ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:FlashStop()
 
@@ -5711,7 +5754,7 @@ Function GLFX.Sprite:SetAnimationSequence(seqName, firstFrame) ; - testare -
   
 EndFunction
 
-Function GLFX.Sprite:AnimationStart(resume) ; 04/2021 -> TO TEST <-
+Function GLFX.Sprite:AnimationStart(resume) ; DOC 1.0 - 04/2021 -> TO TEST <-
 /******************************************************************************
 GLFX.Sprite:AnimationStart(resume)
 
@@ -5727,7 +5770,7 @@ INPUT
   
 EndFunction
 
-Function GLFX.Sprite:AnimationStop() ; 04/2021 -> TO TEST <-
+Function GLFX.Sprite:AnimationStop() ; DOC 1.0 - 04/2021 -> TO TEST <-
 /******************************************************************************
 GLFX.Sprite:AnimationStop(resume)
 
@@ -5810,7 +5853,7 @@ Function GLFX.Sprite:PrevAnimationFrame() ; - testare -
   EndIf
 EndFunction
 
-Function GLFX.Sprite:Attach(args) ; 04/2021
+Function GLFX.Sprite:Attach(args) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Sprite:Attach(args)
 
@@ -5849,7 +5892,7 @@ to keep the sprite position updated with the target object.
       
 EndFunction
 
-Function GLFX.Sprite:Detach() ; OK
+Function GLFX.Sprite:Detach() ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:Detach()
 
@@ -5863,7 +5906,7 @@ Detaches the sprite from the object
 EndFunction
 
 
-Function GLFX.Sprite:FollowStart(args)
+Function GLFX.Sprite:FollowStart(args) ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:Follow(args)
 
@@ -5937,7 +5980,12 @@ INPUT
   EndIf
 EndFunction
 
-Function GLFX.Sprite:FollowStop()
+Function GLFX.Sprite:FollowStop() ; DOC 1.0
+/******************************************************************************
+GLFX.Sprite:FollowStop()
+
+Stops any following action started by :FollowStart() method
+******************************************************************************/
   If TB.Item.Exists(self, "_follow_target")
     self._follow_target = Nil
     self:ActionRemove("follower")
@@ -5948,7 +5996,7 @@ Function GLFX.Sprite:FollowStop()
   EndIf
 EndFunction
 
-Function GLFX.Sprite:AttachToMouse(args) ; OK
+Function GLFX.Sprite:AttachToMouse(args) ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:AttachToMouse(args)
 
@@ -5985,7 +6033,7 @@ Set an offset to nil to ignore a coordinate
       args = args.updateRate })
 EndFunction
 
-Function GLFX.Sprite:DetachFromMouse() ; OK
+Function GLFX.Sprite:DetachFromMouse() ; DOC 1.0 - OK
 /******************************************************************************
 GLFX.Sprite:DetachFromMouse()
 
@@ -5998,7 +6046,7 @@ Detaches the sprite from the mouse pointer
   
 EndFunction
 
-Function GLFX.Sprite:MoveRel(x, y, wrapFlag)
+Function GLFX.Sprite:MoveRel(x, y, wrapFlag) ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:MoveRel(x, y, wrap)
 
@@ -6046,9 +6094,9 @@ Move the sprite adding the given coordinates
   
 EndFunction
 
-Function GLFX.Sprite:MoveAbs(x, y)
+Function GLFX.Sprite:MoveAbs(x, y) ; DOC 1.0
 /******************************************************************************
-GLFX.Sprite:MoveRel(x, y)
+GLFX.Sprite:MoveAbs(x, y)
 
 Move the sprite to the given coordinates
 ******************************************************************************/
@@ -6061,7 +6109,7 @@ Move the sprite to the given coordinates
   EndIf
 EndFunction
 
-Function GLFX.Sprite:MoveTo(args) ; *
+Function GLFX.Sprite:MoveTo(args) ; DOC 1.0
 /******************************************************************************
 GLFX.Sprite:MoveTo(args)
 
@@ -6186,7 +6234,7 @@ Function GLFX.Sprite:OrbitStop()
   
 EndFunction
 
-Function GLFX.Sprite:AttachPaths(Sequences, seqName) ; 04/2021
+Function GLFX.Sprite:AttachPaths(Sequences, seqName) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Sprite:AttachPaths(Sequences, seqName)
 
@@ -6284,7 +6332,7 @@ GLFX.ParticleSystem.Inverted = False
 
 
 
-Function GLFX.ParticleSystem:New(args) ; 04/2021
+Function GLFX.ParticleSystem:New(args) ; DOC 1.0 - 04/2021
 /******************************************************************************
 obj = GLFX.ParticleSystem:New(args)
                              
@@ -6294,6 +6342,63 @@ INPUT
   args : A table with all the parameters you want to customize, all default
          values are stored in GLFX.ParticleSystem along with all the needed
          methods.
+    spriteengine : Sprite Engine object where the particle system will be created
+    group : sprites group name
+    active : True for active particle system, false for inactive one
+    inverted : True to let the particles move form the outside to the emission point
+    updateRate : Update rate in milliseconds, defaults to 20ms
+    layer : Rendering layer number, defaults to 0
+    order : Rendering order, defaults to -1
+    useAtlas : True to use an atlas instead of a single brush as source graphics
+    atlas : If useAtlas=true this field must have the source atlas sprite
+    textures : A table where you can specify the brushes to use with the particles
+      brushes : Set to true if you want to specify previously loaded brushes or filenames
+      items : list of brush ids or filenames
+    color : An ARGB table to setup the main color { A, R, G, B } in range 0-1
+    blendSrc : OpenGL blend source
+    blendDest : OpenGL blend destination
+    texMapping : OpenGL texture mapping
+    blendEnabled : True to enable OpenGL blend
+    angleEnabled : True to enable rotation effect
+    colorEnabled : True to enable global coloring
+    emitter : A table defining the particles emitter point
+      x : x position
+      y : y position
+      spreadX : value to randomize the x coordinate, 0 for no randomization
+      spreadY : value to randomize the y coordinate, 0 for no randomization
+      quantity : How many particle we want to generate at each emission
+      rate : Emission frequency in milliseconds
+      count : How many emissions before killing the particle system, 0 for unlimited emissions
+    gravity : A table used to define a simple gravity force
+      x : horizontal gravity force
+      y : vertical gravity force
+      velocity : gravity acceleration
+    particlesInfo : A table used to describe the generated particles
+      velocity : particle velocity
+      velocityVar : Value used to randomize the velocity
+      angle : particle angle
+      angleVar : Value used to randomize the particle angle
+      anchorX : particle anchor x
+      anchorY : particle anchor y
+      fade1 : a table with the starting fade effect values [A, R, G, B] in 0-1 range
+      fade2 : a table with the ending fade effect values [A, R, G, B] in 0-1 range
+      fadetime : Fade effect duration in milliseconds
+      fadeVar : Value used to randomize the fade parameters
+      linkedFade : True to link the fade effect to the particle life duration
+      scale1 : the starting scaling value
+      scale2 : the ending scaling value
+      scaletime : Scale effect duration in milliseconds
+      scaleVar : Value used to randomize the scale
+      linkedscale : True to link the scale effect to the particle life duration
+      roto1 : the starting rotation angle
+      roto2 : the ending rotation angle
+      rototime : Rotation effect duration in milliseconds
+      rotoVar : Value used to randomize the rotation
+      rotomatrix : A table used to define the rotation matrix ( x, y, z ) with 0|1
+      linkedroto : True to link the rotation effect to the particle life duration
+      life : particle life in milliseconds
+      lifevar : value used to randomize the particle life
+         
 ******************************************************************************/
   ; Instantiate a new particle system object
   Local NewObj = CopyTable(GLFX.ParticleSystem)
@@ -6416,7 +6521,7 @@ INPUT
   
 EndFunction
 
-Function GLFX.ParticleSystem:EmitON() ; 04/2021
+Function GLFX.ParticleSystem:EmitON() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:EmitON()
 
@@ -6428,7 +6533,7 @@ Switch on the particle-system's emitter
   
 EndFunction
 
-Function GLFX.ParticleSystem:EmitOFF() ; 04/2021
+Function GLFX.ParticleSystem:EmitOFF() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:EmitOFF()
 
@@ -6440,7 +6545,7 @@ Switch off the particle-system's emitter
 
 EndFunction
 
-Function GLFX.ParticleSystem:Move(x, y) ; 04/2021
+Function GLFX.ParticleSystem:Move(x, y) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:Move(x, y)
 
@@ -6455,7 +6560,7 @@ INPUT
 
 EndFunction
 
-Function GLFX.ParticleSystem:Free() ; 04/2021
+Function GLFX.ParticleSystem:Free() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:Free() 
 
@@ -6518,7 +6623,7 @@ emitted particles.
   
 EndFunction
 
-Function GLFX.ParticleSystem._Update(msg) ; 04/2021
+Function GLFX.ParticleSystem._Update(msg) ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.ParticleSystem._Update(msg)
 
@@ -6592,7 +6697,7 @@ INPUT
   
 EndFunction
 
-Function GLFX.ParticleSystem:Draw() ; 04/2021
+Function GLFX.ParticleSystem:Draw() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.ParticleSystem:Draw()
 
@@ -6697,15 +6802,16 @@ GLFX.Particle.EngineTimer = -1
 GLFX.Particle.lastUpdate = 0
 GLFX.Particle.TweenColor = -1
 
-Function GLFX.Particle:Create(PartSys) ; 04/2021
+Function GLFX.Particle:Create(PartSys) ; DOC 1.0 - 04/2021
 /******************************************************************************
 particle = GLFX.Particle:Create(PartSys)
 
-Create a new particle in the give system
+Create a new particle in the give system, this is an internal function used
+by the particle system to generate new particles.
 ---------------------------------------------------------------------
 INPUT
-  PartSys : The particle system object that need to emit a new particle
-******************************************************************************/
+  PartSys : The intialized particle system object that need to emit a new particle
+***************************************************************/
   ; Adjust the emission point
   Local pSysEmitter = PartSys.Emitter
   Local xpos = pSysEmitter.x + Rnd(pSysEmitter.SpreadX)
@@ -6741,8 +6847,7 @@ INPUT
         Y = ypos, 
         AnchorX = pinfo.AnchorX, 
         AnchorY = pinfo.AnchorY, 
-        group = 
-        PartSys.Group, 
+        group = PartSys.Group, 
         Color = CopyTable(PartSys.Color), 
         blenSrc = PartSys.blendSrc, 
         blendDst = PartSys.blendDst, 
@@ -6917,7 +7022,7 @@ INPUT
 
 EndFunction
 
-Function GLFX.Particle:Update() ; 04/2021
+Function GLFX.Particle:Update() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Particle:Update()
 
@@ -6978,7 +7083,7 @@ OUTPUT
   
 EndFunction
 
-Function GLFX.Particle:Free() ; 04/2021
+Function GLFX.Particle:Free() ; DOC 1.0 - 04/2021
 /******************************************************************************
 GLFX.Particle:Free()
 
@@ -7128,8 +7233,18 @@ Function GLFX.Sprite:SetPolyCollision(PolyObject)
   
 EndFunction
 
-Function GLFX.Sprite:EnablePolyCollision(value, spriteList, events)
-  ; Wthin sprite list you can specify also group namesù
+Function GLFX.Sprite:EnablePolyCollision(value, spriteList, events) ; DOC 1.0
+  ; Enabled polygon-collisions between this sprite and a spriteList or
+  ; sprite group list.
+  ;
+  ; value : Enable/Disable the collision detection
+  ; spriteList : A table of sprite objects or a table of sprite's group names
+  ; events : Callback list
+  ;   oncollision : callback
+  ;   oncollisionstart
+  ;   oncollisionend
+  ;
+  ; Wthin sprite list you can specify also group names
   
   self.Collisions.WithSprites.Enabled = value
   self.Collisions.WithSprites.Collide = {}
@@ -7165,7 +7280,7 @@ Function GLFX.Sprite:EnablePolyCollision(value, spriteList, events)
 
 EndFunction
 
-Function GLFX.Sprite:EnablePolyCollisionRender(Render)
+Function GLFX.Sprite:EnablePolyCollisionRender(Render) ; DOC 1.0
   
   self.Collisions.WithSprites.PolyRender = Render
   
@@ -9935,7 +10050,7 @@ DBG.Console.AddChannel(GLFXCh)
 
 ; OpenResourceMonitor()
 
-;GLFX.TEST()
+GLFX.TEST()
 ;GLFX.Test_HeightMap()
 ;GLFX.Test_AnimatedSprites()
 ;GLFX.Test_Background()

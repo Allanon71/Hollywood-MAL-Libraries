@@ -465,7 +465,7 @@ OUTPUT
   result              Results are stored and returned into an array of tables, each one representing
                       a file match, each entry have the following fields:
                         - Folder            The path where the file was found
-                        - File              The found file name
+                        - File              The found file name (without path)
                         - Size              The found file size
                         - MD5               The found file MD5 checksum
 ********************************************************************************/
@@ -1680,8 +1680,7 @@ the table
             
             Local FileName = n[1]
             Local temp, stemp = FS.Config.Load(Filename, Nil, Nil, Nil, False)
-            TB.Merge(Result, Temp, False)
-            
+            TB.Merge(Result, temp, False)
             Source[LineCount-1].data = { value = Filename }
             
 
