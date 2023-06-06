@@ -130,7 +130,7 @@ EXAMPLE
   | Local myTime = TimeObj:New()
 *****************************************************************************/
   Local t = CopyTable(self)
-  If Not(IsNil((timedef))
+  If Not(IsNil((timedef)))
     If GetType(timedef) = #TABLE
       ; timedef
       ; [TODO] : I could use TB.Set() for initialization
