@@ -1,4 +1,5 @@
-# TABLES LIBRARY                                                   
+# TABLES LIBRARY
+
 > Author  : Fabio Falcucci (Allanon)  
 > Contact : info@a-mc.biz  
 > License : Freeware  
@@ -10,8 +11,9 @@
 **SUPPORT ME WITH PAYPAL** : mailto:hijoe@tin.it
 
 ---
- 
+
 ## DESCRIPTION
+
 Tables library is a collection of functions used to manipulate and process tables, it holds many functions to sort, shift, compare, join and merge tables.
 
 ### INDEX
@@ -19,61 +21,67 @@ Tables library is a collection of functions used to manipulate and process table
 <!-- Start Document Outline -->
 
 * [FUNCTIONS](#functions)
-	* [Campare Functions](#campare-functions)
-		* [TB.Compare(table1, table2, compare_funcs)](#tbcomparetable1-table2-compare_funcs)
-		* [TB.CompareScore(table1, table2, compare_funcs, count, equals)](#tbcomparescoretable1-table2-compare_funcs-count-equals)
-	* [Conversion Functions](#conversion-functions)
-		* [TB.Convert.String2Table(string, separator)](#tbconvertstring2tablestring-separator)
-		* [TB.Convert.Table2String(table, separator)](#tbconverttable2stringtable-separator)
-		* [TB.Serialize(table)](#tbserializetable)
-		* [TB-Deserialize(txt)](#tb-deserializetxt)
-	* [Table Items Related Functions](#table-items-related-functions)
-		* [TB.Item.Compare(record1, record2, greater, columns)](#tbitemcomparerecord1-record2-greater-columns)
-		* [TB.Item.Exists(table, index)](#tbitemexiststable-index)
-		* [TB.Item.Find(table, value, caseSensitive, exactString)](#tbitemfindtable-value-casesensitive-exactstring)
-		* [TB.Item.IsNil(table, index)](#tbitemisniltable-index)
-	* [Misc Table Functions](#misc-table-functions)
-		* [TB.Copy(Source, SkipFunc)](#tbcopysource-skipfunc)
-		* [TB.Count(table)](#tbcounttable)
-		* [TB.Fill(Source, StartIndex, EndIndex, Value)](#tbfillsource-startindex-endindex-value)
-		* [TB.Interpolate(Source, StartIndex, EndIndex, StartValue, EndValue, mode)](#tbinterpolatesource-startindex-endindex-startvalue-endvalue-mode)
-		* [TB.Join(table1, table2)](#tbjointable1-table2)
-		* [TB.PushDown(table, pos)](#tbpushdowntable-pos)
-		* [TB.PushUp(table, pos)](#tbpushuptable-pos)
-		* [TB.ReIndex(oldKey, newKey, source)](#tbreindexoldkey-newkey-source)
-		* [TB.ReplaceChars(table, chars, replacer, recursive, casing)](#tbreplacecharstable-chars-replacer-recursive-casing)
-		* [TB.Set(Source, Changes, ReturnsNew)](#tbsetsource-changes-returnsnew)
-		* [TB.ShiftDown(table)](#tbshiftdowntable)
-		* [TB.ShiftUp(table)](#tbshiftuptable)
-		* [TB.Sort(table, descending, column, associated, type)](#tbsorttable-descending-column-associated-type)
-		* [TB.TrimSpaces(table, recursive)](#tbtrimspacestable-recursive)
+  * [Campare Functions](#campare-functions)
+    * [TB.Compare(table1, table2, compare_funcs)](#tbcomparetable1-table2-compare_funcs)
+    * [TB.CompareScore(table1, table2, compare_funcs, count, equals)](#tbcomparescoretable1-table2-compare_funcs-count-equals)
+  * [Conversion Functions](#conversion-functions)
+    * [TB.Convert.String2Table(string, separator)](#tbconvertstring2tablestring-separator)
+    * [TB.Convert.Table2String(table, separator)](#tbconverttable2stringtable-separator)
+    * [TB.Serialize(table)](#tbserializetable)
+    * [TB-Deserialize(txt)](#tb-deserializetxt)
+  * [Table Items Related Functions](#table-items-related-functions)
+    * [TB.Item.Compare(record1, record2, greater, columns)](#tbitemcomparerecord1-record2-greater-columns)
+    * [TB.Item.DeepFind(table, keyword, recflag)](#tbitemdeepfindtable-keyword-recflag)
+    * [TB.Item.Exists(table, index)](#tbitemexiststable-index)
+    * [TB.Item.Find(table, value, caseSensitive, exactString)](#tbitemfindtable-value-casesensitive-exactstring)
+    * [TB.Item.IsNil(table, index)](#tbitemisniltable-index)
+  * [Misc Table Functions](#misc-table-functions)
+    * [TB.Copy(Source, SkipFunc)](#tbcopysource-skipfunc)
+    * [TB.Count(table)](#tbcounttable)
+    * [TB.Fill(Source, StartIndex, EndIndex, Value)](#tbfillsource-startindex-endindex-value)
+    * [TB.Interpolate(Source, StartIndex, EndIndex, StartValue, EndValue, mode)](#tbinterpolatesource-startindex-endindex-startvalue-endvalue-mode)
+    * [TB.Join(table1, table2)](#tbjointable1-table2)
+    * [TB.PickRandom(table)](#tbpickrandomtable)
+    * [TB.PushDown(table, pos)](#tbpushdowntable-pos)
+    * [TB.PushUp(table, pos)](#tbpushuptable-pos)
+    * [TB.ReIndex(oldKey, newKey, source)](#tbreindexoldkey-newkey-source)
+    * [TB.ReplaceChars(table, chars, replacer, recursive, casing)](#tbreplacecharstable-chars-replacer-recursive-casing)
+    * [TB.Set(Source, Changes, ReturnsNew)](#tbsetsource-changes-returnsnew)
+    * [TB.ShiftDown(table)](#tbshiftdowntable)
+    * [TB.ShiftUp(table)](#tbshiftuptable)
+    * [TB.Sort(table, descending, column, associated, type)](#tbsorttable-descending-column-associated-type)
+    * [TB.TrimSpaces(table, recursive)](#tbtrimspacestable-recursive)
 * [EXAMPLES](#examples)
-	* [Comparing Tables](#comparing-tables)
-		* [TB.TEST_Compare()](#tbtest_compare)
-		* [TB.Compare(table1, table2, compare_funcs)](#tbcomparetable1-table2-compare_funcs-1)
-		* [TB.CompareScore(table1, table2, compare_funcs, count, equals)](#tbcomparescoretable1-table2-compare_funcs-count-equals-1)
-	* [Interpolation](#interpolation)
-	* [Item Comparisons](#item-comparisons)
-	* [Finding Table Items](#finding-table-items)
-	* [How to merge tables](#how-to-merge-tables)
-	* [Push &amp; Pull](#push--pull)
-	* [Reindexing a table](#reindexing-a-table)
-	* [Replacing strings in table items](#replacing-strings-in-table-items)
-	* [Setting Table Items](#setting-table-items)
-	* [Shifting Items up and down](#shifting-items-up-and-down)
-	* [Sorting Tables](#sorting-tables)
+  * [Comparing Tables](#comparing-tables)
+    * [TB.TEST_Compare()](#tbtest_compare)
+    * [TB.Compare(table1, table2, compare_funcs)](#tbcomparetable1-table2-compare_funcs-1)
+    * [TB.CompareScore(table1, table2, compare_funcs, count, equals)](#tbcomparescoretable1-table2-compare_funcs-count-equals-1)
+  * [Interpolation](#interpolation)
+  * [Item Comparisons](#item-comparisons)
+  * [Finding Table Items](#finding-table-items)
+  * [How to merge tables](#how-to-merge-tables)
+  * [Push &amp; Pull](#push--pull)
+  * [Reindexing a table](#reindexing-a-table)
+  * [Replacing strings in table items](#replacing-strings-in-table-items)
+  * [Setting Table Items](#setting-table-items)
+  * [Shifting Items up and down](#shifting-items-up-and-down)
+  * [Sorting Tables](#sorting-tables)
 
 <!-- End Document Outline -->
 
 ## FUNCTIONS
+
 ### Campare Functions
+
 All comparison functions are mapped in the **TB** root table, using them it is really easy compare tables.
 
 + TB.Compare(table1, table2, compare_funcs)
 + TB.CompareScore(table1, table2, compare_funcs, count, equals)
 
 ---
+
 #### TB.Compare(table1, table2, compare_funcs)
+
 ```plaintext
 result = TB.Compare(table1, table2, compare_funcs)
     Compare 'table1' and 'table2' and returns TRUE if they are equal.
@@ -88,8 +96,11 @@ INPUT
 OUTPUT
 - result : The result of the comparison: TRUE or FALSE
 ```
+
 ---
+
 #### TB.CompareScore(table1, table2, compare_funcs, count, equals)
+
 ```plaintext
 score, compared, equals = TB.CompareScore(table1, table2, compare_funcs, count, equals)
     Compare 'table1' and 'table2' and returns a score. Set 'compare_funcs' to
@@ -108,8 +119,11 @@ OUTPUT
 - compared : Count of the compared items
 - equals : Count of the identical items
 ```
+
 ---
+
 ### Conversion Functions
+
 All Table conversion functions are mapped on the TB.Convert table.
 
 + TB.Convert.String2Table(string, separator)
@@ -118,7 +132,9 @@ All Table conversion functions are mapped on the TB.Convert table.
 + TB.Deserialize(table)
 
 ---
+
 #### TB.Convert.String2Table(string, separator)
+
 ```plaintext
 result = TB.Convert.String2Table(string, separator)
     Converts the given 'string' into a table splitting its items using the
@@ -133,8 +149,11 @@ INPUT
 OUTPUT
 - result : The resulting table
 ```
+
 ---
+
 #### TB.Convert.Table2String(table, separator)
+
 ```plaintext
 result = TB.Convert.Table2String(table, separator)
     Converts all 'table' items into a string using 'separator' as delimiter
@@ -150,12 +169,15 @@ OUTPUT
 NOTE
 This function is usable on tables of strings with consecutive numeric indexes starting from 0.
 ```
+
 ---
+
 #### TB.Serialize(table)
+
 ```plaintext
 txt = TB.Serialize(table)
     Serialize the given table transforming all the stored fields into a single string.
-    
+
 INPUT
 - table : the table we want to convert
 
@@ -165,20 +187,26 @@ OUTPUT
 NOTE
 This function is not able to serialize functions.
 ```
+
 ---
+
 #### TB-Deserialize(txt)
+
 ```plaintext
 table = TB.Deserialize(txt)
     Deserialize a previously serialized table decoding the text 'txt' and rebuilding the original table.
-    
+
 INPUT
 - txt : a previously serialized table
 
 OUTPUT
 - table : the decoded table
 ```
+
 ---
+
 ### Table Items Related Functions
+
 All Table's items related functions are mapped on the **TB.Item** table. These functions are used to performs various actions on the table entries.
 
 + TB.Item.Compare(record1, record2, greater, columns)
@@ -187,7 +215,9 @@ All Table's items related functions are mapped on the **TB.Item** table. These f
 + TB.Item.IsNil(table, index)
 
 ---
+
 #### TB.Item.Compare(record1, record2, greater, columns)
+
 ```plaintext
 result = TB.Item.Compare(record1, record2, greater, columns)
     This routine is used to compare two records (tables). The comparison is based
@@ -207,8 +237,36 @@ INPUT
 OUTPUT
 - result : Returns TRUE if the comparison(s) is/are satisfied.
 ```
+
 ---
+
+#### TB.Item.DeepFind(table, keyword, recflag)
+
+```plaintext
+subset = TB.Item.DeepFind(table, keyword, recflag)
+    Returns a subset of the given 'table' if any of its fields match the given 'keyword'.
+    'keyword' can contain matching patterns.
+
+INPUT
+- table : [TBL] Source table
+- keyword : [ANY] Value you are looking for
+- recflag : [BLN] INTERNAL flag used to handle recursivity
+
+OUTPUT
+  subset : A table with all 'table' items with at least one matching field.
+           The original index will be preserved.
+NOTE
+  For string values you can use pattern matching conventions as follow:
+   *  : Matches all characters.                
+   ?  : Matches just a single character.
+   #  : Matches all numbers. 
+   [] : Matches one or several characters or a range of characters.
+```
+
+---
+
 #### TB.Item.Exists(table, index)
+
 ```plaintext
 result = TB.Item.Exists(table, index)
     Returns TRUE if 'index' is not NIL within 'table' otherwise returns FALSE.
@@ -226,8 +284,11 @@ Recently Hollywood have the implemented 'HaveItem()' that has the same purpose o
 this function, however TB.Item.Exists() is still usefull because it is
 case-sensitive while HaveItem() is not.
 ```
+
 ---
+
 #### TB.Item.Find(table, value, caseSensitive, exactString)
+
 ```plaintext
 found, index = TB.Item.Find(table, value, caseSensitive, exactString)
     Search in 'table' an item with the value equal to 'value'. The search will be
@@ -253,8 +314,11 @@ matching conventions as follow:
    # : Matches all numbers.
   [] : Matches one or several characters or a range of characters
 ```
+
 ---
+
 #### TB.Item.IsNil(table, index)
+
 ```plaintext
 result = TB.Item.IsNil(table, index)
     Returns TRUE if 'index' doesn't exists in 'table' otherwise returns FALSE.
@@ -273,8 +337,11 @@ Recently Hollywood have the implemented 'HaveItem()' that has the same purpose o
 this function, however TB.Item.IsNil() is still usefull because it is
 case-sensitive while HaveItem() is not.
 ```
+
 ---
+
 ### Misc Table Functions
+
 All Tables related functions are mapped on the **TB** table.
 
 + TB.Copy(Source, SkipFunc)
@@ -294,7 +361,9 @@ All Tables related functions are mapped on the **TB** table.
 + TB.TrimSpaces(table, recursive)
 
 ---
+
 #### TB.Copy(Source, SkipFunc)
+
 ```plaintext
 result = TB.Copy(source, skipFunc)
    Use this function to copy tables recursively, you can skip functions setting
@@ -312,8 +381,11 @@ NOTE
 replaces this one, althougth TB.Copy() could still be usefull to copy all table's
 items but function fields.
 ```
+
 ---
+
 #### TB.Count(table)
+
 ```plaintext
 count = TB.Count(table)
     Return how many entries are stored in 'table'. This function is able to count
@@ -329,8 +401,11 @@ NOTE
    Recently Hollywood has implemented its own **TableItems()** function that
 replaces TB.Count().
 ```
+
 ---
+
 #### TB.Fill(Source, StartIndex, EndIndex, Value)
+
 ```plaintext
 source = TB.Fill(Source, StartIndex, EndIndex, Value)
     Simple function to fill/initialize a table range with a value.
@@ -347,8 +422,11 @@ OUTPUT
 NOTE
 - This function can be used only on tables indexed by consecutive numeric values.
 ```
+
 ---
+
 #### TB.Interpolate(Source, StartIndex, EndIndex, StartValue, EndValue, mode)
+
 ```plaintext
 source = TB.Interpolate(Source, StartIndex, EndIndex, StartValue, EndValue, mode)
    This function is used to fill the table 'source' with values. The index range
@@ -371,8 +449,11 @@ NOTE
    This function can be used only on tables indexed with consecutive numbers.
 With this function you can easily precalculate paths for your moving objects.
 ```
+
 ---
+
 #### TB.Join(table1, table2)
+
 ```plaintext
 table1 = TB.Join(table1, table2)
    Join 'table1' and 'table2', 'table1' will be modified directly adding all
@@ -386,8 +467,11 @@ INPUT
 OUTPUT
 - table1 : 'table1' with all the 'table2' entries added at the end
 ```
+
 ---
+
 ##### TB.Merge(table1, table2, overwrite)
+
 ```plaintext
 table1 = TB.Merge(table1, table2, overwrite)
    Adds all 'table2' items to 'table1', note that 'table1'will be directly
@@ -405,8 +489,29 @@ OUTPUT
 NOTE
    This function is fully recursive.
 ```
+
+---
+
+##### TB.PickRandom(table)
+
+```plaintext
+result = TB.PickRandom(table)
+ 
+Returns a random item from the given table
+ 
+INPUT
+  table : [TBL] Source table
+  
+OUTPUT
+  result : Returns a random item from the given table
+  
+NOTES
+  This function is for tables with consecutive numeric indexes starting from 0.
+```
+
 ---
 #### TB.PushDown(table, pos)
+
 ```plaintext
 TB.PushUp(table, pos)
    Move the item at position 'pos' from its current position to the bottom and
@@ -423,8 +528,11 @@ NOTES
    This function is only for tables with consecutive numeric indexes starting
 from 0.
 ```
+
 ---
+
 #### TB.PushUp(table, pos)
+
 ```plaintext
 TB.PushUp(table, pos)
    Move the item at position 'pos' from its current position to position 0 (to
@@ -441,8 +549,11 @@ NOTES
    This function is only for tables with consecutive numeric indexes starting
 from 0.
 ```
+
 ---
+
 #### TB.ReIndex(oldKey, newKey, source)
+
 ```plaintext
 TB.ReIndex(oldKey, newKey, source)
    For the given 'source' table, change the current index with the given column.
@@ -456,8 +567,11 @@ INPUT
 OUTPUT
 - reindexed : Reindexed table
 ```
+
 ---
+
 #### TB.ReplaceChars(table, chars, replacer, recursive, casing)
+
 ```plaintext
 table = TB.ReplaceChars(table, chars, replacer, recursive)
    Scans 'table' for each string entry and replaces any occurrencies of 'chars'
@@ -477,8 +591,11 @@ OUTPUT
 NOTE
    Non-string items will be skipped
 ```
+
 ---
+
 #### TB.Set(Source, Changes, ReturnsNew)
+
 ```plaintext
 result = TB.Set(Source, Changes, ReturnsNew)
    Sets all fields found in the table 'source' with the corrisponding fields in
@@ -494,8 +611,11 @@ INPUT
 OUTPUT
 - result : Nil in case of error or the new, updated table
 ```
+
 ---
+
 #### TB.ShiftDown(table)
+
 ```plaintext
 result = TB.ShiftDown(table)
    Shifts all 'table' items down by one position, the last item will be placed at
@@ -510,8 +630,11 @@ OUTPUT
 NOTES
    This function is for tables with consecutive numeric indexes starting from 0.
 ```
+
 ---
+
 #### TB.ShiftUp(table)
+
 ```plaintext
 result = TB.ShiftUp(table)
    Shifts all 'table' items up by one position, the first item will be placed at
@@ -526,8 +649,11 @@ OUTPUT
 NOTES
    This function is for tables with consecutive numeric indexes starting from 0.
 ```
+
 ---
+
 #### TB.Sort(table, descending, column, associated, type)
+
 ```plaintext
 sorted = TB.Sort(table, descending, column, associated, type)
    Sort the given 'table' basing the sorting on column(s) specified in the column
@@ -550,12 +676,15 @@ INPUT
           ▪ combsort                       ▪ quicksort
           ▪ circlesort (need ti be fixed)  ▪ bubblesort
           ▪ cocktailsort
-          
+
 OUTPUT
 - sorted : The source table after the sorting process
 ```
+
 ---
+
 #### TB.TrimSpaces(table, recursive)
+
 ```plaintext
 table = TB.TrimSpaces(table, recursive)
    Remove from any string entries in the given 'table' any trailing or leading
@@ -568,37 +697,52 @@ INPUT
 OUTPUT
 - table : Processed source 'table'
 ```
+
 ---
+
 ---
+
 ## EXAMPLES
+
 ### Comparing Tables
+
 In Hollywood you can compare tables using something like this:
+
 ```plaintext
 Local table1 = { a = 10 }
 Local table2 = { a = 10 }
 If table1 = table2 Then DebugPrint("table1 and table2 are equal!")
 ```
+
 However the above comparison will return always **FALSE** because the comparison is made using the table pointers and not their contents.
 
 If you add the following code to the previous example you will understand what I mean:
+
 ```plaintext
 DebugPrint(table1, table2)
 ```
+
 As you can see the two tables point to two different memory chunks, the standard comparison will work only on two variables pointing to the same table like this:
+
 ```plaintext
 Local table1 = { a = 10 }
 Local table2 = table1
 If table1 = table2 Then DebugPrint("table1 and table2 are equal!")
 ```
+
 That's the reason because I have developed some functions to compare two tables by their contents.
 
 #### TB.TEST_Compare()
+
 The function `TB.TEST_Compare()` performs a test and shows how you can use the comparing functions :
 
 #### TB.Compare(table1, table2, compare_funcs)
+
 #### TB.CompareScore(table1, table2, compare_funcs, count, equals)
+
 Here is the example. 
 First of all we will define two tables composed by subtables (records) with a single small difference between them:
+
 ```plaintext
 Local tab01 = { { name = "Spiderman", power = "Web, Speed, Strenght" },
                 { name = "Thor", power = "Hammer" },
@@ -615,14 +759,16 @@ Local tab02 = { { name = "Spiderman", power = "Web" },  ; <== Here is the
                 { name = "Iron Man", power = "Weapons" },
                 { name = "Hulk", power = "Strenght" } }
 ```
+
 Then we will print to the screen the contents of the two tables with a simple loop:
+
 ```plaintext
 NPrint("TABLE 01 CONTENT")
 For Local i = 0 To 5
   Local v = tab01[i]
   NPrint("INDEX : [color=#red]" .. i .. "[/color], NAME : [color=#yellow]" .. v.name .. "[/color], POWER : " .. v.power)
 Next
-      
+
 NPrint("\nTABLE 02 CONTENT")
 For i = 0 To 5
   Local v = tab02[i]
@@ -630,30 +776,38 @@ For i = 0 To 5
 Next
 NPrint("-> Please note that the two tables have a different value in item 0")
 ```
+
 And now we will use the comparison functions:
+
 ```plaintext
 NPrint("\n[b]COMPARING USING TB.Compare()...[/b]")
 Local result = TB.Compare(tab01, tab02, False)
-  
+
 NPrint(IIf(result, "THE TABLES HAVE THE SAME CONTENTS", 
                    "THE TABLES DOES NOT HAVE THE SAME CONTENTS"))
 ```
+
 We can also calculate a % score that indicate how much the two tables are equal:
+
 ```plaintext
 NPrint("\n[b]COMPARING USING TB.CompareScore()...[/b]")
 Local score, compared, equals = TB.CompareScore(tab01, tab02, False)
-  
+
 NPrint("SCORE          : " .. ToString(Int(Score*10000)/100) .. "%")
 NPrint("COMPARED ITEMS : " .. ToString(compared))
 NPrint("EQUAL ITEMS    : " .. ToString(equals))
-  
+
 NPrint("\nLeft mouse to QUIT.")
-  
+
 WaitLeftMouse()
 ```
+
 ---
+
 ---
+
 ### Interpolation
+
 The function `TB.Interpolate()` is able to fill a table with a range of values so that you can easily precalculate value variations. 
 It uses the **Easing library** so that you can make use of any easing function available.
 
@@ -663,20 +817,20 @@ Here is the example, coming with the library, stored in the `TB.TEST_Interpolate
 NPrint("Creating a linear value range from 1 To 50 in 50 items")
 Local table = {}
 TB.Interpolate(table, 0, 49, 1, 50, "linear")
-  
+
 For i = 0 To 49 Do NPrint(PadNum(i, 2) .. " : " .. table[i])
-  
+
 NPrint("\nLeft mouse to CONTINUE...")
 WaitLeftMouse()
- 
+
 Cls
 Locate(0, 0)
 NPrint("Creating an InSine value range from 5 To 10 in 50 items")
 Local table = {}
 TB.Interpolate(table, 0, 49, 5, 10, "insine")
-  
+
 For i = 0 To 49 Do NPrint(PadNum(i, 2) .. " : " .. table[i])
-  
+
 NPrint("\nLeft mouse to CONTINUE...")
 WaitLeftMouse()
 
@@ -685,64 +839,72 @@ Locate(0, 0)
 NPrint("Creating an OutElastic value range from 5 To 7 in 30 items")
 Local table = {}
 TB.Interpolate(table, 0, 29, 5, 7, "outelastic")
-  
+
 For i = 0 To 29 Do NPrint(PadNum(i, 2) .. " : " .. table[i])
-  
+
 NPrint("\nLeft mouse to QUIT.")
 WaitLeftMouse()
-
 ```
 
 In the above script you can see how easy is to precalculate values and store them into a table, you just need to provide a destination table, where all the values will be saved, the first and last index positions to use, the starting and ending values and the easing function to use.
 
 ---
+
 ---
+
 ### Item Comparisons
+
 Tables library comes with a very useful function to compare records, with records I mean tables with the same members (fields or columns).
 
 A possible scenario could be that you have a table that works as a database, each entry is a subtable (record) that have exactly the same structure (fields).
 
 With this function you can easily compare them specifying the comparison type and the fields you want to compare, here is the example coming with the library.
+
 ```plaintext
 Function TB.TEST_ItemCompare()
   ; Compares one or more fields of two records, if the comparison is
   ; between two equal values then the next specified fields will be
   ; checked otherwise the result of the first comparison is returned.
   DebugPrint("TESTING TB.Item.Compare()")
-  
+
   Local record1 = { name = "Spiderman", age = 34, job = "Super Hero" }
   Local record2 = { name = "Batman",    age = 41, job = "Super Hero" }
-  
+
   DebugPrint("Comparing field 'name' : record1.name > record2.name ?")
   DebugPrint(record1.name .. " > " .. record2.name .. " ?")
   Local result = TB.Item.Compare(record1, record2, { True }, { "name" })
   DebugPrint(IIf(result, "YES", "NO"))
   DebugPrint("")
-  
+
   DebugPrint("Comparing field 'age' : record1.age < record2.age ?")
   DebugPrint(record1.age .. " < " .. record2.age .. " ?")
   Local result = TB.Item.Compare(record1, record2, { False }, { "age" })
   DebugPrint(IIf(result, "YES", "NO"))
   DebugPrint("")
-  
+
   DebugPrint("Comparing fields 'job', 'age' : record1.job < record2.job, record1.age < record2.age ?")
   DebugPrint(record1.job .. " < " .. record2.job .. ", " .. record1.age .. " < " .. record2.age .. " ?")
   Local result = TB.Item.Compare(record1, record2, { False, False }, { "job", "age" })
   DebugPrint(IIf(result, "YES", "NO"))
   DebugPrint("\nNOTE:\nThe result is YES because the first comparison is between\ntwo equal values so the check continue to the next specified field.")
-  
-  
+
+
   DebugPrompt("Hit ENTER to quit?")
 EndFunction
 ```
+
 ---
+
 ---
+
 ### Finding Table Items
+
 With `TB.Item.Find()` it's easy to retrieve strings from a table and here is the example coming with the library:
+
 ```plaintext
 Function TB.TEST_ItemFind()
   DebugPrint("TESTING TB.Item.Find()")
-  
+
   Local items = { "Jhonny", 
                   "Michael", 
                   "Henry", 
@@ -754,75 +916,80 @@ Function TB.TEST_ItemFind()
                   "Paul", 
                   "Sam",
                   "*Joe" }
-  
+
   DebugPrint("\nLooking for 'mark' : Case Sensitive : OFF, Exact String : OFF")
   Local found, index = TB.Item.Find(items, "mark", False, False)
-  
+
   If found
     DebugPrint("First result @ " .. index .. " -> " .. items[index])
   Else
     DebugPrint("NOT FOUND!")
   EndIf
-  
+
   DebugPrint("\nLooking for '*a*' : Case Sensitive : OFF, Exact String : OFF")
   Local found, index = TB.Item.Find(items, "*a*", False, False)
-  
+
   If found
     DebugPrint("First result @ " .. index .. " -> " .. items[index])
   Else
     DebugPrint("NOT FOUND!")
   EndIf
-  
+
   DebugPrint("\nLooking for 'Ma*' : Case Sensitive : ON, Exact String : OFF")
   Local found, index = TB.Item.Find(items, "*a*", False, False)
-  
+
   If found
     DebugPrint("First result @ " .. index .. " -> " .. items[index])
   Else
     DebugPrint("NOT FOUND!")
   EndIf
-  
+
   DebugPrint("\nLooking for 'Joe' : Case Sensitive : ON, Exact String : On")
   Local found, index = TB.Item.Find(items, "Joe", False, False)
-  
+
   If found
     DebugPrint("First result @ " .. index .. " -> " .. items[index])
   Else
     DebugPrint("NOT FOUND!")
   EndIf  
-  
+
   DebugPrint("\nLooking for '*Joe' : Case Sensitive : ON, Exact String : On")
   Local found, index = TB.Item.Find(items, "*Joe", False, False)
-  
+
   If found
     DebugPrint("First result @ " .. index .. " -> " .. items[index])
   Else
     DebugPrint("NOT FOUND!")
   EndIf  
-  
+
   DebugPrompt("\n\nHit ENTER to quit?")
 EndFunction
 ```
+
 ---
+
 ---
+
 ### How to merge tables
+
 Sometimes it's useful to have a function able to merge two tables, this function is `TB.Merge()`. This function recursively add all missing items on the source table to the destination table, optionally it can overwrite existing items.
 
 Here is the example provided with the library ecapsulated in the function TB.TEST_Merge().
+
 ```plaintext
   Local table1 = { name = "Fabio", surname = "Falcucci", age = 44 }
   Local table2 = { hobby = "Programming", nick = "Allanon", name = "What's up?" }
-  
+
   NPrint("TABLE 1")
   ForEach(table1, NPrint)
-  
+
   NPrint("\nTABLE 2")
   ForEach(table2, NPrint)
-  
+
   Local result = TB.Merge(table1, table2, True)
   NPrint("\nTABLE 1")
   ForEach(table1, NPrint)
-  
+
   NPrint("\nENTER TO QUIT")
   InKeyStr(#ALL)
 ```
@@ -830,15 +997,19 @@ Here is the example provided with the library ecapsulated in the function TB.TES
 The example does not need further explanations as you can see.
 
 ---
+
 ---
+
 ### Push & Pull
+
 There are two very handy functions in Tables Library, an they are `TB.PushUp(table, position)` and `TB.PushDown(table, position)`.
 These functions take the item at the given position and move it, respectively, to the top of the table or to the bottom of the table.
 
 Here is a brief example that comes with the library:
+
 ```plaintext
 Function TB.TEST_Push()
-  
+
   Local items = { "Jhonny", 
                   "Michael", 
                   "Henry", 
@@ -849,98 +1020,102 @@ Function TB.TEST_Push()
                   "Jim", 
                   "Paul", 
                   "Sam" }  
-  
+
   Local drawScreen = Function()
                         Cls
                         Locate(0, 0)
                         NPrint("TESTING TB.Item.PushUp(), TB.Item.PushDown()\n")
                         NPrint("TABLE CONTENTS:")
                         For Local i = 0 To 9 Do NPrint(i, items[i])
-                        
+
                         NPrint("\nType your choice and hit ENTER:")
                         NPrint("1) PushUp, 2) PushDown, Q) Quit")
-                        
+
                         Local command = InKeyStr(#ALL)
-                        
+
                         If command = "Q"
                           End
-                          
+
                         ElseIf command = "1"
                           NPrint("\n   Type item number and hit ENTER:")
                           Local i = ToNumber(InKeyStr(#ALL))
                           TB.PushUp(items, i)
-                          
+
                         ElseIf command = "2"
                           NPrint("\n   Type item number and hit ENTER:")
                           Local i = ToNumber(InKeyStr(#ALL))
                           TB.PushDown(items, i)
-                          
+
                         EndIf
                       EndFunction
-                      
+
   Repeat
     drawScreen()
   Forever
-  
+
 EndFunction
 ```
+
 ---
+
 ---
+
 ### Reindexing a table
+
 Sometimes it is very useful to have a function able to reindex a table, reindexing a table is something like this:
 
 **Table contents**
 
 <table>
 <thead>
-	<tr>
-		<th>INDEX</th>
-		<th>CONTENT</th>
-	</tr>
+    <tr>
+        <th>INDEX</th>
+        <th>CONTENT</th>
+    </tr>
 </thead>
 <tbody>
-	<tr>
-		<td>alpha</td>
-		<td>{ name = &quot;Jhon&quot;, type = &quot;Medic&quot; }</td>
-	</tr>
-	<tr>
-		<td>beta</td>
-		<td>{ name = &quot;Ted&quot;, type = &quot;Soldier&quot; }</td>
-	</tr>
-	<tr>
-		<td>gamma</td>
-		<td>{ name = &quot;Ryan&quot;, type = &quot;Scientist&quot; }</td>
-	</tr>
+    <tr>
+        <td>alpha</td>
+        <td>{ name = "Jhon", type = "Medic" }</td>
+    </tr>
+    <tr>
+        <td>beta</td>
+        <td>{ name = "Ted", type = "Soldier" }</td>
+    </tr>
+    <tr>
+        <td>gamma</td>
+        <td>{ name = "Ryan", type = "Scientist" }</td>
+    </tr>
 </tbody>
 </table>
 
 You want to reindex the table on column name so you want to get:
 
-
 <table>
 <thead>
-	<tr>
-		<th>INDEX</th>
-		<th>CONTENTS</th>
-	</tr>
+    <tr>
+        <th>INDEX</th>
+        <th>CONTENTS</th>
+    </tr>
 </thead>
 <tbody>
-	<tr>
-		<td>Jhon</td>
-		<td>{ code = “alpha”, type = “Medic” }</td>
-	</tr>
-	<tr>
-		<td>Ted</td>
-		<td>{ code = “beta”, type = “Soldier”}</td>
-	</tr>
-	<tr>
-		<td>Ryan</td>
-		<td>{ name = “gamma”, type = “Scientist}</td>
-	</tr>
+    <tr>
+        <td>Jhon</td>
+        <td>{ code = “alpha”, type = “Medic” }</td>
+    </tr>
+    <tr>
+        <td>Ted</td>
+        <td>{ code = “beta”, type = “Soldier”}</td>
+    </tr>
+    <tr>
+        <td>Ryan</td>
+        <td>{ name = “gamma”, type = “Scientist}</td>
+    </tr>
 </tbody>
 </table>
 
 Using the `TB.Reindex()` function it is very easy to achieve the result.
+
 ```plaintext
 Function TB.TEST_ReIndex()
   Local table = { { name = "Spiderman", power = "Web" },
@@ -949,7 +1124,7 @@ Function TB.TEST_ReIndex()
                   { name = "Iron Man", power = "Armour" },
                   { name = "Iron Man", power = "Weapons" },
                   { name = "Hulk", power = "Strenght" } }
-                  
+
   NPrint("TABLE CONTENT")
   For i = 0 To 5
     Local v = table[i]
@@ -961,7 +1136,7 @@ Function TB.TEST_ReIndex()
   For i, v In Pairs(table)
     NPrint("INDEX : [color=#red]" .. i .. "[/color], NAME : [color=#yellow]" .. v.name .. "[/color], ID : " .. v.id)
   Next
-  
+
   NPrint("\nReindexing by name")
   Local table = TB.ReIndex("power", "name", table)
   For i, v In Pairs(table)
@@ -970,31 +1145,39 @@ Function TB.TEST_ReIndex()
   NPrint("[b][color=#blue]>> ONE RECORD <IRON MAN> AS BEEN DELETED <<[/color][/b]")
 
   NPrint("\nLeft mouse to QUIT.")
-  
+
   WaitLeftMouse()
-  
+
 EndFunction
 ```
+
 If you run the example you can see that it could be a problem with items with the same index because they are overwritten, infact if you have:
+
 ```plaintext
-INDEX |	CONTENT
+INDEX |    CONTENT
 ------+-------------------------------------
-alpha |	{ name = “Jhon”, type = “Medic” }
-beta  |	{ name = “Jhon”, type = “Soldier”}
+alpha |    { name = “Jhon”, type = “Medic” }
+beta  |    { name = “Jhon”, type = “Soldier”}
 ```
+
 And you reindex the table on the 'name' column you will get only one entry:
+
 ```plaintext
-INDEX |	CONTENT
+INDEX |    CONTENT
 ------+-------------------------------------
-Jhon  |	{ code = “beta”, type = “Soldier”}
+Jhon  |    { code = “beta”, type = “Soldier”}
 ```
 
 That's because the index must be unique.
 
 ---
+
 ---
+
 ### Replacing strings in table items
+
 `TB.ReplaceChars()` is a very powerful function that scan a table and replaces any occurancies of a string with another. The process can optionally be fully recursive.
+
 ```plaintext
 Function TB.TEST_ReplaceChars()
   Local table = { { name = "Spiderman", power = "Web" },
@@ -1003,7 +1186,7 @@ Function TB.TEST_ReplaceChars()
                   { name = "Iron Man", power = "Armour" },
                   { name = "Iron Man", power = "Weapons" },
                   { name = "Hulk", power = "Strenght" } }
-                  
+
   NPrint("TABLE CONTENT")
   For i = 0 To 5
     Local v = table[i]
@@ -1012,27 +1195,32 @@ Function TB.TEST_ReplaceChars()
 
   NPrint("\nLOCATING AND REPLACING ALL <man> WITH <woman>")
   TB.ReplaceChars(table, "man", "woman", True, False)
-  
+
   NPrint("\nTABLE CONTENT")
   For i = 0 To 5
     Local v = table[i]
     NPrint("INDEX : [color=#red]" .. i .. "[/color], NAME : [color=#yellow]" .. v.name .. "[/color], POWER : " .. v.power)
   Next
-  
+
   NPrint("\nLeft mouse to QUIT.")
-  
+
   WaitLeftMouse()
-  
+
 EndFunction
 ```
+
 ---
+
 ---
+
 ### Setting Table Items
+
 Here is an example on how you can use a very powerful table manipulation function: `TB.Set()`.
 
 The purpose of this function is to set recursively a destination table with the items on a source table. If destination table have an item found on the source table it will be overwritten.
 
 This is particularly useful if you have large tables and you need to set only a subset.
+
 ```plaintext
 Function TB.TEST_Set()
   Local table = { name     = "Fabio Falcucci", 
@@ -1047,7 +1235,7 @@ Function TB.TEST_Set()
                       hair   = "few",
                       weight = "too much" },
                   }
-                  
+
   NPrint("\nTABLE CONTENT")
   For i, v In Pairs(table)
     If GetType(v) = #TABLE
@@ -1059,7 +1247,7 @@ Function TB.TEST_Set()
       NPrint("[Color=#GREEN]" .. i .. " : [/color]" .. v)
     EndIf
   Next
-  
+
   NPrint("\nChanging contents using TB.Set()")
   NPrint("In red all changed items.\n")
   TB.Set(table, { job = "[color=#RED]programmer, consultant[/color]", 
@@ -1067,7 +1255,7 @@ Function TB.TEST_Set()
                   aspect = { hair = "[color=#RED]none[/color]" }
                   }, 
                   False)
-  
+
   NPrint("\nUPDATED TABLE CONTENT")
   For i, v In Pairs(table)
     If GetType(v) = #TABLE
@@ -1081,25 +1269,30 @@ Function TB.TEST_Set()
   Next
 
   NPrint("\nLeft mouse to QUIT.")
-  
+
   WaitLeftMouse()
-  
+
 EndFunction
 ```
+
 The above example is a very simple one, but try to think about a project where you don't know in advance the source and destination table structure to see its utility.
 
 ---
+
 ---
+
 ### Shifting Items up and down
+
 There are two functions, `TB.ShiftUp()` and `TB.ShiftDown()` that allow to shift table items, here is a brief example provided with the library:
+
 ```plaintext
 Function TB.TEST_Shift()
   EscapeQuit(True)
-  
+
   ; I've added spaces to simplify the output formatting
   Local items1 = { "Jhonny ", "Michael", "Henry  ", "Mark   ", "Ryan   ", "Cody   ", "Fred   ", "Jim    ", "Paul   ", "Sam    " }  
   Local items2 = CopyTable(items1)
-  
+
   Repeat
     Cls
     Locate(0, 0)
@@ -1113,13 +1306,18 @@ Function TB.TEST_Shift()
     TB.ShiftDown(items2)
     Wait(150, #MILLISECONDS)
   Forever
-  
+
 EndFunction
 ```
+
 ---
+
 ---
+
 ### Sorting Tables
+
 You can sort tables by one or more fields using the `TB.Sort()` function. Here is a simple example that shows how you can use sort your tables using various sorting methods :
+
 ```
 Function TB.TEST_Sort()
   Local table = { { name = "Spiderman", power = "Web" },
@@ -1128,27 +1326,27 @@ Function TB.TEST_Sort()
                   { name = "Iron Man" , power = "Armour" },
                   { name = "Iron Man" , power = "Weapons" },
                   { name = "Hulk"     , power = "Strenght" } }
-                  
+
   NPrint("TABLE CONTENT")
   For i = 0 To 5
     Local v = table[i]
     NPrint("[color=#yellow]" .. v.name .. "[/color] " .. v.power)
   Next
-  
+
   NPrint("\nSORTED by Name (descending order)")
   TB.Sort(table, True, "name", Nil, "quicksort")
   For i = 0 To 5
     Local v = table[i]
     NPrint("[color=#yellow]" .. v.name .. "[/color] " .. v.power)
   Next
-  
+
   NPrint("\nSORTED by Power (ascending order)")
   TB.Sort(table, False, "power", Nil, "combsort")
   For i = 0 To 5
     Local v = table[i]
     NPrint("[color=#yellow]" .. v.name .. "[/color] " .. v.power)
   Next
-  
+
   NPrint("\nSORTED by Name & Power (descending/descending order)")
   TB.Sort(table, { True, True }, { "name", "power" }, Nil, "quicksort")
   For i = 0 To 5
@@ -1162,10 +1360,11 @@ Function TB.TEST_Sort()
     Local v = table[i]
     NPrint("[color=#yellow]" .. v.name .. "[/color] " .. v.power)
   Next
-  
+
   NPrint("\nLeft mouse to QUIT.")
-  
+
   WaitLeftMouse()
 EndFunction
 ```
+
 ---
