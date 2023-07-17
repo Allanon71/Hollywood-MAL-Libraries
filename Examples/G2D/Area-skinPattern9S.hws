@@ -1,0 +1,35 @@
+/* ****************************************************************************
+   * G2D : Area:skinHPattern3S                                                *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new(150,  50, 300, 80)
+Local area2 = G2D.Area:new(250, 150, 320, 320)
+
+Local brush1 = LoadBrush(Nil, "Resources/9s-a.png", { LoadAlpha = True })
+Local brush2 = LoadBrush(Nil, "Resources/9s-b.png", { LoadAlpha = True })
+
+;-------------------------------------------------------------------------------
+
+Local sectors =
+   { top     = { start =   0, size = 26 },
+     vmiddle = { start =  26, size = 76 },
+     bottom  = { start = 102, size = 26 },
+     left    = { start =   0, size = 26 },
+     hmiddle = { start =  26, size = 76 },
+     right   = { start = 102, size = 26 }
+   }
+
+BeginDoubleBuffer()
+Cls()
+
+DisplayBrush(brush1, 0, 0)
+area1:skinPattern9S(brush1, sectors, #NONE, False)
+area2:skinPattern9S(brush2, sectors, #NONE, True)
+
+Flip()
+
+WaitLeftMouse()

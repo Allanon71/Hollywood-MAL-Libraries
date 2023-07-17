@@ -1,47 +1,77 @@
 /* ****************************************************************************
-   * G2D : Area:skinMulti -> 2 Pattern Layers.                                *
-   ****************************************************************************/
+  G2D : Area:skinMulti() -> 2 Pattern Layers.
+  ****************************************************************************/
 @INCLUDE "../../+Includes.hws"
 @INCLUDE #INC_G2D
 
-;-------------------------------------------------------------------------------
-
-Local area1 = G2D.Area:new( 50,  50, 300, 300)
+@DISPLAY 1, { Width = 800, Height = 600 }
 
 ;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  150, 300, 300)
+
+; In this example you can see how to use the skin-pattern type to build a 2
+; layers skin.
+;-------------------------------------------------------------------------------
+; For speed purposes we preload the brushes but you can also specify filenames
+; instead of brush ids when defining skin layers.
+Local brush1 = LoadBrush(Nil, "Resources/grid9S+a.png", { LoadAlpha = True })
 
 Local layers =
-   { { Type   = GFX.SkinType_Pattern,               ;| FIRST LAYER
-       Area   = { x = -15, y = -15, w = 0, h = 0 }, ;| Area offsets
-       Params =                                     ;| Skin parameters
-          { Brush  = "Resources/grid9S+a.png",
+   { { Type   = GFX.SkinType_Pattern,               ; FIRST LAYER (Index 0)
+       Area   = { x = -15, y = -15, w = 0, h = 0 }, ; Area offsets
+       Params =                                     ; Skin parameters
+          { Brush  = brush1,
             Offset = { x = 0, y = 0 },
             Alpha  = #NONE } },
-     { Type   = GFX.SkinType_Pattern,               ;| SECOND LAYER
+     { Type   = GFX.SkinType_Pattern,               ; SECOND LAYER (Index 1)
        Area   = { x = 15, y = 15, w = 0, h = 0 },
        Params =
-          { Brush  = "Resources/grid9S+a.png",
+          { Brush  = brush1,
             Offset = { x = 0, y = 0 },
             Alpha  = #NONE,
-            Size   = { w = 64, h = 64 } } },        ;| Change the source pattern size
+            Size   = { w = 64, h = 64 } } },        ; Change the source pattern size
    }
 
 
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
 BeginDoubleBuffer()
 
 While Not(IsLeftMouse())
-   Cls
+  Cls($888888)
 
-   ; Make the layer1 and layer2 skin shift
-   layers[0].Params.Offset.x = layers[0].Params.Offset.x - 0.5
-   layers[1].Params.Offset.x = layers[1].Params.Offset.x + 0.5
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+  TextOut(#CENTER, 24, "Right mouse click to switch smoothing (now:" .. GFX.SmoothZoom ..")", { color = $AAFF00 })
+  TextOut(#CENTER, 38, "The withe box is the area but the skins are rendered in different positions", { color = $000000 })
+  TextOut(#CENTER, 52, "because of the area table which represent the offsets.", { color = $000000 })
 
-   area1:skinMulti(layers)
+  ; Display the original brushes
+  DisplayBrush(brush1, 500, 130)
+  TextOut(550, 140, "Original brush", { Color = $004444 })
+  
+  ; Make the layer1 and layer2 skin shift
+  layers[0].Params.Offset.x = layers[0].Params.Offset.x - 0.5
+  layers[1].Params.Offset.x = layers[1].Params.Offset.x + 0.5
 
-   ; Area marker
-   area1:box($FFFFFF, 1)
+  area1:skinMulti(layers)
 
-   Flip()
+  ; Area marker
+  area1:fillColor($AAFFFFFF)
+  area1:box($FFFFFF, 1)
+
+  Flip(True)
+
+  ; Check the right mouse button
+  If IsRightMouse()
+    ; This is really a bad practice!! A blocking event handler!! OMG! :D
+    
+    GFX.SmoothZoom = Not(GFX.SmoothZoom)
+    ; and wait until the button is released
+    While IsRightMouse()
+      Wait(100, #MILLISECONDS)
+    Wend
+  EndIf
 
 Wend
 

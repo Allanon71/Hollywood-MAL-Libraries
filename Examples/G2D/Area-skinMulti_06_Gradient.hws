@@ -1,50 +1,75 @@
 /* ****************************************************************************
-   * G2D : Area:skinMulti -> 2 Gradient Layers.                               *
-   ****************************************************************************/
+  G2D : Area:skinMulti() -> 3 Gradient Layers.
+  Here we have a 3 layers skin, every layer is a gradient fill and those layers
+  area animated changing the angle & the transparency.
+  ****************************************************************************/
 @INCLUDE "../../+Includes.hws"
 @INCLUDE #INC_G2D
 
+@DISPLAY 1, { Width = 800, Height = 600 }
+
 ;-------------------------------------------------------------------------------
 
-Local area1 = G2D.Area:new( 50,  50, 400, 300)
+Local area1 = G2D.Area:new( 50,  100, 700, 450)
 
 ;-------------------------------------------------------------------------------
 
 Local layers =
-   { { Type   = GFX.SkinType_Gradient,              ;| FIRST LAYER
-       Params =                                     ;| Skin parameters
+   { { Type   = GFX.SkinType_Gradient,
+       ; With the setting below we are going to set the first layer 25 pixels
+       ; larger on all sides.
+       Area   = { x = -25, y = -25, w = 50, h = 50 },
+       Params =
           { Color1 = $FF0000,
             Color2 = $FFFF00,
             Alpha  = #NONE,
             Angle  = 0 } },
-     { Type   = GFX.SkinType_Gradient,              ;| SECOND LAYER
+     { Type   = GFX.SkinType_Gradient,
        Params =
           { Color1 = $0000FF,
-            Color2 = $00FFFF,
+            Color2 = $00FF00,
             Alpha  = 100,
             Angle  = 0 } },
+     { Type   = GFX.SkinType_Gradient,
+       ; With the setting below we are going to set the third layer 25 pixels
+       ; smaller on all sides.
+       Area = { x = 25, y = 25, w = -50, h = -50 },
+       Params =
+          { Color1 = $00FF00,
+            Color2 = $FF00FF,
+            Alpha  = 100,
+            Angle  = 180 } },
    }
 
 
 Local a = 1
+Local b = 0.5
 
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
 BeginDoubleBuffer()
 
 While Not(IsLeftMouse())
-   Cls
+  Cls($888888)
+  
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+  TextOut(#CENTER, 38, "The white box is the area.", { color = $000000 })
 
-   layers[0].Params.angle = layers[0].Params.angle - Abs(a)
-   layers[1].Params.alpha = layers[1].Params.alpha + a
-   layers[1].Params.angle = layers[1].Params.angle + Abs(a)
+  layers[0].Params.angle = layers[0].Params.angle - Abs(a)
+  layers[1].Params.alpha = layers[1].Params.alpha + a
+  layers[1].Params.angle = layers[1].Params.angle + Abs(a)
+  layers[2].Params.alpha = layers[2].Params.alpha - b
+  layers[2].Params.angle = layers[2].Params.angle + Abs(b/2)
+  
+  If layers[1].Params.alpha < 1 Or layers[1].Params.alpha > 254 Then a = -a
+  If layers[2].Params.alpha < 1 Or Layers[2].Params.alpha > 254 Then b = -b
+  
+  area1:skinMulti(layers)
 
-   If layers[1].Params.alpha < 1 Or layers[1].Params.alpha > 254 Then a = -a
+  ; Area marker
+  area1:box($FFFFFF, 1)
 
-   area1:skinMulti(layers)
-
-   ; Area marker
-   area1:box($FFFFFF, 1)
-
-   Flip()
+  Flip(True)
 
 Wend
 

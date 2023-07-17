@@ -1,0 +1,41 @@
+/* ****************************************************************************
+   * G2D : Area:skinVPattern.                                                   *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 400, 350)
+Local area2 = G2D.Area:new(100, 100, 500, 150)
+
+Local brush1 = LoadBrush(Nil, "Resources/Pattern1.png")
+Local brush2 = LoadBrush(Nil, "Resources/Pattern1.png")
+
+;-------------------------------------------------------------------------------
+
+Local alpha = 100
+Local a = 1
+Local offset1 = { x = 0, y = 0 }
+Local offset2 = { x = 0, y = 0 }
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+
+   Cls
+   alpha = alpha + a
+   offset1.x = offset1.x + 1
+   offset1.y = offset1.y + 1
+   offset2.x = offset2.x - 1
+   offset2.y = offset2.y - 1
+
+   If alpha > 254 Or alpha < 1 Then a = -a
+
+   area1:skinVPattern(brush1, offset1, 255-alpha)
+   area2:skinVPattern(brush2, offset2, alpha)
+
+   Flip()
+
+Wend

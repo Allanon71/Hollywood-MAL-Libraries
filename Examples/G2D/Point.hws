@@ -1,0 +1,20 @@
+/* ****************************************************************************
+   * G2D : Point                                                              *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;| Creates a couple of points and measure the distance between them.           |
+;+-----------------------------------------------------------------------------+
+
+NPrint("- 2d point object @ 40, 60")
+Local p1 = G2D.Point:new(40, 60)
+
+NPrint("- 2d point object @ 200, 131")
+Local p2 = G2D.Point:new(200, 131)
+NPrint("")
+
+NPrint("Distance between p1 and p2 is ", p1:distance(p2))
+NPrint("Distance between p2 and p1 is ", p2:distance(p1))
+
+WaitLeftMouse()

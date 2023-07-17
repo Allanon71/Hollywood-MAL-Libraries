@@ -1,0 +1,55 @@
+/* ****************************************************************************
+  G2D : Area:skinBevel()
+        Area:Move()
+  This program shows how you can use the :skinBevel() and :Move() methods.
+  
+  The skinBevel() method allow you to build pseudo-3d frames using 3 colors,
+  one for the brught edges, one for the dark edges and one for the middle
+  space.
+  Middle space can be left empty if you do not specify the middle color.
+  ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+; Area objects creation
+Local area1 = G2D.Area:new( 50,  50, 300, 250)
+Local area2 = G2D.Area:new(100, 100, 200, 250)
+Local area3 = G2D.Area:new(150, 150, 250, 250)
+
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
+BeginDoubleBuffer()
+
+; Area's bevel colors
+colors1 = { light = $DDDDDD,   dark = $444444,   middle = $7788CC }
+colors2 = { light = $77DD0000, dark = $77440000, middle = $77770000 }
+colors3 = { light = $00DD00,   dark = $000044 }
+
+; Area's bevel aspects
+aspect1 = { fx = GFX.BevelFx_Raised,   height = 4, type = GFX.BevelType_Standard }
+aspect2 = { fx = GFX.BevelFx_Recessed, height = 2, type = GFX.BevelType_Sunken   }
+aspect3 = { fx = GFX.BevelFx_Flat,     height = 1, type = GFX.BevelType_Standard }
+
+; This variable is used with the movement
+Local s = 1
+
+While Not(IsLeftMouse())
+
+  Cls($888888)
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+  area1:Move(0, s, False)
+  area1:skinBevel(colors1, aspect1)
+  TextOut(area1.x+area1.w+10, area1.y+5, "<== AREA 1 (Raised, Standard)")
+  
+  If area2.x > 200 Or area2.x < 100 Then s = -s
+  area2:Move(s, 0, False)
+  area2:skinBevel(colors2, aspect2)
+  TextOut(area2.x+area2.w+10, area2.y+5, "<== AREA 2 (Recessed, Sunken, Alpha)")
+  
+  area3:skinBevel(colors3, aspect3)
+  TextOut(area3.x+area3.w+10, area3.y+5, "<== AREA 3 (Flat, Standard)")
+  
+  Flip(True)
+
+Wend

@@ -1,34 +1,46 @@
-/* In this example I show you how a complex skin can be rendered
-   using multiple layers */
+/* ****************************************************************************
+  This example shows how a complex skin can be built an rendered using multiple
+  layers and, in each layerm using a different skin mode.
+  ****************************************************************************/
 
 @INCLUDE "../../+Includes.hws"
 @INCLUDE #INC_G2D
-   
+
+@DISPLAY 1, { Width = 800, Height = 600 }
+
+Local background = LoadBrush(Nil, "Resources/image1.jpg")
+Local brush1 = LoadBrush(Nil, "Resources/9s-b.png", { LoadAlpha = True })
+
+;-------------------------------------------------------------------------------
+
 ; Let's build a multilayer button, <layers> will hold all our
 ; layers.
 Local layers =
   { ; LAYER 0 : The first to be rendered
-    ; We want a shadow, so let's define a filled box
-    { Type = GFX.SkinType_Color,    ; Filled Color Skin
-      Area =                        ; This layer must be moved to achieve the shadow fx
-        { x = 8, y = 8, w = 0, h = 0 },
+    ; We want to drop a shadow, so let's define a filled box using the alpha
+    ; field which determines the transparency.
+    { Type = GFX.SkinType_Color,              ; Filled Color Skin
+      Area =                                  ; We are going to move the layer offset
+                                              ; to achieve the shadow.
+        { x = 4, y = 4, w = 0, h = 0 },
       Params =
-        { Color = $000000,          ; The shadow color
-          Alpha = 80                ; Transparency
+        { Color = $000000,                    ; The shadow color
+          Alpha = 150                         ; Transparency value
           }
         },
-    ; LAYER 1 : The second to be rendered
-    ; We want a gradient as background
-    { Type = GFX.SkinType_Gradient, ; 2 Color Gradient Skin
+
+    ; LAYER 1 : We want a gray gradient
+    { Type = GFX.SkinType_Gradient,           ; Color Gradient Skin
       Params =
         { Color1 = $BBBBBB,
-          Color2 = $333333,
+          Color2 = $161616,
           Alpha  = #NONE,
           Angle  = 0
           }
         },
-    ; LAYER 2 : The third layer to be rendered
-    { Type = GFX.SkinType_Bevel  , ; On top we want an empty bevel box
+
+    ; LAYER 2 : Let's draw an empty bevel box around the area
+    { Type = GFX.SkinType_Bevel,
       Params =
         { Colors =
           { Light = $FFFFFF,       ; Bright Edges
@@ -41,10 +53,10 @@ Local layers =
               }
           }
         },
-    ; LAYER 3 : Finally we want to add another bevel in the
-    ;           middle.
-    { Type = GFX.SkinType_Bevel  , ; Another bevel box
-      Area = { x = 30, y = 30, w = -60, h = -60 }, ; Adjust where we wwant this layer
+
+    ; LAYER 3 : in the middle we want another bevel box
+    { Type = GFX.SkinType_Bevel,
+      Area = { x = 30, y = 30, w = -60, h = -60 },
       Params =
         { Colors =
           { Light = $FFFF00,       ; Bright Edges
@@ -57,20 +69,78 @@ Local layers =
               }
           }
         },
+        
+    ; LAYER 4 : in the center we want a blobby image
+    { Type   = GFX.SkinType_FitMin,
+       Area   = { x = 60, y = 60, w = -120, h = -120 }, ; Area offsets
+       align  = #CENTER,
+       Params =                                     ; Skin parameters
+          { Brush = brush1,                         ; You can specify a preloaded brush
+            Offset = { x = 0, y = 0 },
+            Alpha = #NONE } },
     
     }
     
 ; Here is where the area to skin is defined
-Local area = G2D.Area:new( 50,  50, 400, 300)
+Local area = G2D.Area:new( 150, 100, 400, 300)
 
-; Clear the screen
-SetFillStyle(#FILLCOLOR)
-Box(0, 0, 800, 640, $003311)
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
+BeginDoubleBuffer()
 
-; And finellay here is where it is rendered
-area:skinMulti(layers)
+; We want to animate the area shadow's layer (0)
+Local shadow_step, shadow_limit = 0.5, 32
 
-; Hit LMB to quit
-Print("--- LMB To Quit ---")
+; We want to animate the gray gradient's angle in layer 1
+Local gradient_angle = 0.5
 
-WaitLeftMouse()
+; Let's animate the layer 2 (bevel box height)
+Local bb_height = 0.25
+
+; Animate the inner bevel box position & size
+Local bb2_offset = 0.5
+
+; Finally let's play with the area's size
+Local size_step = 1
+
+While Not(IsLeftMouse())
+  ; Animate the shadow layer (0)
+  layers[0].area.x = layers[0].area.x + shadow_step
+  layers[0].area.y = layers[0].area.y + shadow_step
+  If layers[0].area.x > shadow_limit Or layers[0].area.x < -shadow_limit Then shadow_step = -shadow_step
+
+  ; Animate the gradient layer (1)
+  layers[1].params.angle = layers[1].params.angle + gradient_angle
+  If layers[1].params.angle > 360 Then layers[1].params.angle = layers[1].params.angle - 360
+
+  ; Animate the bevel boxes height
+  layers[2].params.aspect.height = layers[2].params.aspect.height + bb_height
+  layers[3].params.aspect.height = layers[3].params.aspect.height + bb_height
+  If layers[2].params.aspect.height > 12 Or layers[2].params.aspect.height < 1 Then bb_height = -bb_height
+
+  ; Animate the inner bevel box's position & size
+  layers[3].area.x = layers[3].area.x + bb2_offset
+  layers[3].area.y = layers[3].area.x
+  layers[3].area.w = -layers[3].area.x*2
+  layers[3].area.h = layers[3].area.w
+  If layers[3].area.x > 50 Or layers[3].area.x < 10 Then bb2_offset = -bb2_offset
+  
+  ; Let's animate the area's size
+  area.w = area.w + size_step
+  area.h = area.h + size_step
+  
+  If area.w > 450 Or area.w < 300 Then size_step = -size_step
+  
+  ; The loaded brush is used as background to clean the screen
+  DisplayBrush(background, #CENTER, #CENTER)
+
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $FFFFFF })
+  
+  ; ----------------------------------
+  ; Let's draw the area with its skin
+  area:skinMulti(layers)
+  ; ----------------------------------
+  
+  Flip(True)
+  
+Wend

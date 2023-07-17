@@ -1,0 +1,87 @@
+/* ****************************************************************************
+  G2D : Area:skinFitMax
+  This program shows how to use the :skinFitMax() method.
+  
+  With this method you can cover an area using an image brush, the brush will
+  be resized to entirely cover the area keeping the aspect ration, so it may
+  accur that parts of the image could fall outside the area causing image cuts.
+  This method allow you to specify the image offset, the alignment, and the
+  transparency.
+  ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+@DISPLAY 1, { Width = 800, Height = 600 }
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new(  0,   0, 799, 599)
+Local area2 = G2D.Area:new(100, 100, 300, 250)
+Local area3 = G2D.Area:new(200, 200, 300, 250)
+Local txtArea = G2D.Area:new(10, 5, 780, 30)
+
+;-------------------------------------------------------------------------------
+
+Local offset1 = { x = 0, y = 0 }
+Local offset2 = { x = 0, y = 0 }
+Local alpha1 = 0
+Local alpha2 = 255
+
+Local a1 = 1
+Local a2 = -1
+
+; We can also specify filenames but remember that every time you use skin
+; method using filenames the brush will be loaded, used and removed from
+; memory.
+Local brush1 = LoadBrush(Nil, "Resources/image1.jpg")
+Local brush2 = LoadBrush(Nil, "Resources/pattern1.png")
+
+; If you want to enable/disable the zoom smoothing you can set this variable
+GFX.SmoothZoom = False
+
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+
+  Cls($888888)
+  
+  offset1.x = offset1.x + 0.5
+  offset2.x = offset2.x - 1
+  offset2.y = offset2.y - 1
+
+  alpha1 = alpha1 + a1
+  alpha2 = alpha2 + a2
+
+  If alpha1 > 254 Or alpha1 < 1 Then a1 = -a1
+  If alpha2 > 254 Or alpha2 < 1 Then a2 = -a2
+
+  ; Let's use the alpha values also to resize the area3 so you can clearly see
+  ; that the image covers the area but preserve its aspect ratio without 
+  ; leaving empty borders.
+  area3.w = alpha1+100
+  area3.h = alpha2+100
+  
+  area1:skinFitMax(brush1, offset1, alpha1, #CENTER)
+  area2:skinFitMax(brush2, offset2, alpha2, #RIGHT)
+  area3:skinFitMax(brush1, { x = 0, y = 0 }, #NONE, #LEFT)
+
+  txtArea:fillColor($88333333)
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $FFFFFF })
+  TextOut(#CENTER, 24, "Right mouse click to switch smoothing (now:" .. GFX.SmoothZoom ..")", { color = $AAFF00 })
+  
+  Flip(True)
+
+  ; Check the right mouse button
+  If IsRightMouse()
+    ; This is really a bad practice!! A blocking event handler!! OMG! :D
+    
+    GFX.SmoothZoom = Not(GFX.SmoothZoom)
+    ; and wait until the button is released
+    While IsRightMouse()
+      Wait(100, #MILLISECONDS)
+    Wend
+  EndIf
+  
+Wend

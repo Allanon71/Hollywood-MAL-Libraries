@@ -1,0 +1,42 @@
+/* ****************************************************************************
+   * G2D : Area:skinStretch.                                                  *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new(100, 100, 400, 250)
+Local area2 = G2D.Area:new(150, 150, 400, 250)
+
+;-------------------------------------------------------------------------------
+
+Local offset1 = { x = 0, y = 0 }
+Local offset2 = { x = 0, y = 0 }
+Local alpha1 = 0
+Local alpha2 = 255
+
+Local brush1 = LoadBrush(Nil, "Resources/pattern1.png")
+Local brush2 = LoadBrush(Nil, "Resources/pattern1.png")
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+
+   Cls
+   offset1.x = offset1.x + 1
+   offset2.x = offset2.x - 1
+   offset2.y = offset2.y - 1
+
+   alpha1 = alpha1 + 1
+   alpha2 = alpha2 - 1
+
+   If alpha1 > 255 Then alpha1 = 0
+   If alpha2 < 1 Then alpha2 = 255
+
+   area1:skinStretch(brush1, offset1, alpha1)
+   area2:skinStretch(brush2, offset2, alpha2)
+
+   Flip()
+
+Wend

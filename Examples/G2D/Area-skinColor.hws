@@ -1,0 +1,48 @@
+/* ****************************************************************************
+  G2D : Area:skinColor()
+  This program shows the :skinColor() method's usage
+  
+  The :skinColor() method allow you to easily fill an area object with a plain
+  color, you can also specify the transparency overriding the one in the color
+  alpha channel, if any was specified.
+  ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 300, 250)
+Local area2 = G2D.Area:new( 75,  75, 200, 300)
+Local area3 = G2D.Area:new(125, 125, 200, 200)
+
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
+BeginDoubleBuffer()
+
+; Let's change the colors automatically using interval functions
+Local color1 = GetRandomColor()
+Local color2 = GetRandomColor()
+Local color3 = GetRandomColor()
+
+SetInterval(Nil, Function() color1 = GetRandomColor() EndFunction, 1000)
+SetInterval(Nil, Function() color2 = GetRandomColor() EndFunction, 1300)
+SetInterval(Nil, Function() color3 = GetRandomColor() EndFunction, 1700)
+
+While Not(IsLeftMouse())
+
+  Cls($888888)
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+  area1:skinColor(color1, #NONE)
+  TextOut(area1.x+area1.w+10, area1.y+5, "<== AREA 1 (No trasparency)")
+
+  area2:skinColor(color2, 100)
+  TextOut(area2.x+area2.w+10, area2.y+5, "<== AREA 2 (Transparency = 100)")
+  
+  area3:skinColor(color3, 200)
+  TextOut(area3.x+area3.w+10, area3.y+5, "<== AREA 3 (Transparency = 200)")
+  
+  Flip(True)
+  CheckEvents()
+  
+  Wait(10, #MILLISECONDS)
+Wend

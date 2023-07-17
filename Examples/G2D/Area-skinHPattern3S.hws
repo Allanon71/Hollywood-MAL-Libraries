@@ -1,0 +1,94 @@
+/* ****************************************************************************
+  G2D : Area:skinHPattern3S()
+  This program shows how to use the :skinHPattern3S() method
+  
+  With this method you can fill an area using a brush that can be subdivided
+  into 3 hotizontal sectors (3S stands for 3 Sectors).
+  
+  +-----------------+---------------------+------------+
+  | sector 1        | sector 2            | sector 3   |
+  | left            | middle              | right      |
+  +-----------------+---------------------+------------+
+  
+  you have to specify a table that defines the left, middle and right sectors
+  in order to fill the area.
+  If <vadapt> is set to TRUE, the midlle part will be stretched instead of
+  being used as a fill pattern.
+  ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+@DISPLAY 1, { Width = 800, Height = 600 }
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new(10, 100, 600, 70)
+Local area2 = G2D.Area:new(10, 200, 600, 40)
+Local area3 = G2D.Area:new(10, 300, 100, 80)
+Local area4 = G2D.Area:new(10, 500, 700, 50)
+
+Local brush1 = LoadBrush(Nil, "Resources/h3s.png", { LoadAlpha = True })
+;Local brush2 = LoadBrush(Nil, "Resources/h3s.png", { LoadAlpha = True })
+
+;-------------------------------------------------------------------------------
+; Let's derfine how our brushes should be divided in sectors, start & size
+; fields are expressed in pixels.
+Local sectors =
+  { left   = { start =  0, size = 20 },
+    middle = { start = 30, size = 60 },
+    right  = { start = 90, size = 37 }
+    }
+
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
+BeginDoubleBuffer()
+
+Local ws, hs = 2, 1
+
+While Not(IsLeftMouse())
+
+  Cls($888888)
+
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+  TextOut(#CENTER, 24, "Right mouse click to switch smoothing (now:" .. GFX.SmoothZoom ..")", { color = $AAFF00 })
+
+  DisplayBrush(brush1, 10, 40)
+  TextOut(140, 55, "<== Source brush", { color = $DDDDDD })
+
+  area1:skinHPattern3S(brush1, sectors, #NONE, True)
+  TextOut(30, 90, "Area 1 using vadapt = True", { color = $DDDDDD })
+
+  area2:skinHPattern3S(brush1, sectors, #NONE, False)
+  TextOut(30, 190, "Area 2 using vadapt = False", { color = $DDDDDD })
+
+  area3:skinHPattern3S(brush1, sectors, #NONE, False)
+  TextOut(30, 290, "Area 3 using vadapt = True", { color = $DDDDDD })
+
+  area4:skinHPattern3S(brush1, sectors, #NONE, True)
+  TextOut(30, 490, "Area 4 using vadapt = True (w=" .. area4.w .. ", h=" .. area4.h .. ")", { color = $DDDDDD })
+
+  ; Resize area4
+  area4.w = area4.w + ws
+  If area4.w > 800 Or area4.w < 80
+    ws = -ws
+  EndIf
+
+  area4.h = area4.h + hs
+  If area4.h > 100 Or area4.h < 30
+    hs = -hs
+  EndIf
+
+  Flip(True)
+  
+  ; Check the right mouse button
+  If IsRightMouse()
+    ; This is really a bad practice!! A blocking event handler!! OMG! :D
+    
+    GFX.SmoothZoom = Not(GFX.SmoothZoom)
+    ; and wait until the button is released
+    While IsRightMouse()
+      Wait(100, #MILLISECONDS)
+    Wend
+  EndIf
+  
+Wend

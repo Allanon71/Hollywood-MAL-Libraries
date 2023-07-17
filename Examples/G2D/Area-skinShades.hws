@@ -1,0 +1,46 @@
+/* ****************************************************************************
+   * G2D : Area:skinShades.                                                   *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 300, 250)
+Local area2 = G2D.Area:new(100, 100, 400, 250)
+
+;-------------------------------------------------------------------------------
+
+BeginDoubleBuffer()
+
+Local shade1 =
+   { { color = $FFFFFF, weight = 50, alpha =   0 },
+     { color = $FF00FF, weight = 50, alpha =  50 },
+     { color = $0000FF, weight =  0, alpha = 100 }
+   }
+
+Local shade2 =
+   { { color = $FF0000, weight = 10, alpha =   0 },
+     { color = $00FF00, weight = 20, alpha =  20 },
+     { color = $0000FF, weight = 40, alpha = 100 },
+     { color = $FF00FF, weight = 20, alpha = 200 },
+     { color = $00FFFF, weight = 10, alpha =  50 },
+     { color = $FFFF00, weight =  0, alpha =   0 }
+   }
+
+Local a = 1
+
+While Not(IsLeftMouse())
+
+   Cls
+   shade2[3].alpha = shade2[3].alpha + a
+   If shade2[3].alpha < 1 Or shade2[3].alpha > 254 Then a = -a
+   shade1[1].alpha = 255 - shade2[3].alpha
+   shade2[2].alpha = 255 - shade2[3].alpha
+
+   area1:skinShades(shade1, 0)
+   area2:skinShades(shade2, 90)
+
+   Flip()
+
+Wend

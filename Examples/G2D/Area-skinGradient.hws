@@ -1,0 +1,44 @@
+/* ****************************************************************************
+  G2D : Area:skinGradient()
+  This program shows how to use the :skinGradient() method.
+  
+  The :skinGradient() method allow you to fill an area object with a two colors
+  gradient with an optional angle and a global transparency value.
+  ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 300, 250)
+Local area2 = G2D.Area:new(100, 100, 400, 250)
+Local area3 = G2D.Area:new(150, 150, 250, 250)
+
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
+BeginDoubleBuffer()
+
+; Let's setup some variables to store the gradients angle
+Local angle1 = 0
+Local alpha2 = 0
+Local alpha3 = 255
+Local a1 = 1
+
+While Not(IsLeftMouse())
+
+  Cls($888888)
+  angle1 = angle1 + 1
+  alpha2 = alpha2 + a1
+  alpha3 = alpha3 - a1
+  If alpha2 > 254 Or alpha2 < 1 Then a1 = -a1
+
+
+  area1:skinGradient($0000FF, $FF0000, #NONE, angle1)
+  area2:skinGradient($FFFF00, $FF00FF, alpha2)
+  area3:skinGradient($006600, $FFFFFF, alpha3, -angle1/2)
+  
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+
+  Flip(True)
+
+Wend

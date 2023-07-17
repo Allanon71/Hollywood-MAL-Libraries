@@ -1,46 +1,56 @@
 /* ****************************************************************************
-   * G2D : Area:skinMulti -> 2 Color Layers.                                  *
-   ****************************************************************************/
+  G2D : Area:skinMulti() -> 2 Color Layers.
+  This example shows how to create a multi layer skin using two plain-color
+  fill.
+  ****************************************************************************/
 @INCLUDE "../../+Includes.hws"
 @INCLUDE #INC_G2D
 
+@DISPLAY 1, { Width = 800, Height = 600 }
+
 ;-------------------------------------------------------------------------------
 
-Local area1 = G2D.Area:new( 50,  50, 400, 300)
+Local area1 = G2D.Area:new( 50,  150, 400, 300)
 
 ;-------------------------------------------------------------------------------
 
 Local layers =
-   { { Type   = GFX.SkinType_Color,                 ;| FIRST LAYER
-       Area   = { x = -15, y = -15, w = 0, h = 0 }, ;| Area offsets
-       Params =                                     ;| Skin parameters
+   { { Type   = GFX.SkinType_Color,
+       Area   = { x = -15, y = -15, w = 0, h = 0 },
+       Params =
           { Color  = $FF0000,
             Alpha  = #NONE } },
-     { Type   = GFX.SkinType_Color,                 ;| SECOND LAYER
+     { Type   = GFX.SkinType_Color,
        Area   = { x = 15, y = 15, w = 0, h = 0 },
        Params =
           { Color  = $00FFFF,
             Alpha  = 100 } },
    }
 
-
 Local a = 1
 
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
 BeginDoubleBuffer()
 
 While Not(IsLeftMouse())
-   Cls
+  Cls($888888)
 
-   ; Make the layer2 skin change transparency
-   layers[1].Params.alpha = layers[1].Params.alpha + a
-   If layers[1].Params.alpha < 1 Or layers[1].Params.alpha > 254 Then a = -a
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+  TextOut(#CENTER, 38, "The white box is the area.", { color = $000000 })
 
-   area1:skinMulti(layers)
+  ; Make the layer2 skin change transparency
+  layers[1].Params.alpha = layers[1].Params.alpha + a
+  If layers[1].Params.alpha < 1 Or layers[1].Params.alpha > 254 Then a = -a
 
-   ; Area marker
-   area1:box($FFFFFF, 1)
+  area1:skinMulti(layers)
+  TextOut(480, 160, "Layer 1 transparency: " .. layers[1].Params.alpha, { color = $000000 })
 
-   Flip()
+  ; Area marker
+  area1:fillColor($AAFFFFFF)
+  area1:box($FFFFFF, 1)
+
+  Flip(True)
 
 Wend
 

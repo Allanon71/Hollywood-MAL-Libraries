@@ -1,0 +1,160 @@
+/* ****************************************************************************
+   * G2D : Area.                                                              *
+   * This script shows how you can create Area objects and how can you use    *
+   * them with simple and quick examples.                                     *
+   ****************************************************************************/
+   
+; First of all you have to include the required library
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+@DISPLAY 1, { Width = 800, Height = 600 }
+
+/* PART 1 : Area object creation & Basic usage
+   -----------------------------
+   An area object is used to define a simple square area that can be manipulated
+   and filled with skins or simple colors.
+   Despite being a simple data structure you will find very usefull methods.
+*/
+
+; We are going to use area objects to define a nice interface to show the tutorials
+; We will split the screen in 3 vertical strips, each one will be defined using an Area object.
+Local topArea = G2D.Area:New(0, 0, 799, 100)    ; Top area
+Local midArea = G2D.Area:New(0, 101, 799, 350)  ; Middle area
+Local botArea = G2D.Area:New(0, 452, 799, 148)  ; Bottom area
+
+; Let's clear the areas with simple colors for now
+topArea:FillColor($003355)
+midArea:FillColor($003333)
+botArea:FillColor($004422)
+
+; Let's draw a box outside the areas
+topArea:Box($FF0000, 0)
+midArea:Box($00FF00, 0)
+botArea:Box($0000FF, 0)
+
+; A little message for the user
+TextOut(#CENTER, 10, "This is an example that shows how to create Area objects")
+TextOut(#CENTER, 24, "Each square area you see in this screen are Area objects that has")
+TextOut(#CENTER, 38, "been colored using the :FillColor() and :Box() methods.")
+TextOut(#CENTER, 68, "Click with the left mouse button to continue...")
+WaitLeftMouse()
+
+; Since we are going to clear the 3 areas often let's define a function to clear
+; them, this time we will use the :SkinBevel() method to render nice looking boxes
+Function clear_screen()
+  ; you can see here an exemple about the :skinBevel() method and how to use it
+  topArea:SkinBevel( { light = $FFFFFF, dark = $555555, middle = $999999 },
+                     { fx = GFX.BevelFx_Raised, height = 2, type = GFX.BevelType_Standard })
+  midArea:SkinBevel( { light = $66FFFF, dark = $005555, middle = $779999 },
+                     { fx = GFX.BevelFx_Recessed, height = 2, type = GFX.BevelType_Standard })
+  botArea:SkinBevel( { light = $FF66FF, dark = $550055, middle = $997799 },
+                     { fx = GFX.BevelFx_Recessed, height = 3, type = GFX.BevelType_Sunken })
+
+EndFunction
+
+; So let's start with the basics...
+;   :fillPattern()
+clear_screen()
+TextOut(#CENTER, 10, "Now let's see the basics")
+TextOut(#CENTER, 24, "Let's fill the middle area using the :fillPattern() method")
+TextOut(#CENTER, 38, "We will use the brush that will be displayed in the bottom area")
+TextOut(#CENTER, 68, "Click with the left mouse button to continue...")
+WaitLeftMouse()
+
+Local brush = LoadBrush(Nil, "Resources/pattern1.png")
+DisplayBrush(brush, botArea.x + 10, botArea.y + 10)
+midArea:fillPattern(brush)
+
+TextOut(140, botArea.y+20, "As you can see we have filled the middle area using the brush")
+TextOut(140, botArea.y+34, "here on the left.")
+TextOut(140, botArea.y+48, "Click to continue", { Color = $880000 })
+WaitLeftMouse()
+
+;-------------------------------------------------------------------------------
+
+; Now let's see
+;   :skinQuick() method
+; This is a quick skin method that does not require many parameters, let's see
+; how it works.
+clear_screen()
+TextOut(#CENTER, 10, ":skinQuick() method / Pattern mode")
+TextOut(#CENTER, 24, "Let's fill the middle area using the :skinQuick() method")
+TextOut(#CENTER, 38, "this method supports 3 skin mode: pattern, image, skin9s")
+TextOut(#CENTER, 68, "Click with the left mouse button to test the <pattern> mode...")
+WaitLeftMouse()
+
+DisplayBrush(brush, botArea.x + 10, botArea.y + 10)
+midArea:skinQuick(brush, GFX.SkinMode_Pattern)
+
+TextOut(140, botArea.y+20, "The brush the left has been used as a tile, almost like the :fillPattern() method")
+
+TextOut(140, botArea.y+48, "Click to continue", { Color = $880000 })
+WaitLeftMouse()
+
+; -----
+
+clear_screen()
+TextOut(#CENTER, 10, ":skinQuick() method / Image mode")
+TextOut(#CENTER, 24, "Let's fill the middle area using the :skinQuick() method")
+TextOut(#CENTER, 38, "this time the brush will be stretched to cover the area")
+TextOut(#CENTER, 68, "Click with the left mouse button to test the <image> mode...")
+WaitLeftMouse()
+
+DisplayBrush(brush, botArea.x + 10, botArea.y + 10)
+midArea:skinQuick(brush, GFX.SkinMode_Image)
+
+TextOut(140, botArea.y+20, "The brush the left has been stretched to cover the area size")
+
+TextOut(140, botArea.y+48, "Click to continue", { Color = $880000 })
+WaitLeftMouse()
+
+; -----
+
+clear_screen()
+TextOut(#CENTER, 10, ":skinQuick() method / skin9s mode")
+TextOut(#CENTER, 24, "Let's fill the middle area using the :skinQuick() method")
+TextOut(#CENTER, 38, "this time the brush will be divided into 9 sectors and each sector will be")
+TextOut(#CENTER, 52, "used to cover the area, click to continue...")
+WaitLeftMouse()
+
+FreeBrush(brush)
+
+; We need a brush that can be divided into 9 sector to properly skin the area
+; *** Important! If you want fast rendering remember to encapsulate these calls ***
+; *** into a refresh block!                                                     ***
+Local brush = LoadBrush(Nil, "Resources/grid9S.png")
+
+BeginRefresh()
+DisplayBrush(brush, botArea.x + 10, botArea.y + 10)
+midArea:skinQuick(brush, GFX.SkinMode_Skin9S)
+EndRefresh()
+
+TextOut(140, botArea.y+20, "Look at the brush, basically it is composed by 9 sub-tiles that are used")
+TextOut(140, botArea.y+34, "to cover the middle area, isn't it cool?")
+TextOut(140, botArea.y+48, "Click to see a nicer skin", { Color = $880000 })
+WaitLeftMouse()
+
+; -----
+
+clear_screen()
+TextOut(#CENTER, 10, ":skinQuick() method / skin9s mode")
+TextOut(#CENTER, 24, "Same example as before but with a nicer source brush")
+TextOut(#CENTER, 38, "You can use any brush with width & height being a multiple of 3")
+
+FreeBrush(brush)
+
+Local brush = LoadBrush(Nil, "Resources/9s-a2.png", { LoadAlpha = True })
+
+BeginRefresh()
+DisplayBrush(brush, botArea.x + 10, botArea.y + 10)
+midArea:skinQuick(brush, GFX.SkinMode_Skin9S)
+EndRefresh()
+
+TextOut(140, botArea.y+20, "With a tiny brush you are able to cover big areas without wasting")
+TextOut(140, botArea.y+34, "memory and obtain easily great visuals.")
+TextOut(140, botArea.y+48, "For best results remember that width & height must be multiples of 3.")
+TextOut(140, botArea.y+70, "Click to END", { Color = $880000 })
+WaitLeftMouse()
+
+End

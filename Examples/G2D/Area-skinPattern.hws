@@ -1,0 +1,57 @@
+/* ****************************************************************************
+   * G2D : Area:skinPattern.                                                  *
+   ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new(100, 100, 300, 250)
+Local area2 = G2D.Area:new(150, 150, 300, 250)
+
+;-------------------------------------------------------------------------------
+
+Local offset1 = { x = 0, y = 0 }
+Local offset2 = { x = 0, y = 0 }
+Local alpha1 = 0
+Local alpha2 = 255
+Local tile1 = { w = 64, h = 64 }
+Local tile2 = { w = 128, h = 128 }
+Local a1 = 1
+Local a2 = -1
+
+Local brush1 = LoadBrush(Nil, "Resources/pattern1.png")
+Local brush2 = LoadBrush(Nil, "Resources/pattern1.png")
+
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+
+   Cls
+   offset1.x = offset1.x + 1
+   offset2.x = offset2.x - 1
+   offset2.y = offset2.y - 1
+
+   alpha1 = alpha1 + a1
+   alpha2 = alpha2 + a2
+
+   tile1.w = tile1.w + 0.5
+   tile1.h = tile1.h + 0.5
+   tile2.w = tile2.w - 0.5
+   tile2.h = tile2.h + 1
+
+   If alpha1 > 254 Or alpha1 < 1 Then a1 = -a1
+   If alpha2 > 254 Or alpha2 < 1 Then a2 = -a2
+
+   If tile1.w > 256 Then tile1.w = 64
+   If tile1.h > 256 Then tile1.h = 64
+   If tile2.w < 8 Then tile2.w = 128
+   If tile2.h > 128 Then tile2.h = 128
+
+   area1:skinPattern(brush1, offset1, alpha1, tile1)
+   area1:box($FFFFFF, 2)
+   area2:skinPattern(brush2, offset2, alpha2, tile2)
+
+   Flip()
+
+Wend

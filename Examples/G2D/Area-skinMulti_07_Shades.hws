@@ -1,55 +1,76 @@
 /* ****************************************************************************
-   * G2D : Area:skinMulti -> 2 Shades Layers.                                 *
-   ****************************************************************************/
+  G2D : Area:skinMulti() -> 2 Shades Layers.
+  Shades are almost like gradients but instead of two colors you can specify
+  how many colors you need and their balance.
+  ****************************************************************************/
 @INCLUDE "../../+Includes.hws"
 @INCLUDE #INC_G2D
 
+@DISPLAY 1, { Width = 800, Height = 600 }
+
 ;-------------------------------------------------------------------------------
 
-Local area1 = G2D.Area:new( 50,  50, 400, 300)
+Local area1 = G2D.Area:new( 50,  120, 700, 450)
 
 ;-------------------------------------------------------------------------------
 
 Local layers =
-   { { Type   = GFX.SkinType_Shades,                ;| FIRST LAYER
-       Params =                                     ;| Skin parameters
-          { ColorList =
-            { { Color = $FF0000, Weight = 50, Alpha = 0 },
-              { Color = $00FF00, Weight = 50, Alpha = 0 },
-              { Color = $0000FF, Weight =  0, Alpha = 0 } },
-            Angle  = 90 } },
-     { Type   = GFX.SkinType_Shades,                ;| SECOND LAYER
+   { { Type   = GFX.SkinType_Shades,                ; Layer 0
        Params =
           { ColorList =
-            { { Color = $FFFF00, Weight = 10, Alpha = 0 },
-              { Color = $00FFFF, Weight = 30, Alpha = 0 },
-              { Color = $FF00FF, Weight = 20, Alpha = 0 },
-              { Color = $FFFFFF, Weight = 30, Alpha = 255 },
-              { Color = $F433FF, Weight = 10, Alpha = 0 },
-              { Color = $0000FF, Weight =  0, Alpha = 0 } },
+            { { Color = $FF0000, Weight = 30, Alpha = 100 },
+              { Color = $00FF00, Weight = 20, Alpha = 150 },
+              { Color = $0000FF, Weight = 20, Alpha =   0 },
+              { Color = $FFFF00, Weight = 30, Alpha = 100 },
+              { Color = $FF00FF, Weight =  0, Alpha =   0 } },
+            Angle  = 90 } },
+     { Type   = GFX.SkinType_Shades,                ; Layer 1
+       Params =
+          { ColorList =
+            { { Color = $FFFF00, Weight = 20, Alpha = 0 },
+              { Color = $00FFFF, Weight = 20, Alpha = 0 },
+              { Color = $FF00FF, Weight = 20, Alpha = 150 },
+              { Color = $FFFFFF, Weight = 20, Alpha = 100 },
+              { Color = $F433FF, Weight = 20, Alpha = 150 },
+              { Color = $0000FF, Weight =  0, Alpha = 100 } },
             Angle  = 0 } }
    }
 
-
 Local a = 1
+Local b = 0.25
 
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
 BeginDoubleBuffer()
 
 While Not(IsLeftMouse())
-   Cls
+  Cls($888888)
+  
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+  TextOut(#CENTER, 38, "The white box is the area.", { color = $000000 })
 
-   layers[1].Params.ColorList[2].alpha = layers[1].Params.ColorList[2].alpha + a
-   layers[1].Params.ColorList[4].alpha = layers[1].Params.ColorList[4].alpha + a
-   layers[1].Params.ColorList[3].alpha = layers[1].Params.ColorList[3].alpha - a
+  If layers[1].Params.ColorList[2].alpha  <  1 Or layers[1].Params.ColorList[2].alpha  > 199 Then a = -a
+  If layers[0].Params.ColorList[1].weight < 20 Or layers[0].Params.ColorList[1].weight >  70 Then b = -b
 
-   If layers[1].Params.ColorList[2].alpha < 1 Or layers[1].Params.ColorList[2].alpha > 254 Then a = -a
+  ; Let's play with weights & transparencies
+  layers[0].Params.ColorList[0].alpha = layers[0].Params.ColorList[0].alpha - a
+  layers[0].Params.ColorList[1].alpha = layers[0].Params.ColorList[1].alpha + a
+  layers[0].Params.ColorList[3].alpha = layers[0].Params.ColorList[3].alpha - a
+  layers[0].Params.ColorList[0].weight = layers[0].Params.ColorList[0].weight + b
+  layers[0].Params.ColorList[1].weight = layers[0].Params.ColorList[1].weight + b
+  layers[0].Params.ColorList[2].weight = layers[0].Params.ColorList[2].weight + b
 
-   area1:skinMulti(layers)
+  layers[1].Params.ColorList[2].alpha = layers[1].Params.ColorList[2].alpha + a
+  layers[1].Params.ColorList[3].alpha = layers[1].Params.ColorList[3].alpha - a
+  layers[1].Params.ColorList[4].alpha = layers[1].Params.ColorList[4].alpha + a
+  layers[1].Params.ColorList[5].alpha = layers[1].Params.ColorList[5].alpha - a
+  
+  area1:skinMulti(layers)
 
-   ; Area marker
-   area1:box($FFFFFF, 1)
+  ; Area marker
+  area1:box($FFFFFF, 1)
 
-   Flip()
+  Flip(True)
 
 Wend
 

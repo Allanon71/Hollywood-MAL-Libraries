@@ -1,0 +1,50 @@
+/* ****************************************************************************
+  G2D : Area:skinHPattern()
+  This program shows how to use the :skinHPattern() method
+  
+  This method is usefull to fill an area with a brush, the brush will be
+  stretched vertically and used to fill the area horizontally.
+  You can change the brush offset and the transparency.
+  ****************************************************************************/
+@INCLUDE "../../+Includes.hws"
+@INCLUDE #INC_G2D
+
+@DISPLAY 1, { Width = 800, Height = 600 }
+
+;-------------------------------------------------------------------------------
+
+Local area1 = G2D.Area:new( 50,  50, 700, 150)
+Local area2 = G2D.Area:new(100, 150, 600, 200)
+
+Local brush1 = LoadBrush(Nil, "Resources/pattern1.png")
+Local brush2 = LoadBrush(Nil, "Resources/pattern2.jpg")
+
+;-------------------------------------------------------------------------------
+
+Local alpha = 100
+Local a = 1
+Local offset1 = { x = 0, y = 0 }
+Local offset2 = { x = 0, y = 0 }
+
+;-------------------------------------------------------------------------------
+; For smooth graphics let's use the double buffer
+BeginDoubleBuffer()
+
+While Not(IsLeftMouse())
+
+  Cls($888888)
+  alpha = alpha + a
+  offset1.x = offset1.x + 1
+  offset1.y = offset1.y + 1
+  offset2.x = offset2.x - 1
+
+  If alpha > 254 Or alpha < 1 Then a = -a
+
+  area1:skinHPattern(brush1, offset1, 255-alpha)
+  area2:skinHPattern(brush2, offset2, alpha)
+
+  TextOut(#CENTER, 10, "Left mouse click to quit.", { color = $AA0000 })
+
+  Flip(True)
+
+Wend
