@@ -8,123 +8,8 @@
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
  * Github repository                   https://github.com/Allanon71 *
- * Buy me a coffee!                       https://ko-fi.com/allanon * 
- * ------------------------------------------------------------------
-   Ansi library is an include file for Hollywood that will help you to 
- manage ANSI escape codes so you can print colored text in the console 
- of your host system.
-   I’ve developed this library to have an invaluable help while I’m 
- debugging applications because this way I’m able to spot on the fly 
- errors and/or warning messages that are hilighted from the rest of the
- messages.
-   Of course you need that your host system console is able to understand
- ANSI ascape codes, but almost any OS is able to do that… except 
- Windows! For the Windows OS you need to install any thirdy party 
- application to accomplish the task, on my development machine, running
- Windows 10, I’m using ansicon program to make use of ANSI codes.
+  * ------------------------------------------------------------------
  
- ANSI Functions
-   All ANSI related functions are mapped on the Ansi table. These 
- functions are used to retrieve ANSI escape sequences to accomplish 
- various tasks like moving the cursor, clearing/deleting characters and
- so on.
- 
- TERM Functions
-   All terminal related functions are mapped on the Term table. These
- functions are used to print string to the console or the get input 
- from the user.
- 
- MACROS and STYLES
-   All recognized ANSI sequences are stored in the table Ansi.Code, this
- table is indexed with the sequence name, for each sequence a macro
- string has been defined to simplify the use of the escape codes, for
- example:
-   Ansi.Code.FgBlack => Holds the escape sequence needed to set the
- foreground color to black, you can use this code in your strings
- like this:
-   Local myBlackText = Ansi.Code.FgBlack .. "Black world!"
- But you can also use macro strings like this:
-   Local myBlackText = "~{FBLK}Black world!"
- --------------------------------------------------------------------
- 
-
- CONTENTS
- ========
- :: ANSI ::
- Ansi.GetClearCharacters()
- Ansi.GetCursorDown()
- Ansi.GetCursorLeft()
- Ansi.GetCursorMove()
- Ansi.GetCursorRight()
- Ansi.GetCursorUp()
- Ansi.GetDeleteCharacters()
- Ansi.GetDeleteLines()
- Ansi.GetInsertBlankLines()
- Ansi.GetRndBGColor()
- Ansi.GetRndFGColor()
- Ansi.Set()
- 
- :: TERM OBJECT ::
- Term.App:ClearInfo()
- Term.App:ClearStatus()
- Term.App:ClearWarning()
- Term.App:GridView()
- Term.App:MenuAdd()
- Term.App:New()
- Term.App:Progress()
- Term.App:SetInfo()
- Term.App:SetStatus()
- Term.App:SetWarning()
- Term.App:ShowInput()
- Term.App:ShowMenu()
- Term.App:ShowMessage()
- Term.App:Start()
- Term.App:alignNumber()
- 
- :: TERM FUNCTIONS ::
- Term.CTLine()
- Term.Clear()
- Term.GetSize()
- Term.Input()
- Term.Line()
- Term.Print()
- Term.PrintAt()
- Term.SetTermSize()
- 
- :: TERM DRAWING ::
- Term.Draw.Box()
- Term.Draw.FBox()
- Term.Draw.HLine()
- Term.Draw.VLine()
- 
- 
- CHANGE LOG
- ----------
- ?.?
-    Fixed Term.GetSize() that was not initializing correctly the
-    terminal size under Linux systems.
- 1.5
-    Updated the .Test() function and added the GridView() control.
-    Fixed a bug in Term.Print() that was causing an infinite loop.
- 1.4
-    Term.App:_FixedWidth(txt, size, align)
-      Added support for center alignment
-
- 1.3
-    Several improvements in terminal functions
-
- 1.2
-  20/01/2018
-    Added : Ansi.Set(value, termSize) Terminal size is used by the
-            drawing functions and the wordwrap functions.
-    Added : Ansi.Draw() to draw lines.
-    Change : Removed Ansi.Draw() and replaced with specific functions
-             to draw lines, empty boxes and filled boxes.
- 1.1
-  01/02/2018
-    Added a check to avoid error printing non-UTF8 characters.
- 
- ********************************************************************/
 /*
  funzioni da creare
   - Term.Draw.Box --> Draw Empty Box
@@ -132,105 +17,107 @@
   - Term.LPrint(...)  --> Print with coordinates
 */
 Ansi = {}
-Ansi.Version = "1.4"
-Ansi.Build   = "10/01/2022"
+Ansi.Version = "1.7"
+Ansi.Build   = "02/11/2024"
 Ansi.Escape  = "\27"
 Ansi.Code    =
-   { Reset            = Ansi.Escape ..  "[0m",              ;~{RSET}
-     BoldOn           = Ansi.Escape ..  "[1m",              ;~{BLD+}
-     DimOn            = Ansi.Escape ..  "[2m",              ;~{DIM+}
-     ItalicsOn        = Ansi.Escape ..  "[3m",              ;~{ITA+}
-     UnderlineOn      = Ansi.Escape ..  "[4m",              ;~{UND+}
-     BlinkOn          = Ansi.Escape ..  "[5m",              ;~{BLI+}
-     ; [6m = Rapid Blinking Cursor
-     InverseOn        = Ansi.Escape ..  "[7m",              ;~{INV+}
-     HiddenOn         = Ansi.Escape ..  "[8m",              ;~{HID+}
-     StrikethroughOn  = Ansi.Escape ..  "[9m",              ;~{STR+}
-     ; [10m = Default font
-     ; [<11-19>m = Alternative fonts
-     ; [20m = Gothic font
-     ; [21m = Double underline
-     BoldOff          = Ansi.Escape .. "[22m",              ;~{BLD-}
-     ItalicsOff       = Ansi.Escape .. "[23m",              ;~{ITA-}
-     UnderlineOff     = Ansi.Escape .. "[24m",              ;~{UND-}
-     BlinkOff         = Ansi.Escape .. "[25m",              ;~{BLI-}
-     ; [26m = Proportional spacing
-     InverseOff       = Ansi.Escape .. "[27m",              ;~{INV-}
-     HiddenOff        = Ansi.Escape .. "[28m",              ;~{HID-}
-     StrikethroughOff = Ansi.Escape .. "[29m",              ;~{STR-}
-     FgBlack          = Ansi.Escape .. "[30m",              ;~{FBLK}
-     FgRed            = Ansi.Escape .. "[31m",              ;~{FRED}
-     FgGreen          = Ansi.Escape .. "[32m",              ;~{FGRN}
-     FgYellow         = Ansi.Escape .. "[33m",              ;~{FYEL}
-     FgBlue           = Ansi.Escape .. "[34m",              ;~{FBLU}
-     FgMagenta        = Ansi.Escape .. "[35m",              ;~{FMAG}
-     FgCyan           = Ansi.Escape .. "[36m",              ;~{FCYA}
-     FgWhite          = Ansi.Escape .. "[37m",              ;~{FWHI}
-     ; [38m =	Set foreground color	Next arguments are 5;n or 2;r;g;b
-     FgDefault        = Ansi.Escape .. "[39m",              ;~{FDEF}
-     BgBlack          = Ansi.Escape .. "[40m",              ;~{BBLK}
-     BgRed            = Ansi.Escape .. "[41m",              ;~{BRED}
-     BgGreen          = Ansi.Escape .. "[42m",              ;~{BGRN}
-     BgYellow         = Ansi.Escape .. "[43m",              ;~{BYEL}
-     BgBlue           = Ansi.Escape .. "[44m",              ;~{BBLU}
-     BgMagenta        = Ansi.Escape .. "[45m",              ;~{BMAG}
-     BgCyan           = Ansi.Escape .. "[46m",              ;~{BCYA}
-     BgWhite          = Ansi.Escape .. "[47m",              ;~{BWHI}
-     ; [48m = Set background color	Next arguments are 5;n or 2;r;g;b]
-     BgDefault        = Ansi.Escape .. "[49m",              ;~{BDEF}
-     ; [50m = Disable proportional spacing
-     MoveCursor       = Ansi.Escape .. "[{line};{column}H", ; GetCursorMove(l, c)
-     MoveCursorUp     = Ansi.Escape .. "[{lines}A",         ; GetCursorUp(l)
-     MoveCursorUp1    = Ansi.Escape .. "[1A",               ;~{M1UP}
-     MoveCursorDown   = Ansi.Escape .. "[{lines}B",         ; GetCursorDown(l)
-     MoveCursorDown1  = Ansi.Escape .. "[1B",               ;~{M1DO}
-     MoveCursorRight  = Ansi.Escape .. "[{columns}C",       ; GetCursorRight(c)
-     MoveCursorRight1 = Ansi.Escape .. "[1C",               ;~{M1RI}
-     MoveCursorLeft   = Ansi.Escape .. "[{columns}D",       ; GetCursorLeft(c)
-     MoveCursorLeft1  = Ansi.Escape .. "[1D",               ;~{M1LE}
-     SaveCursor       = Ansi.Escape .. "[s",                ;~{SAVE}
-     RestoreCursor    = Ansi.Escape .. "[u",                ;~{REST}
-     Home             = Ansi.Escape .. "[H",                ;~{HOME}
-     ClearBelow       = Ansi.Escape .. "[0J",               ;~{CLRB}
-     ClearAbove       = Ansi.Escape .. "[1J",               ;~{CLRA}
-     ClearHome        = Ansi.Escape .. "[2J",               ;~{CLRH}
-     ClearLineRight   = Ansi.Escape .. "[K",                ;~{CLRR}
-     ClearLineLeft    = Ansi.Escape .. "[1K",               ;~{CLRL}
-     ClearLine        = Ansi.Escape .. "[2K",               ;~{CLIN}
-     ClearCharacters  = Ansi.Escape .. "[{chars}X",         ; GetClearCharacters(c)
-     Clear1Character  = Ansi.Escape .. "[1X",               ;~{C1CH}
-     InsertBlankLines = Ansi.Escape .. "[{lines}L",         ; GetInsertBlankLines(l)
-     Insert1BlankLine = Ansi.Escape .. "[1L",               ;~{I1BL}
-     DeleteLines      = Ansi.Escape .. "[{lines}M",         ; GetDeleteLines(l)
-     Delete1Line      = Ansi.Escape .. "[1M",               ;~{D1LI}
-     DeleteCharacters = Ansi.Escape .. "[{chars}P",         ; GetDeleteCharacters(c)
-     Delete1Character = Ansi.Escape .. "[1P",               ;~{D1CH}
-     InsertCharacters = Ansi.Escape .. "[{chars}@",         ; GetInsertCharacters(c)
-     Insert1Character = Ansi.Escape .. "[1@",               ;~{I1CH}
-     ShowCursor       = Ansi.Escape .. "[?25h",             ;~{SHWC}
-     HideCursor       = Ansi.Escape .. "[?25l",             ;~{HIDC}
+  ;| Item's name     | item's escape code    | String tag
+  ;+-----------------+-----------------------+-----------
+  { Reset            = Ansi.Escape ..  "[0m", ;~{RSET}
+    BoldOn           = Ansi.Escape ..  "[1m", ;~{BLD+}
+    DimOn            = Ansi.Escape ..  "[2m", ;~{DIM+}
+    ItalicsOn        = Ansi.Escape ..  "[3m", ;~{ITA+}
+    UnderlineOn      = Ansi.Escape ..  "[4m", ;~{UND+}
+    BlinkOn          = Ansi.Escape ..  "[5m", ;~{BLI+}
+    ; [6m = Rapid Blinking Cursor
+    InverseOn        = Ansi.Escape ..  "[7m", ;~{INV+}
+    HiddenOn         = Ansi.Escape ..  "[8m", ;~{HID+}
+    StrikethroughOn  = Ansi.Escape ..  "[9m", ;~{STR+}
+    ; [10m = Default font
+    ; [<11-19>m = Alternative fonts
+    ; [20m = Gothic font
+    ; [21m = Double underline
+    BoldOff          = Ansi.Escape .. "[22m", ;~{BLD-}
+    ItalicsOff       = Ansi.Escape .. "[23m", ;~{ITA-}
+    UnderlineOff     = Ansi.Escape .. "[24m", ;~{UND-}
+    BlinkOff         = Ansi.Escape .. "[25m", ;~{BLI-}
+    ; [26m = Proportional spacing
+    InverseOff       = Ansi.Escape .. "[27m", ;~{INV-}
+    HiddenOff        = Ansi.Escape .. "[28m", ;~{HID-}
+    StrikethroughOff = Ansi.Escape .. "[29m", ;~{STR-}
+    FgBlack          = Ansi.Escape .. "[30m", ;~{FBLK}
+    FgRed            = Ansi.Escape .. "[31m", ;~{FRED}
+    FgGreen          = Ansi.Escape .. "[32m", ;~{FGRN}
+    FgYellow         = Ansi.Escape .. "[33m", ;~{FYEL}
+    FgBlue           = Ansi.Escape .. "[34m", ;~{FBLU}
+    FgMagenta        = Ansi.Escape .. "[35m", ;~{FMAG}
+    FgCyan           = Ansi.Escape .. "[36m", ;~{FCYA}
+    FgWhite          = Ansi.Escape .. "[37m", ;~{FWHI}
+    ; [38m =	Set foreground color	Next arguments are 5;n or 2;r;g;b
+    FgDefault        = Ansi.Escape .. "[39m", ;~{FDEF}
+    BgBlack          = Ansi.Escape .. "[40m", ;~{BBLK}
+    BgRed            = Ansi.Escape .. "[41m", ;~{BRED}
+    BgGreen          = Ansi.Escape .. "[42m", ;~{BGRN}
+    BgYellow         = Ansi.Escape .. "[43m", ;~{BYEL}
+    BgBlue           = Ansi.Escape .. "[44m", ;~{BBLU}
+    BgMagenta        = Ansi.Escape .. "[45m", ;~{BMAG}
+    BgCyan           = Ansi.Escape .. "[46m", ;~{BCYA}
+    BgWhite          = Ansi.Escape .. "[47m", ;~{BWHI}
+    ; [48m = Set background color	Next arguments are 5;n or 2;r;g;b]
+    BgDefault        = Ansi.Escape .. "[49m", ;~{BDEF}
+    ; [50m = Disable proportional spacing
+    MoveCursor       = Ansi.Escape .. "[{line};{column}H", ; GetCursorMove(l, c)
+    MoveCursorUp     = Ansi.Escape .. "[{lines}A",         ; GetCursorUp(l)
+    MoveCursorUp1    = Ansi.Escape .. "[1A", ;~{M1UP}
+    MoveCursorDown   = Ansi.Escape .. "[{lines}B",         ; GetCursorDown(l)
+    MoveCursorDown1  = Ansi.Escape .. "[1B", ;~{M1DO}
+    MoveCursorRight  = Ansi.Escape .. "[{columns}C",       ; GetCursorRight(c)
+    MoveCursorRight1 = Ansi.Escape .. "[1C", ;~{M1RI}
+    MoveCursorLeft   = Ansi.Escape .. "[{columns}D",       ; GetCursorLeft(c)
+    MoveCursorLeft1  = Ansi.Escape .. "[1D", ;~{M1LE}
+    SaveCursor       = Ansi.Escape .. "[s",  ;~{SAVE}
+    RestoreCursor    = Ansi.Escape .. "[u",  ;~{REST}
+    Home             = Ansi.Escape .. "[H",  ;~{HOME}
+    ClearBelow       = Ansi.Escape .. "[0J", ;~{CLRB}
+    ClearAbove       = Ansi.Escape .. "[1J", ;~{CLRA}
+    ClearHome        = Ansi.Escape .. "[2J", ;~{CLRH}
+    ClearLineRight   = Ansi.Escape .. "[K",  ;~{CLRR}
+    ClearLineLeft    = Ansi.Escape .. "[1K", ;~{CLRL}
+    ClearLine        = Ansi.Escape .. "[2K", ;~{CLIN}
+    ClearCharacters  = Ansi.Escape .. "[{chars}X",         ; GetClearCharacters(c)
+    Clear1Character  = Ansi.Escape .. "[1X", ;~{C1CH}
+    InsertBlankLines = Ansi.Escape .. "[{lines}L",         ; GetInsertBlankLines(l)
+    Insert1BlankLine = Ansi.Escape .. "[1L", ;~{I1BL}
+    DeleteLines      = Ansi.Escape .. "[{lines}M",         ; GetDeleteLines(l)
+    Delete1Line      = Ansi.Escape .. "[1M", ;~{D1LI}
+    DeleteCharacters = Ansi.Escape .. "[{chars}P",         ; GetDeleteCharacters(c)
+    Delete1Character = Ansi.Escape .. "[1P", ;~{D1CH}
+    InsertCharacters = Ansi.Escape .. "[{chars}@",         ; GetInsertCharacters(c)
+    Insert1Character = Ansi.Escape .. "[1@", ;~{I1CH}
+    ShowCursor       = Ansi.Escape .. "[?25h", ;~{SHWC}
+    HideCursor       = Ansi.Escape .. "[?25l", ;~{HIDC}
+    
+    SetTerm          = Ansi.Escape .. "[={mode}h",
      
-     SetTerm          = Ansi.Escape .. "[={mode}h",
+    HLine            = Chr(8213),
+    HHLine           = Chr(8215),
      
-     HLine            = Chr(8213),
-     HHLine           = Chr(8215),
-     
-     Gfx =
+    Gfx =
       { ; Light Lines = LL
         ; H = Horizontal, V = Vertical
         ; L = Left, R = Right
         ; U = Up, D = Down
-        LLH           = Chr(9472),  ; ─	BOX DRAWINGS LIGHT HORIZONTAL  
-        LLV           = Chr(9474),  ; │	BOX DRAWINGS LIGHT VERTICAL
-        LLDR          = Chr(9484),  ; ┌	BOX DRAWINGS LIGHT DOWN AND RIGHT
-        LLDL          = Chr(9488),  ; ┐	BOX DRAWINGS LIGHT DOWN AND LEFT
-        LLUR          = Chr(9492),  ; └	BOX DRAWINGS LIGHT UP AND RIGHT
-        LLUL          = Chr(9496),  ; ┘	BOX DRAWINGS LIGHT UP AND LEFT
-        LLVL          = Chr(9508),  ; ┤ BOX DRAWINGS LIGHT VERTICAL LEFT
-        LLVR          = Chr(9500),  ; ├ BOX DRAWINGS LGIHT VERTICAL RIGHT
-        LLHU          = Chr(9524),  ; ┴ BOX DRAWINGS LIGHT HORIZONTAL UP
-        LLHD          = Chr(9516),  ; ┬ BOX DRAWINGS LIGHT HORIZONTAL DOWN
-        LLVH          = Chr(9532),  ; ┼ BOX DRAWINGS LIGHT VERTICAL HORIZONTAL
+        LLH  = Chr(9472),  ; ─	BOX DRAWINGS LIGHT HORIZONTAL  
+        LLV  = Chr(9474),  ; │	BOX DRAWINGS LIGHT VERTICAL
+        LLDR = Chr(9484),  ; ┌	BOX DRAWINGS LIGHT DOWN AND RIGHT
+        LLDL = Chr(9488),  ; ┐	BOX DRAWINGS LIGHT DOWN AND LEFT
+        LLUR = Chr(9492),  ; └	BOX DRAWINGS LIGHT UP AND RIGHT
+        LLUL = Chr(9496),  ; ┘	BOX DRAWINGS LIGHT UP AND LEFT
+        LLVL = Chr(9508),  ; ┤ BOX DRAWINGS LIGHT VERTICAL LEFT
+        LLVR = Chr(9500),  ; ├ BOX DRAWINGS LGIHT VERTICAL RIGHT
+        LLHU = Chr(9524),  ; ┴ BOX DRAWINGS LIGHT HORIZONTAL UP
+        LLHD = Chr(9516),  ; ┬ BOX DRAWINGS LIGHT HORIZONTAL DOWN
+        LLVH = Chr(9532),  ; ┼ BOX DRAWINGS LIGHT VERTICAL HORIZONTAL
         
         ; Rounded Light Lines = RLL
         RLLDR         = Chr(9581),  ; ╭	BOX DRAWINGS LIGHT ARC DOWN RIGHT
@@ -265,9 +152,6 @@ Ansi.Code    =
         UP1E          = Chr(9620),  ; ▔ BOX DRAWINGS UPPER 1 EIGHTH
         R1E           = Chr(9621),  ; ▕ BOX DRAWINGS RIGHT 1 EIGHTH
         },
-
-
-     
 
      ;--- NORMAL SET ---                                    ;~{NORM}
      ;--- NOTICE SET ---                                    ;~{NOTI}
@@ -332,12 +216,18 @@ Function Term.SetTermSize(r, c, color)
   Term.Size.Rows = r
   Term.Size.Columns = c
 
-  Local t = ReplaceStr(Ansi.Code.SetTerm, "{mode}", mode)
+  Return(ReplaceStr(Ansi.Code.SetTerm, "{mode}", mode))
   
 EndFunction
 
 Function Term.GetSize()
-  ; If we are in a linux environment we can try to read the terminal size
+  ; On a Linux environment this call will report the terminal size, if we are not
+  ; on Linux the contents of Term.Size.Rows and Term:size:columns will be returned.
+  ;
+  ; OUTPUT
+  ;   r : number of terminal's rows
+  ;   c : number of terminal's columns
+  ;---
   Local v = GetVersion()
 
   If v.platform = "Linux"
@@ -348,8 +238,10 @@ Function Term.GetSize()
     WriteLine(fid, "tput lines >" .. output)
     WriteLine(fid, "tput cols >>" .. output)
     CloseFile(fid)
+    
     ; Execute the script to generate the output
     Execute("sh " .. script)
+    
     ; And now read the result
     If Exists(output)
       Local fid = OpenFile(Nil, output, #MODE_READ)
@@ -360,179 +252,200 @@ Function Term.GetSize()
       Term.Size.Rows = ToNumber(lines)
       Term.Size.Columns = ToNumber(cols)
       Return(Term.Size.Rows, Term.Size.Columns)
+      
     EndIf
+    
   EndIf
   
   Return(Term.Size.Rows, Term.Size.Columns)
+  
 EndFunction
 
 Function Ansi.GetRndFgColor()
+  ; Returns an ANSI string you can use to set a random foreground color (0-8).
+  ;
+  ; OUTPUT
+  ;   rc : ANSI sequence with a random foreground color (0-8)
+  ; ---
+
   Return(Ansi.FgColor[Rnd(8)])
+  
 EndFunction
 
 Function Ansi.GetRndBgColor()
+  ; Returns an ANSI string you can use to set a random background color (0-8).
+  ;
+  ; OUTPUT
+  ;   rc : ANSI sequence with a random background color (0-8)
+
   Return(Ansi.BgColor[Rnd(8)])
+  
 EndFunction
 
 Function Ansi.Set(value, termSize)
-/******************************************************************************
-Ansi.Set(value, termSize)
-
-Switch ansi mode on or off and adjust the terminal size in characters.
----------------------------------------------------------------------
-INPUT
-  value => True|False where True enables ansi mode
-  termSize => Optional table you can pass to set the default terminal size
-              in characters.
-EXAMPLE
-  The following command switch on the ansi mode and set the terminal size to
-  the default size of 30 rows and 60 columns:
-  | Ansi.Set(True, { 30, 60 })
-******************************************************************************/
+  ; Switch ansi mode on or off and adjust the terminal size in characters.
+  ; 
+  ; INPUT
+  ;   value : Use True to enable ANSI mode, False to switch it off.
+  ;   termSize : Optional table you can pass to set the default terminal size
+  ;              in characters.
+  ; EXAMPLE
+  ;   The following command switch on the ANSI mode and set the terminal size to
+  ;   the default size of 30 rows and 60 columns:
+  ;   | Ansi.Set(True, { 30, 60 })
+  ; ---
+  
   Term.AnsiMode = value
+  
 EndFunction
 
 Function Ansi.GetDeleteLines(lines) ; v1.0
-/******************************************************************************
-code = Ansi.GetDeleteLines(lines)
-
-Return the escape sequence to delete <lines> rows.
----------------------------------------------------------------------
-INPUT
-  lines => How many lines we have to delete
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/  
+  ; Returns the escape sequence to delete <lines> rows.
+  ; 
+  ; INPUT
+  ;   lines : How many lines we have to delete
+  ;   
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; --
+  
   Return(ReplaceStr(Ansi.Code.DeleteLines, "lines", lines))
+  
 EndFunction
 
 Function Ansi.GetInsertBlankLines(lines) ; v1.0
-/******************************************************************************
-code = Ansi.GetInsertBlankLines(lines)
+  ; Returns the escape sequence to insert <lines> blank rows.
+  ; 
+  ; INPUT
+  ;   lines : How many blank lines we have to insert
+  ;   
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; --
 
-Return the escape sequence to insert <lines> blank rows.
----------------------------------------------------------------------
-INPUT
-  lines => How many blank lines we have to insert
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/  
   Return(ReplaceStr(Ansi.Code.InsertBlankLines, "lines", lines))
+  
 EndFunction
 
 Function Ansi.GetClearCharacters(chars) ; v1.0
-/******************************************************************************
-code = Ansi.GetClearCharacters(chars)
+  ; Returns a string with the ANSI escape sequence needed to clear 'chars'
+  ; characters.
+  ; 
+  ; INPUT
+  ;   chars : How many charaters we have to clear
+  ;   
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
 
-Returns a string with the ANSI escape sequence needed to clear 'chars' characters.
----------------------------------------------------------------------
-INPUT
-  chars => How many charaters we have to clear
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/  
   Return(ReplaceStr(Ansi.Code.ClearCharacters, "chars", chars))
+  
 EndFunction
 
 Function Ansi.GetInsertCharacters(chars) ; v1.0
-/******************************************************************************
-code = Ansi.GetInsertCharacters(chars)
+  ; Returns the escape sequence to insert <chars> characters.
+  ; 
+  ; INPUT
+  ;   chars : How many charaters we have to insert
+  ; 
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
 
-Return the escape sequence to insert <chars> characters.
----------------------------------------------------------------------
-INPUT
-  chars => How many charaters we have to insert
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/  
   Return(ReplaceStr(Ansi.Code.InsertCharacters, "chars", chars))
+  
 EndFunction
 
 Function Ansi.GetDeleteCharacters(chars) ; v1.0
-/******************************************************************************
-code = Ansi.GetDeleteCharacters(chars)
+  ; Returns the escape sequence to delete <chars> characters.
+  ; 
+  ; INPUT
+  ;   chars : How many charaters we have to delete
+  ; 
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
 
-Return the escape sequence to delete <chars> characters.
----------------------------------------------------------------------
-INPUT
-  chars => How many charaters we have to delete
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/  
   Return(ReplaceStr(Ansi.Code.DeleteCharacters, "chars", chars))
+  
 EndFunction
 
 Function Ansi.GetCursorMove(row, column) ; v1.0
-/******************************************************************************
-code = Ansi.GetCursorMove(row, column)
+  ; Returns the escape sequence to move the cursor to (row, column).
+  ; 
+  ; INPUT
+  ;   row : Row position
+  ;   column : Column position
+  ;   
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
 
-Return the escape sequence to move the cursor to (row, column).
----------------------------------------------------------------------
-INPUT
-  row => Row position
-  column => Column position
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/
   Local r = ReplaceStr(Ansi.Code.MoveCursor, "{line}", row)
   r = ReplaceStr(r, "{column}", column)
+  
   Return(r)
+  
 EndFunction
 
 Function Ansi.GetCursorUp(lines) ; v1.0
-/******************************************************************************
-code = Ansi.GetCursorUp(lines)
-
-Return the escape sequence to move the cursor up <lines> lines.
----------------------------------------------------------------------
-INPUT
-  lines => How many lines we want to move the cursor up
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/
+  ; Returns the escape sequence needed to move the cursor by the specified
+  ; value.
+  ; 
+  ; INPUT
+  ;   lines : move up by the specified lines
+  ; 
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
+  
   Return(ReplaceStr(Ansi.Code.MoveCursorUp, "{lines}", lines))
+  
 EndFunction
 
 Function Ansi.GetCursorDown(lines) ; v1.0
-/******************************************************************************
-code = Ansi.GetCursorDown(lines)
+  ; Returns the escape sequence needed to move the cursor by the specified
+  ; value.
+  ; 
+  ; INPUT
+  ;   lines : move down by the specified lines
+  ; 
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
 
-Return the escape sequence to move the cursor down <lines> lines.
----------------------------------------------------------------------
-INPUT
-  lines => How many lines we want to move the cursor down
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/
   Return(ReplaceStr(Ansi.Code.MoveCursorDown, "{lines}", lines))
+
 EndFunction
 
 Function Ansi.GetCursorRight(columns) ; v1.0
-/******************************************************************************
-code = Ansi.GetCursorRight(columns)
+  ; Returns the escape sequence needed to move the cursor by the specified
+  ; value.
+  ; 
+  ; INPUT
+  ;   columns : move right by the specified columns
+  ; 
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
 
-Return the escape sequence to move the cursor right <columns> chars.
----------------------------------------------------------------------
-INPUT
-  columns => How many columns we want to move the cursor to the right
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/
   Return(ReplaceStr(Ansi.Code.MoveCursorRight, "{columns}", columns))
+
 EndFunction
 
 Function Ansi.GetCursorLeft(columns) ; v1.0
-/******************************************************************************
-code = Ansi.GetCursorLeft(columns)
-
-Return the escape sequence to move the cursor left <columns> chars.
----------------------------------------------------------------------
-INPUT
-  columns => How many columns we want to move the cursor to the left
-OUTPUT
-  result => String with the requested ANSI escape sequence
-******************************************************************************/
+  ; Returns the escape sequence needed to move the cursor by the specified
+  ; value.
+  ; 
+  ; INPUT
+  ;   columns : move up by the specified columns
+  ; 
+  ; OUTPUT
+  ;   result : String with the requested ANSI escape sequence
+  ; ---
+  
   Return(ReplaceStr(Ansi.Code.MoveCursorLeft, "{columns}", columns))
+  
 EndFunction
 
 Function Term.getInput(t, wordwrap, linefeed, maxLen) ; v1.0
@@ -563,7 +476,7 @@ OUTPUT
   Local count = ListItems(txt)
   If count > 1
     For Local k = 0 To ListItems(txt)-2
-      DebugPrint(txt[k])
+      ConsolePrint(txt[k])
     Next
   EndIf
 
@@ -576,9 +489,9 @@ OUTPUT
     Local c = ReadChr(fid)
     Local le = GetLastError()   
     ExitOnError(True)
-    If le <> 0 Then DebugPrint("ERROR: ", le, GetErrorName(le))
+    If le <> 0 Then ConsolePrint("ERROR: ", le, GetErrorName(le))
     If Not(IsNil(c))
-      DebugPrint("-> ", c)
+      ConsolePrint("-> ", c)
     EndIf
   Wend
    
@@ -595,7 +508,7 @@ OUTPUT
   Local count = ListItems(txt)
   If count > 1
     For Local k = 0 To ListItems(txt)-2
-      DebugPrint(txt[k])
+      ConsolePrint(txt[k])
     Next
   EndIf
   
@@ -623,14 +536,16 @@ OUTPUT
   EndIf
 
   Local txt = Term.Print(t, wordwrap, 0, linefeed, True)
+  
   txt[0] = prompt .. txt[0]
   Local count = ListItems(txt)
   If count > 1
     For Local k = 0 To ListItems(txt)-2
-      DebugPrint(txt[k])
+      ConsolePrint(txt[k])
     Next
   EndIf
-  Local r = DebugPrompt(txt[count-1])
+
+  Local r = ConsolePrompt(txt[count-1])
 
   If Term.AnsiMode
     Local b = IIf(Term.NormalColor.Bold,      Ansi.Code.BoldOn,      Ansi.Code.BoldOff)
@@ -1019,9 +934,9 @@ INPUT
       
     Else
       For Local i = 0 To ListItems(lines)-1
-        DebugPrint(Encoded[i])
+        ConsolePrint(Encoded[i])
         If i = ListItems(lines)-1 And Not(Linefeed)
-          DebugPrint(Ansi.GetCursorUp(2))
+          ConsolePrint(Ansi.GetCursorUp(2))
         EndIf
       Next
     EndIf
@@ -1030,7 +945,7 @@ INPUT
       Return(Naked)
     Else
       For Local i = 0 To ListItems(lines)-1
-        DebugPrint(Naked[i])
+        ConsolePrint(Naked[i])
       Next
     EndIf
   EndIf
@@ -1249,48 +1164,51 @@ Term.App =
     MenuHistory = { },    ; Table to track the menu levels
     
     Layout =              ; Table to define the application layout
-      { Header = 
+
+      { Header =          ; APP TITLE
         { Value = "{AppName} v{AppVersion} ({AppBuild}) - {Copyright}",
           Color = Ansi.Code.BoldOn .. Ansi.Code.FgYellow .. Ansi.Code.BgBlue,
-          Row = 1
-          },
+          Row   = 1 },
+
         Info =    ; Used only by the GridView
         { Value = "",
           Color = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgGreen,
           Row = -1
           },
-        Status =
+
+        Status =          ; STATUS BAR
         { Value = "",
-          Color = Ansi.Code.BoldOn .. Ansi.Code.FgCyan .. Ansi.Code.BgBlue,
-          Row   = -1
-          },
-        Warning =
+          Color = Ansi.Code.BoldOn .. Ansi.Code.FgYellow .. Ansi.Code.BgMagenta,
+          Row   = -1 },
+
+        Warning =         ; WARNING BAR
         { Value = "",
           Color = Ansi.Code.BoldOn .. Ansi.Code.FgYellow .. Ansi.Code.BgRed,
           Row = -1 },
+
         MenuState =       ; Row to show the menu navigation
         { Value = "",
           Color = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgCyan,
-          Row = 2,
-          ArrowChar = Chr(187), ;" > ",
-          ArrowColor = Ansi.Code.FgYellow .. Ansi.Code.BgBlack
-          },
+          Row   = 2,
+          ArrowChar  = Chr(187), ;" > ",
+          ArrowColor = Ansi.Code.FgYellow .. Ansi.Code.BgBlack },
+
         Prompt =          ; Prompt menu definition
-        { Row = 22,
-          Column = 1,
-          Prefix = " ",
+        { Row     = 22,
+          Column  = 1,
+          Prefix  = " ",
           Postfix = ": ",
-          Color = Ansi.Code.BoldOff .. Ansi.Code.FgBlack .. Ansi.Code.BgWhite,
-          Value = "Command",
-          UserInputColor = Ansi.Code.BoldOn .. Ansi.Code.FgYellow .. Ansi.Code.BgBlack
-          },
-        Message =
-        { firstRow = 3,
-          vLenght = 18,
-          Color = Ansi.Code.BoldOff .. Ansi.Code.FgWhite .. Ansi.Code.BgBlue,
-          BgColor = Ansi.Code.BoldOff .. Ansi.Code.FgBlue .. Ansi.Code.BgBlue,
-          TextColor = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgBlue
-          },
+          Color   = Ansi.Code.BoldOff .. Ansi.Code.FgBlack .. Ansi.Code.BgWhite,
+          Value   = "Command",
+          UserInputColor = Ansi.Code.BoldOn .. Ansi.Code.FgYellow .. Ansi.Code.BgBlack },
+
+        Message =         ; MESSAGE BOX
+        { firstRow  = 3,
+          vLenght   = 18,
+          Color     = Ansi.Code.BoldOff .. Ansi.Code.FgWhite .. Ansi.Code.BgBlue,
+          BgColor   = Ansi.Code.BoldOff .. Ansi.Code.FgMagenta .. Ansi.Code.BgBlue,
+          TextColor = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgBlue },
+
         MenuItems =       ; Defines how to render menu items
         { firstRow = 4,
           vLength  = 15,
@@ -1349,9 +1267,9 @@ Function Term.App:New()
   obj.TermSize[0] = r
   obj.TermSize[1] = c
   
-  obj.Layout.Status.Row  = obj.TermSize[0]-1
-  obj.Layout.Warning.Row = obj.TermSize[0]-2
-  obj.Layout.Info.Row    = obj.TermSize[0]
+  obj.Layout.Status.Row  = obj.TermSize[0]-2
+  obj.Layout.Warning.Row = obj.TermSize[0]-3
+  obj.Layout.Info.Row    = obj.TermSize[0]-1
   
   Return(obj)
 EndFunction
@@ -1660,11 +1578,11 @@ Function Term.App:ShowMessage(txt, waitkey, wordwrap)
   If IsNil(wordwrap) Then wordwrap = True
 
   Term.Draw.FBox(
-    { row = self.Layout.Message.firstRow+1,
+    { row    = self.Layout.Message.firstRow+1,
       column = 2,
-      width = self.TermSize[1]-3,
+      width  = self.TermSize[1]-3,
       height = self.Layout.Message.vLenght-2,
-      color = self.Layout.Message.BgColor
+      color  = self.Layout.Message.BgColor
       })
   Local t = Ansi.GetCursorMove(self.Layout.Message.firstRow+1, 4) ..
             self.Layout.Message.TextColor
@@ -2169,6 +2087,7 @@ Function Term.App:ShowMenu(menuEntry)
               self.Layout.Prompt.Postfix ..
               self.Layout.Prompt.UserInputColor ..
               Ansi.GetCursorRight(1)
+
     Local cmd = Term.Input(t, False, False)
     If cmd = "" Then cmd = "ENTER"
     
@@ -2219,9 +2138,9 @@ Function Term.App:Progress(txt, vcurr, vmax)
   Local vmx    = Int(vmax*vstp)
   Local d      = vmx-vcr
   If d < 1 Then Return
-  ;DebugPrint(txt,vstp,vcr,vmx, vcurr, vmax)
+  ;ConsolePrint(txt,vstp,vcr,vmx, vcurr, vmax)
   Local t = txt .. " " .. RepeatStr(Ansi.Code.Gfx.HSB, vcr) .. RepeatStr(Ansi.Code.Gfx.LSB, d)
-  ;DebugPrint(t)
+  ;ConsolePrint(t)
   self:SetStatus(t)
   
 EndFunction
@@ -2256,9 +2175,9 @@ Perform a test to check ANSI capabilities of the host console.
   t1 = [[This is just a test string for the ANSILib library, the following test will check if the text is printed as expected with Ansi support ON and OFF then the wordwrap will be turned off and the test will be repeated.
 This is a linefeed embedded into the string.]]
   
-  ; We are using DebugPrint() that does not have wordwrap support
-  Term.Print("STANDARD DebugPrint() command", True, Nil, True)
-  DebugPrint(t1)
+  ; We are using ConsolePrint() that does not have wordwrap support
+  Term.Print("STANDARD ConsolePrint() command", True, Nil, True)
+  ConsolePrint(t1)
   Term.Print(RepeatStr("-", 80), True, Nil, True)
 
   ; Let's test wordwrap
@@ -2649,7 +2568,7 @@ This is a linefeed embedded into the string.]]
    tapp:Start("Main")
    
    
-   DebugPrompt("\n\n\nTEST ENDED - Hit ENTER")
+   ConsolePrompt("\n\n\nTEST ENDED - Hit ENTER")
 EndFunction
 
 ; UNCOMMENT THE FOLLOWING FUNCTION TO PERFORM A TEST

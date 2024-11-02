@@ -1,0 +1,383 @@
+/********************************************************************
+ * ANSI SUPPORT LIBRARY                                             *
+ * Author  : Fabio Falcucci (Allanon)                               *
+ * License : Donationware                                           *
+ * Version : 1.7                                                    *
+ * Release : 02/11/2024                                             *
+ * Dependancies : -    /                                            *
+ * PayPal Support : hijoe@tin.it                                    *
+ * Support me on Patreon!         https://www.patreon.com/Allanon71 *
+ * Github repository                   https://github.com/Allanon71 *
+  ********************************************************************
+
+WHAT IS
+-------
+  Ansi library is an include file for Hollywood that will help you to 
+manage ANSI escape codes so you can print colored text in the console 
+of your host system.
+
+INTRODUCTION
+------------
+  I’ve developed this library to have an invaluable help while I’m 
+debugging applications because this way I’m able to spot on the fly 
+errors and/or warning messages that are hilighted from the rest of the
+messages.
+
+  Of course you need that your host system console is able to understand
+ANSI ascape codes, but almost any OS is able to do that… except 
+Windows! For the Windows OS you need to install a thirdy party 
+application to accomplish the task, on my development machine, running
+Windows 10, I’m using ansicon program to make use of ANSI codes.
+ 
+ANSI Functions
+--------------
+  All ANSI related functions are mapped on the Ansi table. These 
+functions are used to retrieve ANSI escape sequences to accomplish 
+various tasks like moving the cursor, clearing/deleting characters and
+so on.
+ 
+TERM Functions
+--------------
+  All terminal related functions are mapped on the Term table. These
+functions are used to print string to the console or the get input 
+from the user.
+ 
+MACROS and STYLES
+-----------------
+  Almost all recognized ANSI sequences are stored in the table Ansi.Code,
+this  table is indexed with the sequence name, for each sequence a macro
+string has been defined to simplify the use of the escape codes, for
+example:
+  Ansi.Code.FgBlack => Holds the escape sequence needed to set the
+foreground color to black, you can use this code in your strings like
+this:
+  | Local myBlackText = Ansi.Code.FgBlack .. "Black world!"
+  
+But you can also use macro/tag strings like this:
+  | Local myBlackText = "~{FBLK}Black world!"
+
+CONTENTS
+========
+:: ANSI ::
+Ansi.GetClearCharacters()
+Ansi.GetCursorDown()
+Ansi.GetCursorLeft()
+Ansi.GetCursorMove()
+Ansi.GetCursorRight()
+Ansi.GetCursorUp()
+Ansi.GetDeleteCharacters()
+Ansi.GetDeleteLines()
+Ansi.GetInsertBlankLines()
+Ansi.GetRndBGColor()
+Ansi.GetRndFGColor()
+Ansi.Set()
+ 
+:: TERM OBJECT ::
+Term.App:ClearInfo()
+Term.App:ClearStatus()
+Term.App:ClearWarning()
+Term.App:GridView()
+Term.App:MenuAdd()
+Term.App:New()
+Term.App:Progress()
+Term.App:SetInfo()
+Term.App:SetStatus()
+Term.App:SetWarning()
+Term.App:ShowInput()
+Term.App:ShowMenu()
+Term.App:ShowMessage()
+Term.App:Start()
+Term.App:alignNumber()
+ 
+:: TERM FUNCTIONS ::
+Term.CTLine()
+Term.Clear()
+Term.GetSize()
+Term.Input()
+Term.Line()
+Term.Print()
+Term.PrintAt()
+Term.SetTermSize()
+ 
+:: TERM DRAWING ::
+Term.Draw.Box()
+Term.Draw.FBox()
+Term.Draw.HLine()
+Term.Draw.VLine()
+ 
+:: RECOGNIZED MACROS/TAGS ::
+----------------+--------
+Description     | Tag
+----------------+--------
+Reset            ~{RSET}
+BoldOn           ~{BLD+}
+DimOn            ~{DIM+}
+ItalicsOn        ~{ITA+}
+UnderlineOn      ~{UND+}
+BlinkOn          ~{BLI+}
+InverseOn        ~{INV+}
+HiddenOn         ~{HID+}
+StrikethroughOn  ~{STR+}
+BoldOff          ~{BLD-}
+ItalicsOff       ~{ITA-}
+UnderlineOff     ~{UND-}
+BlinkOff         ~{BLI-}
+InverseOff       ~{INV-}
+HiddenOff        ~{HID-}
+StrikethroughOff ~{STR-}
+FgBlack          ~{FBLK}
+FgRed            ~{FRED}
+FgGreen          ~{FGRN}
+FgYellow         ~{FYEL}
+FgBlue           ~{FBLU}
+FgMagenta        ~{FMAG}
+FgCyan           ~{FCYA}
+FgWhite          ~{FWHI}
+FgDefault        ~{FDEF}
+BgBlack          ~{BBLK}
+BgRed            ~{BRED}
+BgGreen          ~{BGRN}
+BgYellow         ~{BYEL}
+BgBlue           ~{BBLU}
+BgMagenta        ~{BMAG}
+BgCyan           ~{BCYA}
+BgWhite          ~{BWHI}
+BgDefault        ~{BDEF}
+MoveCursorUp1    ~{M1UP}
+MoveCursorDown1  ~{M1DO}
+MoveCursorRight1 ~{M1RI}
+MoveCursorLeft1  ~{M1LE}
+SaveCursor       ~{SAVE}
+RestoreCursor    ~{REST}
+Home             ~{HOME}
+ClearBelow       ~{CLRB}
+ClearAbove       ~{CLRA}
+ClearHome        ~{CLRH}
+ClearLineRight   ~{CLRR}
+ClearLineLeft    ~{CLRL}
+ClearLine        ~{CLIN}
+Clear1Character  ~{C1CH}
+Insert1BlankLine ~{I1BL}
+Delete1Line      ~{D1LI}
+Delete1Character ~{D1CH}
+Insert1Character ~{I1CH}
+ShowCursor       ~{SHWC}
+HideCursor       ~{HIDC}
+
+Additional macros/tags:
+  Restore normal ~{NORM}
+  Notice         ~{NOTI}
+  Warning        ~{WARN}
+  Error          ~{ERRO}
+  Advice         ~{ADVI}
+  Quote          ~{QUOT}
+  Prompt         ~{PROM}
+
+:: DRAWINGS ::
+Here is a list of characters used to draw shapes, they are stored in the
+  Ansi.Code.Gfx table items:
+    LLH  = Chr(9472),  ; ─	BOX DRAWINGS LIGHT HORIZONTAL  
+    LLV  = Chr(9474),  ; │	BOX DRAWINGS LIGHT VERTICAL
+    LLDR = Chr(9484),  ; ┌	BOX DRAWINGS LIGHT DOWN AND RIGHT
+    LLDL = Chr(9488),  ; ┐	BOX DRAWINGS LIGHT DOWN AND LEFT
+    LLUR = Chr(9492),  ; └	BOX DRAWINGS LIGHT UP AND RIGHT
+    LLUL = Chr(9496),  ; ┘	BOX DRAWINGS LIGHT UP AND LEFT
+    LLVL = Chr(9508),  ; ┤ BOX DRAWINGS LIGHT VERTICAL LEFT
+    LLVR = Chr(9500),  ; ├ BOX DRAWINGS LGIHT VERTICAL RIGHT
+    LLHU = Chr(9524),  ; ┴ BOX DRAWINGS LIGHT HORIZONTAL UP
+    LLHD = Chr(9516),  ; ┬ BOX DRAWINGS LIGHT HORIZONTAL DOWN
+    LLVH = Chr(9532),  ; ┼ BOX DRAWINGS LIGHT VERTICAL HORIZONTAL
+        
+    ; Rounded Light Lines
+    RLLDR         = Chr(9581),  ; ╭	BOX DRAWINGS LIGHT ARC DOWN RIGHT
+    RLLDL         = Chr(9582),  ; ╮	BOX DRAWINGS LIGHT ARC DOWN LEFT
+    RLLUL         = Chr(9583),  ; ╯	BOX DRAWINGS LIGHT ARC UP LEFT
+    RLLUR         = Chr(9584),  ; ╰	BOX DRAWINGS LIGHT ARC UP RIGHT
+        
+    ; Blocks
+    BUPH          = Chr(9600),  ; ▀	BOX DRAWINGS UPPER HALF
+    BLO1E         = Chr(9601),  ; ▁	BOX DRAWINGS LOWER 1 EIGHTH
+    BLO1Q         = Chr(9602),  ; ▂	BOX DRAWINGS LOWER 1 QUARTER
+    BLO3E         = Chr(9603),  ; ▃	BOX DRAWINGS LOWER 3 EIGHTHS
+    BLOH          = Chr(9604),  ; ▄	BOX DRAWINGS LOWER HALF
+    BLO5E         = Chr(9605),  ; ▅	BOX DRAWINGS LOWER 5 EIGHTHS
+    BLO3Q         = Chr(9606),  ; ▆	BOX DRAWINGS LOWER 3 QUARTERS
+    BLO7E         = Chr(9607),  ; ▇	BOX DRAWINGS LOWER 7 EIGHTHS
+    FB            = Chr(9608),  ; █	BOX DRAWINGS FULL BLOCK
+    LSB           = Chr(9617),  ; ░ LIGHT SHADE
+    MSB           = Chr(9618),  ; ▒ MEDIUM SHADE
+    HSB           = Chr(9619),  ; ▓ HEAVY SHADE
+    L7E           = Chr(9609),  ; ▉ BOX DRAWINGS LEFT 7 EIGHTHS
+    L3Q           = Chr(9610),  ; ▊ BOX DRAWINGS LEFT 3 QUANRTERS
+    L5E           = Chr(9611),  ; ▋ BOX DRAWINGS LEFT 5 EIGHTHS
+    LH            = Chr(9612),  ; ▌	BOX DRAWINGS LEFT HALF
+    L3E           = Chr(9613),  ; ▍ BOX DRAWINGS LEFT 3 EIGHTHS
+    L1Q           = Chr(9614),  ; ▎ BOX DRAWINGS LEFT 1 QUARTER
+    L1E           = Chr(9615),  ; ▏ BOX DRAWINGS LEFT 1 EIGHTH
+    RH            = Chr(9616),  ; ▐ BOX DRAWINGS RIGHT HALF
+    UP1E          = Chr(9620),  ; ▔ BOX DRAWINGS UPPER 1 EIGHTH
+    R1E           = Chr(9621),  ; ▕ BOX DRAWINGS RIGHT 1 EIGHTH
+
+::::::::::    
+:: DOCS ::
+::::::::::
+
+Term.SetTermSize(r, c, color)
+-----------------------------
+  This function set the terminal's mode building a string that it's stored
+  in Ansi.Code.SetTerm string, the mode assigned depends on the size
+  specified.
+    mode 0 : 40x25 monochrome
+    mode 1 : 40x25 color
+    mode 2 : 80x25 monochrome
+    mode 3 : 80x25 color
+  It also stores the windows size for future operations.
+  To set the terminal you have to print string returned by this function.
+
+  INPUT
+    r : number of rows
+    c : number of columns
+    color : True for color terminal
+  OUTPUT
+    result : the string to print to set the terminal with the detected mode.
+
+Term.GetSize()
+--------------
+  On a Linux environment this call will report the terminal size, if we are not
+  on Linux the contents of Term.Size.Rows and Term:size:columns will be returned.
+  
+  OUTPUT
+    r : number of terminal's rows
+    c : number of terminal's columns
+  
+Ansi.GetRndFgColor()
+--------------------
+  Returns an ANSI string you can use to set a random foreground color (0-8).
+  
+  OUTPUT
+    rc : ANSI sequence with a random foreground color (0-8)
+    
+Ansi.GetRndBgColor()
+--------------------
+  Returns an ANSI string you can use to set a random background color (0-8).
+  
+  OUTPUT
+    rc : ANSI sequence with a random background color (0-8)
+
+Ansi.Set(value, termSize)
+-------------------------
+  Switch ansi mode on or off and adjust the terminal size in characters.
+
+  INPUT
+    value : Use True to enable ANSI mode, False to switch it off.
+    termSize : Optional table you can pass to set the default terminal size
+               in characters.
+  EXAMPLE
+    The following command switch on the ANSI mode and set the terminal size to
+    the default size of 30 rows and 60 columns:
+    | Ansi.Set(True, { 30, 60 })
+
+Ansi.GetDeleteLines(lines)
+--------------------------
+  Returns the escape sequence to delete <lines> rows.
+
+  INPUT
+    lines : How many lines we have to delete
+    
+  OUTPUT
+    result : String with the requested ANSI escape sequence
+
+Ansi.GetInsertBlankLines(lines)
+-------------------------------
+  Returns the escape sequence to insert <lines> blank rows.
+
+  INPUT
+    lines : How many blank lines we have to insert
+    
+  OUTPUT
+    result : String with the requested ANSI escape sequence
+
+Ansi.GetClearCharacters(chars)
+------------------------------
+  Returns a string with the ANSI escape sequence needed to clear 'chars'
+  characters.
+
+  INPUT
+    chars : How many charaters we have to clear
+    
+  OUTPUT
+    result : String with the requested ANSI escape sequence
+
+Ansi.GetInsertCharacters(chars)
+-------------------------------
+  Returns the escape sequence to insert <chars> characters.
+
+  INPUT
+    chars : How many charaters we have to insert
+
+  OUTPUT
+    result : String with the requested ANSI escape sequence
+
+Ansi.GetDeleteCharacters(chars)
+-------------------------------
+  Returns the escape sequence to delete <chars> characters.
+
+  INPUT
+    chars : How many charaters we have to delete
+
+  OUTPUT
+    result : String with the requested ANSI escape sequence
+
+Ansi.GetCursorMove(row, column)
+-------------------------------
+  Returns the escape sequence to move the cursor to (row, column).
+
+  INPUT
+    row : Row position
+    column : Column position
+    
+  OUTPUT
+    result : String with the requested ANSI escape sequence
+
+Ansi.GetCursorUp(n)
+Ansi.GetCursorDown(n)
+Ansi.GetCursorLeft(n)
+Ansi.GetCursorRight(n)
+-------------------------
+  Returns the escape sequence needed to move the cursor by the specified
+  value.
+  
+  INPUT
+    n : characters (horizontal or vertical) to move the cursor to.
+
+  OUTPUT
+    result : String with the requested ANSI escape sequence
+
+
+CHANGE LOG
+----------
+1.7
+  Moved some internal docs into a separated Ansi.readme file that also
+  contains the documentation.
+  Fixed 'Term.SetTermSize()' function that was not complete.
+1.6
+  Replaced all DebugPrint with ConsolePrint
+  Replaced all DebugPrompt with ConsolePrompt
+  Fixed Term.GetSize() that was not initializing correctly the terminal
+  size under Linux systems.
+1.5
+  Updated the .Test() function and added the GridView() control.
+  Fixed a bug in Term.Print() that was causing an infinite loop.
+1.4
+  Term.App:_FixedWidth(txt, size, align)
+  Added support for center alignment
+1.3
+  Several improvements in terminal functions
+1.2
+  Added Ansi.Set(value, termSize) Terminal size is used by the drawing
+  functions and the wordwrap functions.
+  Added Ansi.Draw() to draw lines.
+  Removed Ansi.Draw() and replaced with specific functions to draw
+  lines, empty boxes and filled boxes.
+1.1
+  Added a check to avoid error printing non-UTF8 characters.
