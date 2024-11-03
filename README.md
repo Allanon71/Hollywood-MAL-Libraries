@@ -3,10 +3,11 @@
 Maybe they are also usefull to other Hollywood coders so here they are :)
 
 > Author  : Fabio Falcucci (Allanon)  
-> Contact : info@a-mc.biz  
+> E-mail Contact : info@a-mc.biz
+> Mastodon handle : https://mastodon.uno/@allanon
 > License : Freeware  
 
-If you like my work support me on Patreon https://www.patreon.com/Allanon71  or with PayPal to mailto:hijoe@tin.it   
+If you like my work support me on Patreon https://www.patreon.com/Allanon71  or with PayPal to hijoe@tin.it   
 
 # IMPORTANT NOTE
 From now (04/08/2020) I'm putting libraries using a global include file called **+Includes.hws** where all library names are defined along with their path, in order to run the examples you need to setup the variable **#INC_PATH** with the absolute path where you have saved/cloned the libraries, if you do this you will be able to run all the examples with a double click, for example let's suppose you have cloned the entire repository into the following path : `C:/MyHollywoodStuff/Libs/`  
