@@ -353,6 +353,181 @@ Ansi.GetCursorRight(n)
   OUTPUT
     result : String with the requested ANSI escape sequence
 
+Term.getInput(t, wordwrap, linefeed, maxLen)
+--------------------------------------------
+  Listen to stdin for a keypress
+
+  INPUT
+    t : Message for the user
+    wordwrap : True to enable the wordwrap
+    linefeed : True to add a line feed at the end of the message
+    maxLen : Max number of characters to read (default=1)
+    
+  OUTPUT
+    result : Typed text
+  
+  NOTES
+    The input is terminated when ENTER or RETURN keys are pressed.
+
+Term.Input(t, wordwrap, linefeed)
+---------------------------------
+  Prompt the user with a message using the inbuilt 'ConsolePrompt' 
+  command.
+
+  INPUT
+    t : Message for the user
+    wordwrap : TRUE to enable the wordwrap
+    linefeed : TRUE to add a line feed at the end of the message
+    
+  OUTPUT
+    result : Typed text
+
+Term.PrintAt(r, c, txt)
+-----------------------
+  Move the cursor at the given position and print the text.
+  
+  INPUT
+    r : row
+    c : column
+    text : text to print
+
+Term.Print(t, wordwrap, newlineoffset, linefeed, getdata
+--------------------------------------------------------
+  Print a string to the terminal.
+
+  INPUT
+    t : Message to print
+    wordwrap : True to enable wordwrap (default=True)
+    newlineoffset : Offset to the right when a newline occurs (default=0)
+    linefeed : True to add a final linefeed (default=True)
+    getdata : INTERNAL (Used by the input routine)
+
+Term.Draw.FBox(options)
+-----------------------
+  Draws a filled box.
+  
+  INPUT
+    options : a table with the following items:
+      row : starting position
+      column ; starting position
+      width : width in characters
+      height : height in characters
+      color : color string
+
+Term.Draw.Box(options)
+----------------------
+  Draws an empty box.
+  
+  INPUT
+    options : a table with the following items:
+      row : starting position
+      column ; starting position
+      width : width in characters
+      height : height in characters
+      color : color string
+      type : line type (light or full)
+      angles : corner angles (squared or rounded)
+
+Term.Draw.HLine(options)
+------------------------
+  Draw an horizontal line
+  
+  INPUT
+    options : a table with the following items:
+      row : vertical position
+      column : horizontal start position
+      length : line lenght in characters
+      color : line color (color string)
+      type : line type (light or full)
+
+Term.Draw.VLine(options)
+------------------------
+  Draw an vertical line
+  
+  INPUT
+    options : a table with the following items:
+      row : vertical position
+      column : horizontal start position
+      length : line lenght in characters
+      color : line color (color string)
+      type : line type (light or full)
+
+Term.Line(character, style)
+---------------------------
+  Draw an horizontal line with any character
+
+  INPUT
+    character : character to use to draw the line
+    style : character style(s)
+
+Term.CTLine(character, txt, style)
+----------------------------------
+  Draws a full width line with the given <character> and center on it
+  the given <txt> text with the specified <style>.
+
+  INPUT
+    character : Character used to draw the line
+    txt : Text to center
+    style : Character style
+
+Term.Clear()
+------------
+  Sets the background color to black, clears the screen and moves the
+  cursor to the top-left angle (home).
+
++-----------------+
+| TERM APP OBJECT |
++-----------------+
+This is an useful object filled with methods to enable the programmer
+to build menu-driven applications easily.
+
+Term.App:New()
+--------------
+  Creates a new, TermApp object.
+  
+  OUTPUT
+    TermApp : TermApp object
+    
+Term.App:_FullWidth(txt, align)
+-------------------------------
+  Utility method that adds spaces to the given <txt> to return a full-width
+  screen the fill the current terminal's width.
+
+  INPUT
+    txt : text to process
+    align : text alignment
+      -1 : left aligned
+       0 : centered
+       1 : right aligned
+
+Term.App:_DrawHeader()
+----------------------
+  Utility method used to draw the application's header.
+  
+Term.App:SetStatus(txt)
+-----------------------
+  Sets the status line with the given text.
+  
+  INPUT
+    txt : text to print in the status line
+
+Term.App:ClearStatus(txt)
+-----------------------
+  Clears the status line.
+
+Term.App:SetInfo(txt)
+-----------------------
+  Sets the info line with the given text.
+  
+  INPUT
+    txt : text to print in the informations line
+
+Term.App:ClearInfo(txt)
+-----------------------
+  Clears the informations line.
+
+
+
 
 CHANGE LOG
 ----------

@@ -2,23 +2,27 @@
  * ANSI SUPPORT LIBRARY                                             *
  * Author  : Fabio Falcucci (Allanon)                               *
  * License : Donationware                                           *
- * Version : 1.4                                                    *
- * Release : 10/01/2022                                             *
+ * Version : 1.7                                                    *
+ * Release : 03/11/2024                                             *
  * Dependancies : -                                                 *
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
  * Github repository                   https://github.com/Allanon71 *
-  * ------------------------------------------------------------------
+ * ------------------------------------------------------------------
  
 /*
- funzioni da creare
+ to check/complete
+  - Function Term.getInput(t, wordwrap, linefeed, maxLen)
+  
+ to add
   - Term.Draw.Box --> Draw Empty Box
   - Term.Draw.FBox --> Draw Filled Box
   - Term.LPrint(...)  --> Print with coordinates
 */
+
 Ansi = {}
 Ansi.Version = "1.7"
-Ansi.Build   = "02/11/2024"
+Ansi.Build   = "03/11/2024"
 Ansi.Escape  = "\27"
 Ansi.Code    =
   ;| Item's name     | item's escape code    | String tag
@@ -449,19 +453,19 @@ Function Ansi.GetCursorLeft(columns) ; v1.0
 EndFunction
 
 Function Term.getInput(t, wordwrap, linefeed, maxLen) ; v1.0
-/******************************************************************************
-result = Term.getInput(t, wordwrap, linefeed, maxLen)
+  ; Listen to stdin for a keypress
+  ; 
+  ; INPUT
+  ;   t : Message for the user
+  ;   wordwrap : True to enable the wordwrap
+  ;   linefeed : True to add a line feed at the end of the message
+  ;   maxLen : Max number of characters to read (default=1)
+  ;   
+  ; OUTPUT
+  ;   result : Typed text
+  ; 
+  ; ---
 
-Listen to stdin for a keypress
----------------------------------------------------------------------
-INPUT
-  t => Message for the user
-  wordwrap => TRUE to enable the wordwrap
-  linefeed => TRUE to add a line feed at the end of he message
-  maxLen => Max number of characters to read (default=1)
-OUTPUT
-  result => User's answer
-******************************************************************************/
   If Term.AnsiMode
     Local b = IIf(Term.PromptColor.Bold,      Ansi.Code.BoldOn,      Ansi.Code.BoldOff)
     Local i = IIf(Term.PromptColor.Italic,    Ansi.Code.ItalicsOn,   Ansi.Code.ItalicsOff)
@@ -515,18 +519,21 @@ OUTPUT
 EndFunction
 
 Function Term.Input(t, wordwrap, linefeed) ; v1.0
-/******************************************************************************
-result = Term.Input(t, wordwrap, linefeed)
-
-Prompt the user with a message.
----------------------------------------------------------------------
-INPUT
-  t => Message for the user
-  wordwrap => TRUE to enable the wordwrap
-  linefeed => TRUE to add a line feed at the end of the message
-OUTPUT
-  result => User's answer
-******************************************************************************/
+  ; Prompt the user with a message using the inbuilt 'ConsolePrompt' 
+  ; command.
+  ; 
+  ; INPUT
+  ;   t : Message for the user
+  ;   wordwrap : TRUE to enable the wordwrap
+  ;   linefeed : TRUE to add a line feed at the end of the message
+  ;   
+  ; OUTPUT
+  ;   result : Typed text
+  ;
+  ; NOTES
+  ;   The input is terminated when ENTER or RETURN keys are pressed.
+  ; ---
+  
   Local prompt = ""
   If Term.AnsiMode
     Local b = IIf(Term.PromptColor.Bold,      Ansi.Code.BoldOn,      Ansi.Code.BoldOff)
@@ -555,26 +562,34 @@ OUTPUT
   EndIf
 
   Return(r)
+  
 EndFunction
 
 Function Term.PrintAt(r, c, txt)
+  ; Move the cursor at the given position and print the text.
+  ; 
+  ; INPUT
+  ;   r : row
+  ;   c : column
+  ;   text : text to print
+  ; ---
+  
   Local t = Ansi.GetCursorMove(r, c) .. txt
   Term.Print(t, False, False, False)
+  
 EndFunction
 
 Function Term.Print(t, wordwrap, newlineoffset, linefeed, getdata) ; v1.0
-/******************************************************************************
-Term.Print(t, wordwrap, newlineoffset, linefeed, getdata)
-
-Print a string to the terminal.
----------------------------------------------------------------------
-INPUT
-  t => Message to print
-  wordwrap => TRUE to enable wordwrap (default=True)
-  newlineoffset => Offset to the right when a newline occurs (default=0)
-  linefeed => TRUE to add a final linefeed (default=True)
-  getdata => INTERNAL : Used by the input routine
-******************************************************************************/
+  ; Print a string to the terminal.
+  ; 
+  ; INPUT
+  ;   t : Message to print
+  ;   wordwrap : True to enable wordwrap (default=True)
+  ;   newlineoffset : Offset to the right when a newline occurs (default=0)
+  ;   linefeed : True to add a final linefeed (default=True)
+  ;   getdata : INTERNAL (Used by the input routine)
+  ; ---
+  
   If IsNil(t)        Then Return()
   If IsNil(wordwrap) Then wrodwrap = True
   If IsNil(linefeed) Then linefeed = True
@@ -953,15 +968,17 @@ INPUT
 EndFunction
 
 Function Term.Draw.FBox(options)
-  ; Draw a fille box
-  ;
-  ; Options
-  ;   row
-  ;   column
-  ;   width
-  ;   height
-  ;   color
-  ; ----------------------------------
+  ; Draws a filled box.
+  ; 
+  ; INPUT
+  ;   options : a table with the following items:
+  ;     row : starting position
+  ;     column ; starting position
+  ;     width : width in characters
+  ;     height : height in characters
+  ;     color : color string
+  ; ---
+  
   If Not(HaveItem(options, "color")) Then options.Color = ""
   
   For Local i = 1 To options.height
@@ -972,20 +989,19 @@ Function Term.Draw.FBox(options)
 EndFunction
 
 Function Term.Draw.Box(options)
-  ; Draw an empty box
-  ;
-  ; Options
-  ;   row    = vertical pos
-  ;   column = horizontal pos
-  ;   width  = width
-  ;   height = height
-  ;   color  = color
-  ;   type   = line type
-  ;      light      light lines
-  ;   angles
-  ;      squared
-  ;      rounded
-  ; ------------------------------
+  ; Draws an empty box.
+  ; 
+  ; INPUT
+  ;   options : a table with the following items:
+  ;     row : starting position
+  ;     column ; starting position
+  ;     width : width in characters
+  ;     height : height in characters
+  ;     color : color string
+  ;     type : line type (light or full)
+  ;     angles : corner angles (squared or rounded)
+  ; ---
+  
   If Not(HaveItem(options, "color")) Then options.Color = ""
   If Not(HaveItem(options, "type"))  Then options.Type = "light"
   If Not(HaveItem(options, "angles"))  Then options.Angles = "squared"
@@ -1035,16 +1051,16 @@ EndFunction
 
 Function Term.Draw.HLine(options)
   ; Draw an horizontal line
-  ;
-  ; options
-  ;   row    = vertical position
-  ;   column = horizontal start position
-  ;   length = line lenght in characters
-  ;   color  = line color
-  ;   type   = line type
-  ;      light      Ansi.Code.Gfx.LLH
-  ;      full       Ansi.Code.Gfx.FB
-  ; ------------------------------------
+  ; 
+  ; INPUT
+  ;   options : a table with the following items:
+  ;     row : vertical position
+  ;     column : horizontal start position
+  ;     length : line lenght in characters
+  ;     color : line color (color string)
+  ;     type : line type (light or full)
+  ; ---
+
   If Not(HaveItem(options, "color")) Then options.Color = ""
   If Not(HaveItem(options, "type"))  Then options.Type = "light"
 
@@ -1073,16 +1089,16 @@ EndFunction
 
 Function Term.Draw.VLine(options)
   ; Draw an vertical line
-  ;
-  ; options
-  ;   column = horizontal position
-  ;   row    = horizontal start position
-  ;   length = line lenght in characters
-  ;   color  = line color
-  ;   type   = line type
-  ;      light      Ansi.Code.Gfx.LLV
-  ;      full       Ansi.Code.Gfx.FB  
-  ; ------------------------------------
+  ; 
+  ; INPUT
+  ;   options : a table with the following items:
+  ;     row : vertical position
+  ;     column : horizontal start position
+  ;     length : line lenght in characters
+  ;     color : line color (color string)
+  ;     type : line type (light or full)
+  ; ---
+  
   If Not(HaveItem(options, "color")) Then options.Color = ""
   If Not(HaveItem(options, "type"))  Then options.Type = "light"
 
@@ -1110,42 +1126,45 @@ Function Term.Draw.VLine(options)
 EndFunction
 
 Function Term.Line(character, style) ; v1.0
-/******************************************************************************
-Term.Line(character, style)
-
-Draw a line with the <character> line and the given <style>.
----------------------------------------------------------------------
-INPUT
-  character => Character used to draw the line
-  style => Character style
-******************************************************************************/
+  ; Draw an horizontal line with any character
+  ; 
+  ; INPUT
+  ;   character : character to use to draw the line
+  ;   style : character style(s)
+  ; ---
+  
   If IsNil(style) Then style = "~{NORM}"
   Local l = RepeatStr(character, Term.Size.Columns)
   Term.Print(style .. l .. "~{NORM}")
+  
 EndFunction
 
 Function Term.CTLine(character, txt, style) ; v1.0
-/******************************************************************************
-Term.CTLine(character, txt, style)
-
-Draw a line with the given <character> and center on it the given <txt> text
-with the specified <style>.
----------------------------------------------------------------------
-INPUT
-  character => Character used to draw the line
-  txt => Text to center
-  style => Character style
-******************************************************************************/
+  ; Draws a full width line with the given <character> and center on it
+  ; the given <txt> text with the specified <style>.
+  ; 
+  ; INPUT
+  ;   character : Character used to draw the line
+  ;   txt : Text to center
+  ;   style : Character style
+  ; ---
+  
   If IsNil(style) Then style = "~{NORM}"
   Local len = StrLen(txt)
   Local pos = Int((Term.Size.Columns-len)/2) + 1
   Local s = RepeatStr(character, pos) .. txt .. RepeatStr(character, pos)
   Local s = LeftStr(s, Term.Size.Columns)
   Term.Print(style .. s .. "~{NORM}")
+  
 EndFunction
 
 Function Term.Clear()
+  ; Sets the background color to black, clears the screen and moves the
+  ; cursor to the top-left angle (home).
+  ; ---
+  
   Term.Print(Ansi.Code.BgBlack .. Ansi.Code.ClearHome, False, False, False)
+  
 EndFunction
 
 ;---------------------------------
@@ -1261,6 +1280,12 @@ Term.App =
     }
 
 Function Term.App:New()
+  ; Creates a new, TermApp object.
+  ; 
+  ; OUTPUT
+  ;   TermApp : TermApp object
+  ; ---
+
   Local obj = CopyTable(self)
   
   Local r, c = Term.GetSize()
@@ -1272,12 +1297,21 @@ Function Term.App:New()
   obj.Layout.Info.Row    = obj.TermSize[0]-1
   
   Return(obj)
+  
 EndFunction
 
 Function Term.App:_FullWidth(txt, align)
-  ; Align default = Left (1)
-  ;                 Right (-1)
-  ; Add spaces to have a full width string
+  ; Utility method that adds spaces to the given <txt> to return a full-width
+  ; screen the fill the current terminal's width.
+  ; 
+  ; INPUT
+  ;   txt : text to process
+  ;   align : text alignment
+  ;     -1 : left aligned
+  ;      0 : centered
+  ;      1 : right aligned
+  ; ---
+  
   If IsNil(align) Then align = 1 ; LEFT
   
   Local l = StrLen(txt)
@@ -1300,6 +1334,9 @@ Function Term.App:_FullWidth(txt, align)
 EndFunction
 
 Function Term.App:_DrawHeader()
+  ; Utility method used to draw the application's header.
+  ; ---
+  
   ; Build the string
   Local t = self.Layout.Header.Value
   t = ReplaceStr(t, "{AppName}", self.Name)
@@ -1315,6 +1352,12 @@ Function Term.App:_DrawHeader()
 EndFunction
 
 Function Term.App:SetStatus(txt)
+  ; Sets the status line with the given text.
+  ; 
+  ; INPUT
+  ;   txt : text to print in the status line
+  ; ---
+
   self.Layout.Status.Value = txt
   
   self:_DrawStatus()
@@ -1322,6 +1365,9 @@ Function Term.App:SetStatus(txt)
 EndFunction
 
 Function Term.App:ClearStatus()
+  ; Clears the status line.
+  ; ---
+  
   self.Layout.Status.Value = ""
   
   self:_DrawStatus()
@@ -1329,6 +1375,12 @@ Function Term.App:ClearStatus()
 EndFunction
 
 Function Term.App:SetInfo(txt)
+  ; Sets the info line with the given text.
+  ; 
+  ; INPUT
+  ;   txt : text to print in the informations line
+  ; ---
+
   self.Layout.Info.Value = txt
   
   self:_DrawInfo()
@@ -1336,6 +1388,9 @@ Function Term.App:SetInfo(txt)
 EndFunction
 
 Function Term.App:ClearInfo()
+  ; Clears the informations line.
+  ; ---
+
   self.Layout.Info.Value = ""
   
   self:_DrawInfo()
