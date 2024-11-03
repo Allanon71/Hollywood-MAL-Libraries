@@ -22,6 +22,8 @@ All you have to do is:
 
 # ANSI Library
  **Hollywood-MAL ANSI Library**
+
+ [![ANSI Lib: Test program in action](Ansi.jpg)]()
  
    Ansi library is an include file for Hollywood that will help you to manage ANSI escape codes so you can print colored text in the console of your host system.
  
@@ -42,6 +44,7 @@ All you have to do is:
 ```plaintext
    Library file  : Ansi.hws
    Documentation : Ansi.readme
+   Screenshot    : Ansi.jpg
    Version       : 1.7 (November 2024)
    Dependancies  : -
 ```
