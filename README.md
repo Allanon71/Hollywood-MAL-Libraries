@@ -32,10 +32,18 @@ All you have to do is:
 
    After having developed the basic features, I had the need to run some applications on Linux console with simple menus to start/stop services and to show logs so I added the ability to create a full console app using this library with some pretty useful functions & methods and a complete menu system.
 
+   At this stage this library has methods to draw lines & boxes, to show message boxes, input boxes, to show data into a scrollable grid and some other nice things.
+   It's far for being complete but pretty simple as a basic library to build console applications.
+
+**TODO**
++ Try to integrate the new features introduced in the latest versions of Hollywood
++ Get rid of the need to hit the ENTER key when waiting for a single key press
+
 ```plaintext
    Library file  : Ansi.hws
    Documentation : Ansi.readme
    Version       : 1.7 (November 2024)
+   Dependancies  : -
 ```
 
 ---
