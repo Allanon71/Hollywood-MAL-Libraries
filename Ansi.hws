@@ -1310,6 +1310,9 @@ Function Term.App:_FullWidth(txt, align)
   ;     -1 : left aligned
   ;      0 : centered
   ;      1 : right aligned
+  ;
+  ; OUTPUT
+  ;  result : the processed text
   ; ---
   
   If IsNil(align) Then align = 1 ; LEFT
@@ -1398,6 +1401,12 @@ Function Term.App:ClearInfo()
 EndFunction
 
 Function Term.App:SetWarning(txt)
+  ; Sets the warnings line with the given text.
+  ; 
+  ; INPUT
+  ;   txt : text to print in the warnings line
+  ; ---
+  
   self.Layout.Warning.Value = txt
   
   self:_DrawWarning()
@@ -1405,6 +1414,9 @@ Function Term.App:SetWarning(txt)
 EndFunction
 
 Function Term.App:ClearWarning()
+  ; Clears the warnings line.
+  ; ---
+
   self.Layout.Warning.Value = ""
   
   self:_DrawWarning()
@@ -1412,8 +1424,12 @@ Function Term.App:ClearWarning()
 EndFunction
 
 Function Term.App:_DrawStatus(txt)
-  ; If txt is specified use this string instead of the
-  ; stored one
+  ; Prints the current status message if 'txt' is not specified, otherwise
+  ; replaces the message with 'txt' and prints it.
+  ;
+  ; INPUT
+  ;   txt : NIL or the message to print in the status line.
+  ; ---
   
   ; Build the string
   Local t = self.Layout.Status.Value
@@ -1427,11 +1443,16 @@ Function Term.App:_DrawStatus(txt)
   t = Ansi.GetCursorMove(self.Layout.Status.Row, 1) .. self.Layout.Status.Color .. t
   
   Term.Print(t)
+  
 EndFunction
 
 Function Term.App:_DrawInfo(txt)
-  ; If txt is specified draw txt instead of the stored
-  ; value
+  ; Prints the current info message if 'txt' is not specified, otherwise
+  ; replaces the message with 'txt' and prints it.
+  ; 
+  ; INPUT
+  ;   txt : NIL or the message to print in the informations line.
+  ; ---
   
   ; Build the string
   Local t = self.Layout.Info.Value
@@ -1445,10 +1466,16 @@ Function Term.App:_DrawInfo(txt)
   t = Ansi.GetCursorMove(self.Layout.Info.Row, 1) .. self.Layout.Info.Color .. t
   
   Term.Print(t, False, 0, False)
+  
 EndFunction
 
 Function Term.App:_DrawWarning(txt)
-  ; If txt is specified draw it instead of the stored one
+  ; Prints the current warning message if 'txt' is not specified, otherwise
+  ; replaces the message with 'txt' and prints it.
+  ; 
+  ; INPUT
+  ;   txt : NIL or the message to print in the warnings line.
+  ; ---
   
   ; Build the string
   Local t = self.Layout.Warning.Value
@@ -1462,11 +1489,16 @@ Function Term.App:_DrawWarning(txt)
   t = Ansi.GetCursorMove(self.Layout.Warning.Row, 1) .. self.Layout.Warning.Color .. t
   
   Term.Print(t)
+  
 EndFunction
 
 Function Term.App:_DrawMenuState(txt)
-  ; If txt is specified draw that text instead of the 
-  ; stored one.
+  ; Prints the current menu's state if 'txt' is not specified, otherwise
+  ; replaces the message with 'txt' and prints it.
+  ; 
+  ; INPUT
+  ;   txt : NIL or the message to print in menu's state line.
+  ; ---
   
   ; Build the string
   Local t, last = "", ListItems(self.MenuHistory)-1
@@ -1484,25 +1516,46 @@ Function Term.App:_DrawMenuState(txt)
   t = Ansi.GetCursorMove(self.Layout.MenuState.Row, 1) .. self.Layout.MenuState.Color .. t
   
   Term.Print(t)
+
 EndFunction
 
 Function Term.App:MenuAdd(name, items)
-  ; Defines a menu
-  ;
-  ; name            menu name
-  ; item structure
-  ;   command       command string to type
-  ;   description   command description to show
-  ;   callback      callback function to execute or submenu name
-  ;
-  ; if command = "" => description is an header
+  ; Used to define a menu.
+  ; 
+  ; INPUT
+  ;   name : menu's name
+  ;   items : a table used to define submenus with the following fields:
+  ;     command : the command string to type to recall this item
+  ;     description : the item description to print in the menu
+  ;     callback : callback to a function execute or a name of a submenu
+  ;     
+  ; NOTES
+  ;   If 'command' is an empty string the description is interpreted as a
+  ;   menu header.
+  ; ---
+  
   self.Menu[name] = CopyTable(items)
   
 EndFunction
 
 Function Term.App:_FixedWidth(txt, size, align)
-
-  ; align 1, 0, -1 -> left, center, right
+  ; Utility method to format the given <txt> to a defined 'size' and the passed
+  ; 'align'ment by adding spaces.
+  ; If the string does not fit into the specified size it will be trunkated but
+  ; '«' and '»' symbols will be used as a visual feedback for the user.
+  ; 
+  ; INPUT
+  ;   txt : text to process
+  ;   size : target size
+  ;   align : text alignment
+  ;     -1 : left aligned
+  ;      0 : centered
+  ;      1 : right aligned
+  ;
+  ;  OUTPUT
+  ;  result : the processed text
+  ; ---
+  
   If IsNil(align) Then align = 1
   
   Local l = StrLen(txt)
@@ -1540,9 +1593,18 @@ Function Term.App:_FixedWidth(txt, size, align)
 EndFunction
 
 Function Term.App:alignNumber(value, decimals, size)
-  ; Align the value to the right, sets the specified
-  ; decimals and add size the string to the
-  ; given value.
+  ; Returns the number 'value' as a string, right aligned, with a length of
+  ; 'size' characters and 'decimals' decimal numbers.
+  ; 
+  ; INPUT
+  ;   value : the value to format
+  ;   decimals : number of decimal places
+  ;   size : total size in characters
+  ; 
+  ; OUTPUT
+  ;   result : the processed 'value' as a string
+  ; ---
+
   Local v = tapp:_FixedWidth(FormatStr("%." .. decimals .. "f", value), size, -1)
   
   Return(v)
@@ -1550,6 +1612,12 @@ Function Term.App:alignNumber(value, decimals, size)
 EndFunction
 
 Function Term.App:_DrawMenuItems(menuEntry)
+  ; Utility method to draw the menu items of the given menu entry.
+  ; 
+  ; INPUT
+  ;   menuEntry : the name of the menu to draw.
+  ; ---
+
   Local entries = self.Menu[menuEntry]
   Local count = ListItems(entries)-1
   
@@ -1629,6 +1697,14 @@ Function Term.App:_DrawMenuItems(menuEntry)
 EndFunction
 
 Function Term.App:ShowMessage(txt, waitkey, wordwrap)
+  ; This method is used to show a message to the user.
+  ; 
+  ; INPUT
+  ;   txt : the message to display
+  ;   waitkey : True to wait for a keypress before continuing
+  ;   wordwrap : True to enable the wordwrap for the text to display
+  ; ---
+
   If IsNil(waitkey)  Then waitkey = True
   If IsNil(wordwrap) Then wordwrap = True
 
@@ -1670,18 +1746,28 @@ Function Term.App:ShowMessage(txt, waitkey, wordwrap)
 EndFunction
 
 Function Term.App:GridView(data, columns, headers, positions, callback, info, formats)
-  ; Show data in a grid.
-  ;
-  ; data          A table of all columns, each column with its data records
-  ; columns       Column names (>=left align)
-  ; headers       Column headers
-  ; positions     Column positions
-  ;                 You can specify a last position which determines
-  ;                 the end position of the last column
-  ; callback      Callback when a row is selected
-  ; info          Custom info text
-  ; formats       Optional table to represent columns (format)
-  ; ---------------------------------------------
+  ; Display data in a scrollable grid.
+  ; 
+  ; INPUT
+  ;   data : a table of all columns, each column with its data records
+  ;   columns : a table with the column's names
+  ;   headers : a table with the column headers
+  ;   positions : a table with the column positions
+  ;   callback : callback function to execute when a row is selected
+  ;   info : custom information text
+  ;   formats : optional table used to format the columns
+  ;   
+  ; NOTES
+  ;   To align a column name to the right add as first character the symbol '>'.
+  ;   
+  ;   Adding an additional position to the table 'positions' you can delimit the
+  ;   last column size.
+  ;   
+  ;   Keys used to navigate the grid are hardcoded:
+  ;     s/S : Down        w/W : Up       d/D: Left    a/A : Right
+  ;     Space : Select    f/F : Find     Q : Exit
+  ; ---
+  
   If IsNil(info) Then info = ""
   If IsNil(formats) Then formats = {}
 
@@ -2085,6 +2171,16 @@ Function Term.App:GridView(data, columns, headers, positions, callback, info, fo
 EndFunction
 
 Function Term.App:ShowInput(txt, req)
+  ; Shows an input requester.
+  ; 
+  ; INPUT
+  ;   txt : the text to print as explanation of the request
+  ;   req : the prompt text
+  ; 
+  ; OUTPUT
+  ;   answer : the user's typed text
+  ; ---
+
   Term.Draw.FBox(
     { row = self.Layout.Message.firstRow+1,
       column = 2,
@@ -2122,6 +2218,12 @@ Function Term.App:ShowInput(txt, req)
 EndFunction
 
 Function Term.App:ShowMenu(menuEntry)
+  ; Method used to show a menu and to handle the user's input.
+  ;
+  ; INPUT
+  ;   menuEntry : name of the menu to print
+  ; ---
+
   InsertItem(self.MenuHistory, menuEntry)
 
   Local loop = True
@@ -2185,7 +2287,13 @@ Function Term.App:ShowMenu(menuEntry)
 EndFunction
 
 Function Term.App:Progress(txt, vcurr, vmax)
-  ; Uses MenuState data
+  ; Method used to show and update a progress bar in the status line.
+  ;
+  ; INPUT
+  ;   txt : text to display at the left of the progress bar
+  ;   vcurr : current value
+  ;   vmax : max value
+  ; ---
   
   Local length = self.TermSize[1]-StrLen(txt)-2
   Local vstp   = length/vmax
@@ -2201,9 +2309,17 @@ Function Term.App:Progress(txt, vcurr, vmax)
 EndFunction
 
 Function Term.App:Start(menuEntry)
+  ; Starts the application showing the menu entry specified as its first
+  ; menu.
+  ; 
+  ; INPUT
+  ;   menuEntry : the name of the first menu to display.
+  ; ---
+  
   self.MenuHistory = {}
   
   self:ShowMenu(menuEntry)
+  
 EndFunction
 
 Function Term.TEST() ; v1.0

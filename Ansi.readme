@@ -3,12 +3,12 @@
  * Author  : Fabio Falcucci (Allanon)                               *
  * License : Donationware                                           *
  * Version : 1.7                                                    *
- * Release : 02/11/2024                                             *
+ * Release : 03/11/2024                                             *
  * Dependancies : -    /                                            *
  * PayPal Support : hijoe@tin.it                                    *
  * Support me on Patreon!         https://www.patreon.com/Allanon71 *
  * Github repository                   https://github.com/Allanon71 *
-  ********************************************************************
+ ********************************************************************
 
 WHAT IS
 -------
@@ -526,7 +526,168 @@ Term.App:ClearInfo(txt)
 -----------------------
   Clears the informations line.
 
+Term.App:SetWarning(txt)
+------------------------
+  Sets the warnings line with the given text.
+  
+  INPUT
+    txt : text to print in the warnings line
 
+Term.App:ClearWarning(txt)
+-----------------------
+  Clears the warnings line.
+
+Term.App:_DrawStatus(txt)
+-------------------------
+  Prints the current status message if 'txt' is not specified, otherwise
+  replaces the message with 'txt' and prints it.
+  
+  INPUT
+    txt : NIL or the message to print in the status line.
+
+Term.App:_DrawInfo(txt)
+-----------------------
+  Prints the current info message if 'txt' is not specified, otherwise
+  replaces the message with 'txt' and prints it.
+  
+  INPUT
+    txt : NIL or the message to print in the informations line.
+
+Term.App:_DrawWarning(txt)
+--------------------------
+  Prints the current warning message if 'txt' is not specified, otherwise
+  replaces the message with 'txt' and prints it.
+  
+  INPUT
+    txt : NIL or the message to print in the warnings line.
+
+Term.App:_DrawMenuState(txt)
+----------------------------
+  Prints the current menu's state if 'txt' is not specified, otherwise
+  replaces the message with 'txt' and prints it.
+  
+  INPUT
+    txt : NIL or the message to print in menu's state line.
+
+Term.App:MenuAdd(name, items)
+-----------------------------
+  Used to define a menu.
+  
+  INPUT
+    name : menu's name
+    items : a table used to define submenus with the following fields:
+      command : the command string to type to recall this item
+      description : the item description to print in the menu
+      callback : callback to a function execute or a name of a submenu
+      
+  NOTES
+    If 'command' is an empty string the description is interpreted as a
+    menu header.
+
+Term.App:_FixedWidth(txt, size, align)
+--------------------------------------
+  Utility method to format the given <txt> to a defined 'size' and the passed
+  'align'ment by adding spaces.
+  If the string does not fit into the specified size it will be trunkated but
+  '«' and '»' symbols will be used as a visual feedback for the user.
+
+  INPUT
+    txt : text to process
+    size : target size
+    align : text alignment
+      -1 : left aligned
+       0 : centered
+       1 : right aligned
+
+  OUTPUT
+    result : the processed text
+
+Term.App:alignNumber(value, decimals, size)
+-------------------------------------------
+  Returns the number 'value' as a string, right aligned, with a length of
+  'size' characters and 'decimals' decimal numbers.
+
+  INPUT
+    value : the value to format
+    decimals : number of decimal places
+    size : total size in characters
+
+  OUTPUT
+    result : the processed 'value' as a string
+
+Term.App:_DrawMenuItems(menuEntry)
+----------------------------------
+  Utility method to draw the menu items of the given menu entry.
+  
+  INPUT
+    menuEntry : the name of the menu to draw.
+
+Term.App:ShowMessage(txt, waitkey, wordwrap)
+--------------------------------------------
+  This method is used to show a message to the user.
+  
+  INPUT
+    txt : the message to display
+    waitkey : True to wait for a keypress before continuing
+    wordwrap : True to enable the wordwrap for the text to display
+
+Term.App:GridView(data, columns, headers, positions, callback, info, formats)
+-----------------------------------------------------------------------------
+  Display data in a scrollable grid.
+  
+  INPUT
+    data : a table of all columns, each column with its data records
+    columns : a table with the column's names
+    headers : a table with the column headers
+    positions : a table with the column positions
+    callback : callback function to execute when a row is selected
+    info : custom information text
+    formats : optional table used to format the columns
+    
+  NOTES
+    To align a column name to the right add as first character the symbol '>'.
+    
+    Adding an additional position to the table 'positions' you can delimit the
+    last column size.
+    
+    Keys used to navigate the grid are hardcoded:
+      s/S : Down        w/W : Up       d/D: Left    a/A : Right
+      Space : Select    f/F : Find     Q : Exit
+  
+Term.App:ShowInput(txt, req)
+----------------------------
+  Shows an input requester.
+  
+  INPUT
+    txt : the text to print as explanation of the request
+    req : the prompt text
+
+  OUTPUT
+    answer : the user's typed text
+
+Term.App:ShowMenu(menuEntry)
+----------------------------
+  Method used to show a menu and to handle the user's input.
+  
+  INPUT
+    menuEntry : name of the menu to print
+
+Term.App:Progress(txt, vcurr, vmax)
+-----------------------------------
+  Method used to show and update a progress bar in the status line.
+  
+  INPUT
+    txt : text to display at the left of the progress bar
+    vcurr : current value
+    vmax : max value
+
+Term.App:Start(menuEntry)
+-------------------------
+  Starts the application showing the menu entry specified as its first
+  menu.
+  
+  INPUT
+    menuEntry : the name of the first menu to display.
 
 
 CHANGE LOG
