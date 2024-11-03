@@ -3,8 +3,8 @@
 Maybe they are also usefull to other Hollywood coders so here they are :)
 
 > Author  : Fabio Falcucci (Allanon)  
-> E-mail Contact : info@a-mc.biz
-> Mastodon handle : https://mastodon.uno/@allanon
+> E-mail Contact : info@a-mc.biz  
+> Mastodon handle : https://mastodon.uno/@allanon  
 > License : Freeware  
 
 If you like my work support me on Patreon https://www.patreon.com/Allanon71  or with PayPal to hijoe@tin.it   
@@ -20,7 +20,7 @@ All you have to do is:
 
 ---
 
-# Lib-ANSI
+# ANSI Library
  **Hollywood-MAL ANSI Library**
  
    Ansi library is an include file for Hollywood that will help you to manage ANSI escape codes so you can print colored text in the console of your host system.
@@ -30,10 +30,10 @@ All you have to do is:
    Of course you need that your host system console is able to understand ANSI ascape codes, but almost any OS is able to do that… except Windows! 
    For the Windows OS you need to install any thirdy party application to accomplish the task, on my development machine, running Windows 10, I’m using **ansicon** program to make use of ANSI codes.
 
-   I had the need to run some applications on Linux console with simple menus to start/stop services and to show logs so I added the ability to create a full console app using this library with some pretty useful functions & methods and a complete menu system.
+   After having developed the basic features, I had the need to run some applications on Linux console with simple menus to start/stop services and to show logs so I added the ability to create a full console app using this library with some pretty useful functions & methods and a complete menu system.
 
-   Library file : `ANSI.hws'
-   Docs : 'ANSI.readme'
+   Library file : `Ansi.hws`  
+   Docs : `Ansi.readme`  
 
 ---
 
