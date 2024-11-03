@@ -32,9 +32,11 @@ All you have to do is:
 
    After having developed the basic features, I had the need to run some applications on Linux console with simple menus to start/stop services and to show logs so I added the ability to create a full console app using this library with some pretty useful functions & methods and a complete menu system.
 
-   `Library file  : Ansi.hws`  
-   `Documentation : Ansi.readme`  
-   `Version       : 1.7 (November 2024)`  
+```plaintext
+   Library file  : Ansi.hws
+   Documentation : Ansi.readme
+   Version       : 1.7 (November 2024)
+```
 
 ---
 
