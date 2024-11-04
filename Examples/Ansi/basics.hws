@@ -1,1 +1,144 @@
+; -------------------------------------------------------------------
+; ANSI Example, basic usage
+; -------------------------------------------------------------------
+; Author  : Fabio Falcucci (Allanon)
+; License : Freeware
+; Version : 1.0
+; Release : 04/11/2024
+; Dependancies : Ansi.hws
+; PayPal Support : hijoe@tin.it
+; Support me on Patreon!         https://www.patreon.com/Allanon71
+; Github repository                   https://github.com/Allanon71
+; ------------------------------------------------------------------
 
+; Let's include the ANSI library
+@INCLUDE "../../Ansi.hws"
+
+; Since we are targeting console applications we don't need an Hollyweood display
+@DISPLAY { Hidden = True }
+
+; Let's ask for the current terminal size: this works well on Linux systems but
+; on Windows there are issues.
+Term.GetSize()
+
+; Switch ANSI On and clear the screen
+Term.Clear()
+Term.AnsiMode = True  ; By default colors are switched off you can also use
+                      ; Ansi.Set() function for this.
+
+
+; Prints what we have found using color macros
+Term.Print("~{NOTI}~{HOME}ANSI Library Test Program~{NORM}", True, Nil, True)   
+Term.Print("-------------------------", True, Nil, True)
+Term.Print("~{FGRN}Terminal Size : ~{FYEL}" .. Term.Size.Rows .. "~{FGRN}x~{FYEL}" .. Term.Size.Columns, True, Nil, True)
+Term.Print("~{NORM}", True, Nil, True)
+
+; Let's test wordwrapping
+t1 = [[This is just a test string for the ANSILib library, the following test will check if the text is printed as expected with Ansi support ON and OFF then the wordwrap will be turned off and the test will be repeated.
+This line should be printed alone at the bottom.]]
+  
+; We are using ConsolePrint() that does not have wordwrap support
+Term.Print("~{NOTI}Inbuilt ConsolePrint() command~{NORM}", True, Nil, True)
+ConsolePrint(t1)
+Term.Print("", True, Nil, True)
+
+; Now let's see wordwrap in action
+Term.Print("~{NOTI}But Term.Print() can wordwrap text...~{NORM}", True, Nil, True)
+Term.Print(t1, True, Nil, True)
+Term.Print("", True, Nil, True)
+
+Term.Print("~{NORM}", True, Nil, True)
+Term.Input("Hit Enter to continue:", True, True)
+
+; LINES
+;  This part draws some random horizontal lines, with random type "full" and "light"
+;  and random colors.
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING LINES~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Random Horizontal Lines (with a delay)...~{NORM}", True, Nil, True)
+For Local r = 4 To Term.Size.Rows-4 
+  Local c, l = Rnd(20)+1, Rnd(50)+1
+  Term.Draw.HLine({ row    = r, 
+                    column = c, 
+                    length = l, 
+                    Color  = Ansi.GetRndFgColor(), 
+                    Type   = IIf(Rnd(2)=1, "full", "light") })
+  Wait(50, #MILLISECONDS)
+Next
+Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
+
+; Now let's test vertical lines
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING LINES~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Random Vertical Lines (with a delay)...~{NORM}", True, Nil, True)
+For Local c = 2 To Term.Size.Columns-4 
+  Local r, l = Rnd(5)+5, Rnd(15)+1
+  Term.Draw.VLine({ row    = r, 
+                    column = c, 
+                    length = l, 
+                    Color  = Ansi.GetRndFgColor(), 
+                    Type   = IIf(Rnd(2)=1, "full", "light") })
+  Wait(50, #MILLISECONDS)
+Next
+Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
+
+; BOXES
+;   Testing filled boxes.
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING BOXES~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Random Filled Boxes (with a delay)...~{NORM}", True, Nil, True)
+For Local i = 1 To 40
+  Local r = Rnd(Term.Size.Rows)-3
+  Local c = Rnd(Term.Size.Columns)-10
+  Local w = Rnd(Term.Size.Columns-c-4)+1
+  Local h = Rnd(Term.Size.Rows-r-4)+1
+  Term.Draw.FBox({ row    = r, 
+                   column = c, 
+                   width  = w, 
+                   height = h, 
+                   Color  = Ansi.GetRndFgColor() })
+  Wait(50, #MILLISECONDS)
+Next
+Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
+
+; Testing empty boxes.
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING BOXES~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Random Empty Boxes (with a delay)...~{NORM}", True, Nil, True)
+For Local i = 1 To 40
+  Local r = Rnd(Term.Size.Rows)-3
+  Local c = Rnd(Term.Size.Columns)-10
+  Local w = Rnd(Term.Size.Columns-c-4)+1
+  Local h = Rnd(Term.Size.Rows-r-4)+1
+  Term.Draw.Box({ row    = r, 
+                  column = c, 
+                  width  = w, 
+                  height = h, 
+                  Color  = Ansi.GetRndFgColor(),
+                  type   = "light", 
+                  angles = IIf(RndF()>0.5, "squared", "rounded") })
+  Wait(50, #MILLISECONDS)
+Next
+Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
+
+; PRINTAT
+;   Testing PrintAt function
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING PRINTAT()~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Printing at random positions (with a delay)...~{NORM}", True, Nil, True)
+For Local i = 1 To 40
+  Local r, c = Rnd(Term.Size.Rows-5)+4, Rnd(Term.Size.Columns-4)+1
+  Term.PrintAt(r, c, Ansi.GetRndFgColor() .. "Print At (" .. r .. "," .. c .. ")")
+  Wait(50, #MILLISECONDS)
+Next
+Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
+
+; INPUT
+;   Testing Input routines
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING TEXT INPUT()~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Please answer the questions...~{NORM}", True, Nil, True)
+Local  name = Term.Input(Ansi.GetCursorMove(10, 2) .. "~{FCYA}Type your name and hit ENTER:~{ADVI}")
+Local sname = Term.Input(Ansi.GetCursorMove(12, 2) .. "~{FCYA}Type your surname and hit ENTER:~{ADVI}")
+Term.PrintAt(14, 2, "~{FWHI}name: ~{FGRN}" .. name .. "~{FWHI}, surname: ~{FGRN}" .. sname .. "~{NORM}")
+Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
