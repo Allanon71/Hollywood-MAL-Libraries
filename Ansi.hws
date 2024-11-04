@@ -1,7 +1,7 @@
 /********************************************************************
  * ANSI SUPPORT LIBRARY                                             *
  * Author  : Fabio Falcucci (Allanon)                               *
- * License : Donationware                                           *
+ * License : Freeware                                               *
  * Version : 1.7                                                    *
  * Release : 03/11/2024                                             *
  * Dependancies : -                                                 *
@@ -464,6 +464,8 @@ Function Term.getInput(t, wordwrap, linefeed, maxLen) ; v1.0
   ; OUTPUT
   ;   result : Typed text
   ; 
+  ; NOTES
+  ;   NOT WORKING AS EXPECTED
   ; ---
 
   If Term.AnsiMode
@@ -473,7 +475,7 @@ Function Term.getInput(t, wordwrap, linefeed, maxLen) ; v1.0
     prompt = prompt .. Term.PromptColor.Bg .. Term.PromptColor.Fg .. b .. i .. u
   EndIf
 
-  If IsNil(maxLen) then maxLen = 1
+  If IsNil(maxLen) Then maxLen = 1
   
   Local txt = Term.Print(t, wordwrap, 0, linefeed, True)
   txt[0] = prompt .. txt[0]
@@ -2743,6 +2745,6 @@ This is a linefeed embedded into the string.]]
 EndFunction
 
 ; UNCOMMENT THE FOLLOWING FUNCTION TO PERFORM A TEST
-; Term.TEST()
+;Term.TEST()
 
 
