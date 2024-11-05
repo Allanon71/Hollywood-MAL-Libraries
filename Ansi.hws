@@ -1226,9 +1226,9 @@ Term.App =
         Message =         ; MESSAGE BOX
         { firstRow  = 3,
           vLenght   = 18,
-          Color     = Ansi.Code.BoldOff .. Ansi.Code.FgWhite .. Ansi.Code.BgBlue,
-          BgColor   = Ansi.Code.BoldOff .. Ansi.Code.FgMagenta .. Ansi.Code.BgBlue,
-          TextColor = Ansi.Code.BoldOn .. Ansi.Code.FgWhite .. Ansi.Code.BgBlue },
+          Color     = Ansi.Code.BoldOn .. Ansi.Code.FgYellow .. Ansi.Code.BgBlack,
+          BgColor   = Ansi.Code.BoldOff .. Ansi.Code.BgBlack .. Ansi.Code.FgBlack,
+          TextColor = Ansi.Code.BoldOn .. Ansi.Code.FgGreen .. Ansi.Code.BgBlack },
 
         MenuItems =       ; Defines how to render menu items
         { firstRow = 4,

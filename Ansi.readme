@@ -238,6 +238,7 @@ Term.SetTermSize(r, c, color)
     r : number of rows
     c : number of columns
     color : True for color terminal
+
   OUTPUT
     result : the string to print to set the terminal with the detected mode.
 
