@@ -136,9 +136,20 @@ Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
 ; INPUT
 ;   Testing Input routines
 Term.Clear()
-Term.Print("~{NOTI}~{HOME}TESTING TEXT INPUT()~{NORM}", True, Nil, True)
+Term.Print("~{NOTI}~{HOME}TESTING TEXT INPUT~{NORM}", True, Nil, True)
 Term.Print("~{FGRN}Please answer the questions...~{NORM}", True, Nil, True)
 Local  name = Term.Input(Ansi.GetCursorMove(10, 2) .. "~{FCYA}Type your name and hit ENTER:~{ADVI}")
 Local sname = Term.Input(Ansi.GetCursorMove(12, 2) .. "~{FCYA}Type your surname and hit ENTER:~{ADVI}")
 Term.PrintAt(14, 2, "~{FWHI}name: ~{FGRN}" .. name .. "~{FWHI}, surname: ~{FGRN}" .. sname .. "~{NORM}")
 Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
+
+; COLORS
+;   You can pick random colors, both for background & foreground
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING COLORS~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Printing some lines with random colors...~{NORM}", True, Nil, True)
+Term.Print("", True, Nil, True)
+For Local i = 1 To 5
+  Term.Print(Ansi.GetRndFgColor() .. Ansi.GetRndBgColor() .. i .. ":Testing Random Colors~{NORM}")
+Next
+Term.Input(Ansi.GetCursorMove(3, 1) .. "--- Hit Enter END ---", True, True)

@@ -1,0 +1,111 @@
+; -------------------------------------------------------------------
+; ANSI Example, requesters usage
+; -------------------------------------------------------------------
+; Author  : Fabio Falcucci (Allanon)
+; License : Freeware
+; Version : 1.0
+; Release : 04/11/2024
+; Dependancies : Ansi.hws
+; PayPal Support : hijoe@tin.it
+; Support me on Patreon!         https://www.patreon.com/Allanon71
+; Github repository                   https://github.com/Allanon71
+; ------------------------------------------------------------------
+
+; Let's include the ANSI library
+@INCLUDE "../../Ansi.hws"
+
+; Since we are targeting console applications we don't need an Hollyweood display
+@DISPLAY { Hidden = True }
+
+; Let's ask for the current terminal size: this works well on Linux systems but
+; on Windows there are issues.
+Term.GetSize()
+
+; Switch ANSI On and clear the screen
+Term.Clear()
+Term.AnsiMode = True  ; By default colors are switched off you can also use
+                      ; Ansi.Set() function for this.
+
+; To be able to use requester you have to create at least an app object
+Local app =Term.App:New()
+
+; Now we can SHOW A MESSAGE on the screen
+app:ShowMessage("This is some text to print in the requester's body, it will be wordwrapped since I've set the 'wordwrap' argument set to True. This is some text to print in the requester's body, it will be wordwrapped since I've set the 'wordwrap' argument set to True. This is some text to print in the requester's body, it will be wordwrapped since I've set the 'wordwrap' argument set to True.", True, True)
+
+; Here is an INPUT BOX
+result = app:ShowInput("Here is an example of a box waiting for the user to type something.", "Type something and hit ENTER:")
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}You have typed:~{NORM} " .. result, True, Nil, True)   
+
+; Another type of requester is the GridView, a pretty complex structure that allows you
+; to show tables using a grid, attaching an event to the 'select' action and allowing
+; you to perform text search within the data set.
+; ---
+; Let's prepare a test data set
+  Local data = 
+    { name = 
+      { "Fabio",
+        "Mario",
+        "Pino",
+        "Jhon",
+        "Luca",
+        "Mary",
+        "Annah",
+        "Marcus",
+        "Zoe",
+        "Rick" },
+        
+      surname = 
+      { "Falcucci",
+        "Rossi",
+        "Bianchi",
+        "Ross",
+        "White",
+        "Mellow",
+        "Loomar",
+        "Trevis",
+        "Rimm",
+        "Koller" },
+        
+      age =
+      { 48,
+        41,
+        30,
+        58,
+        18,
+        34,
+        32,
+        55,
+        19,
+        41 }
+      }
+      
+  Local columns = 
+    { "name",
+      "surname",
+      ">age" } ; The > sign means: align to the right
+      
+  Local headers =
+    { "NAME",
+      "SURNAME",
+      "AGE" }
+      
+  Local positions =
+    {  1,
+      20,
+      40 }
+      
+  Local numbers =
+    { [2] = "%.4f" }
+
+
+; Now let's show the data
+app:GridView(data, columns, headers, positions, 
+        Function(d, index) 
+          ; This is a callback function activated when the hilighted row is selected
+          tapp:ShowMessage(
+            "ITEM SELECTED\n\n" ..
+            d.Name[index] .. " " .. d.Surname[index] .. ", Age: " .. d.Age[index])
+        EndFunction,
+        "*** BIG PROBLEM: commands must be confirmed with ENTER ***",
+        numbers)
