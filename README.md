@@ -47,6 +47,7 @@ All you have to do is:
    Screenshot    : Ansi.jpg
    Version       : 1.7 (November 2024)
    Dependancies  : -
+   Examples      : 3 examples provided in Examples/Ansi/ folder
 ```
 
 ---
