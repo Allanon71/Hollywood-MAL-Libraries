@@ -1,0 +1,116 @@
+; -------------------------------------------------------------------
+; ANSI Example, building a basic terminal app
+; -------------------------------------------------------------------
+; Author  : Fabio Falcucci (Allanon)
+; License : Freeware
+; Version : 1.0
+; Release : 06/11/2024
+; Dependancies : Ansi.hws
+; PayPal Support : hijoe@tin.it
+; Support me on Patreon!         https://www.patreon.com/Allanon71
+; Github repository                   https://github.com/Allanon71
+; ------------------------------------------------------------------
+
+; Let's include the ANSI library
+@INCLUDE "../../Ansi.hws"
+
+; Since we are targeting console applications we don't need an Hollyweood display
+@DISPLAY { Hidden = True }
+
+; Let's ask for the current terminal size: this works well on Linux systems but
+; on Windows there are issues.
+Term.GetSize()
+
+; Switch ANSI On and clear the screen
+Term.Clear()
+Term.AnsiMode = True  ; By default colors are switched off you can also use
+                      ; Ansi.Set() function for this.
+
+; Let's create the app object
+Local app =Term.App:New()
+
+; A terminal app is a menu driven application with some useful features to quickly
+; create console applications.
+; First we need to setup a few fields of the created app object:
+app.name = "TERM App Example"
+app.version = "1.0"
+app.build = "06.11.2024"
+app.copyright = "Allanon"
+
+; The second step is to build the menu structure of our application where you have to
+; define menu items and what they do. You can nest menus and create sub-menus freely.
+; The system has an authomatic history system that let you easily allow your user to
+; go back to the previous menu simply typing "back" as menu command.
+
+; Here is an example:
+app:menuAdd("Main", ; <- menu name
+{ ; Each record is a menu item with the following fields:
+  ;   command: the string the user has to type to select the menu item
+  ;            If command is an empty string the description will be used as a header
+  ;   description: The string printed near the command that describe the menu item.
+  ;            If both command and description are empty strings a horizontal line
+  ;            is drawn.
+  ;   callback: the function to call when the menu item is selected
+  ;             You can pass a string with another menu name to call a submenu.
+  { command = "",
+    description = "HEADER 01",
+    callback = Function() EndFunction },
+  { command = "msg", 
+    description = "Show a message", 
+    callback = Function() 
+                 app:ShowMessage("Hello! This is a message box!\n\nIsn't it nice?")
+               EndFunction },
+  { command = "noh", 
+    description = "Nothing here!",
+    callback = Function() EndFunction },
+  { command = "", 
+    description = "HEADER 02", 
+    callback = Function() EndFunction },
+  { command = "prg", 
+    description = "Test progress bar", 
+    callback = Function() 
+                 For Local i = 1 To 100
+                   app:Progress("Testing the Progress method:" .. i .. "%", i, 100)
+                   Wait(100, #MILLISECONDS)
+                 Next
+                 app:SetStatus("Completed! (waiting 3 seconds)")
+                 Wait(3000, #MILLISECONDS)      
+               EndFunction },
+  { command = "aei", 
+    description = "Another empty item", 
+    callback = Function() EndFunction },
+  { command = "sub", 
+    description = "Call a submenu", 
+    callback = "Sub1" },
+  { command = "", description = "", callback = Function() EndFunction },
+  { command = "C1", description = "Nothing here", callback = Function() EndFunction },
+  { command = "C2", description = "Type 'back' to quit", callback = Function() EndFunction },
+  { command = "C3", description = "followed by ENTER", callback = Function() EndFunction },
+  { command = "war", description = "Warning message (bottom)", callback = Function() app:SetWarning("This is the warning line!") EndFunction },
+  { command = "sta", description = "Status message (bottom)", callback = Function() app:SetStatus("This is the status line!") EndFunction },
+  { command = "inf", description = "Info message (bottom)", callback = Function() app:SetInfo("This is the information line!") EndFunction },
+  { command = "clr", 
+    description = "Clear all messages", 
+    callback = Function() 
+                 app:ClearWarning()
+                 app:ClearStatus()
+                 app:ClearInfo()
+               EndFunction },
+  { command = "end", description = "Close the app", callback = Function() End EndFunction },
+
+  })
+  
+
+; Defines the submenu
+; This menu is called when the user selected the menu item <sub> of the main menu.
+app:MenuAdd("Sub1",
+  { { command = "this", description = "type 'back'", callback = Function() EndFunction },
+    { command = "is", description = "to return", callback = Function() EndFunction },
+    { command = "a", description = "to the previous", callback = Function() EndFunction },
+    { command = "sub", description = "menu", callback = Function() EndFunction },
+    { command = "", description = "SEPARATOR", callback = Function() EndFunction },
+    { command = "menu", description = "", callback = Function() EndFunction },
+    })
+
+; And now let's start the application using the first menu level!
+app:Start("Main")
