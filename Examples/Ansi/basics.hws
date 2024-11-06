@@ -152,4 +152,46 @@ Term.Print("", True, Nil, True)
 For Local i = 1 To 5
   Term.Print(Ansi.GetRndFgColor() .. Ansi.GetRndBgColor() .. i .. ":Testing Random Colors~{NORM}")
 Next
+Term.Input(Ansi.GetCursorMove(3, 1) .. "Hit Enter to continue...", True, True)
+;   You can pick random colors, both for background & foreground
+Term.Clear()
+Term.Print("~{NOTI}~{HOME}TESTING COLORS~{NORM}", True, Nil, True)
+Term.Print("~{FGRN}Using the most common ANSI escape sequences...~{NORM}", True, Nil, True)
+Term.Print("", True, Nil, True)
+Local toPrint = [[01:RESET command ->~{RSET}<- done.
+02:BOLD ON/OFF      : ~{BLD+}BOLD style~{BLD-}       BOLD OFF
+03:DIM ON/OFF       : ~{DIM+}DIM style~{RSET}        DIM OFF
+04:ITALIC ON/OFF    : ~{ITA+}ITALIC style~{ITA-}     ITALIC OFF
+05:UNDERLINE ON/OFF : ~{UND+}UNDERLINE style~{UND-}  UNDERLINE OFF
+06:BLINK ON/OFF     : ~{BLI+}BLINK style~{BLI-}      BLINK OFF
+07:INVERSE ON/OFF   : ~{INV+}INVERSE style~{INV-}    INVERSE OFF
+08:HIDDEN ON/OFF    : ~{HID+}HIDDEN style~{HID-}     HIDDEN OFF
+09:STRIKETR ON/OFF  : ~{STR+}STRIKETR style~{STR-}   STRIKETR OFF
+10:FG BLACK         : ~{FBLK}FG BLACK style~{FDEF}   FG BLACK OFF
+11:FG RED           : ~{FRED}FG RED style~{FDEF}     FG RED OFF
+12:FG GREEN         : ~{FGRN}FG GREEN style~{FDEF}   FG GREEN OFF
+13:FG BLUE          : ~{FBLU}FG BLUE style~{FDEF}    FG BLUE OFF
+14:FG MAGENTA       : ~{FMAG}FG MAGENTA style~{FDEF} FG MAGENTA OFF
+15:FG CYA           : ~{FCYA}FG CYAN style~{FDEF}    FG CYAN OFF
+16:FG WHITE         : ~{FWHI}FG WHITE style~{FDEF}   FG WHITE OFF
+17:FG DEFAULT       : ~{FDEF}FG DEFAULT style~{FDEF} FG DEFAULT OFF
+18:BG BLACK         : ~{BBLK}BG BLACK style~{BDEF}   BG BLACK OFF
+19:BG RED           : ~{BRED}BG RED style~{BDEF}     BG RED OFF
+20:BG GREEN         : ~{BGRN}BG GREEN style~{BDEF}   BG GREEN OFF
+21:BG BLUE          : ~{BBLU}BG BLUE style~{BDEF}    BG BLUE OFF
+22:BG MAGENTA       : ~{BMAG}BG MAGENTA style~{BDEF} BG MAGENTA OFF
+23:BG CYAN          : ~{BCYA}BG CYAN style~{BDEF}    BG CYAN OFF
+24:BG WHITE         : ~{BWHI}BG WHITE style~{BDEF}   BG WHITE OFF
+25:BG DEFAULT       : ~{BDEF}BG DEFAULT style~{BDEF} BG DEFAULT OFF
+26:NORMAL SET       : ~{NORM}NORMAL style~{NORM}     BACK TO NORMAL
+26:NOTICE SET       : ~{NOTI}NOTICE style~{NORM}     BACK TO NORMAL
+27:WARN SET         : ~{WARN}WARN style~{NORM}       BACK TO NORMAL
+28:ERROR SET        : ~{ERRO}ERROR style~{NORM}      BACK TO NORMAL
+29:ADVICE SET       : ~{ADVI}ADVICE style~{NORM}     BACK TO NORMAL
+30:QUOTE SET        : ~{QUOT}QUOTE style~{NORM}      BACK TO NORMAL
+]]
+Term.Print(toPrint, False)   
+Term.Print("      ~{FRED}RED~{FGRN}GREEN~{FDEF}", False)
+Term.Print("BOLD->~{BLD+}~{FRED}RED~{FGRN}GREEN~{FDEF}~{BLD-}", False)
+
 Term.Input(Ansi.GetCursorMove(3, 1) .. "--- Hit Enter END ---", True, True)
