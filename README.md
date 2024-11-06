@@ -48,6 +48,9 @@ All you have to do is:
    Version       : 1.7 (November 2024)
    Dependancies  : -
    Examples      : 3 examples provided in Examples/Ansi/ folder
+   Compatibility : This library is compatible with all system supporting ANSI escape sequences,
+                   inbuilt commands in Hollwyood >10 are only compatible with Linux, Windows
+                   and MacOS.
 ```
 
 ---
