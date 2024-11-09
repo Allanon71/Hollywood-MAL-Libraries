@@ -652,8 +652,13 @@ Term.App:GridView(data, columns, headers, positions, callback, info, formats)
     last column size.
     
     Keys used to navigate the grid are hardcoded:
-      s/S : Down        w/W : Up       d/D: Left    a/A : Right
-      Space : Select    f/F : Find     Q : Exit
+      s/S : Down one line/one page
+      w/W : Up one line/one page
+      d/D : Left one character/one column
+      a/A : Right one character/one column
+      Space : Select hilighted row
+      f/F : Find string/find next
+      Q   : Exit the grid view
   
 Term.App:ShowInput(txt, req)
 ----------------------------
