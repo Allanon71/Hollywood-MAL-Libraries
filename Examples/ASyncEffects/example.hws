@@ -1,1 +1,171 @@
+; -------------------------------------------------------------------
+; ASyncEffects Example
+; -------------------------------------------------------------------
+; Author  : Fabio Falcucci (Allanon)
+; License : Freeware
+; Version : 1.0
+; Release : 11/11/2024
+; Dependancies : ASyncEffects.hws
+; PayPal Support : hijoe@tin.it
+; Support me on Patreon!         https://www.patreon.com/Allanon71
+; Github repository                   https://github.com/Allanon71
+; ------------------------------------------------------------------
 
+; Let's include the ANSI library
+@INCLUDE "../../ASyncEffects.hws"
+
+; In this example we will build a screen with a grid of 3x3 images
+; that will be displayed as brushes using asynchronous effects.
+; You will be able to:
+;  - Left click on an image to pause the transition
+;  - Right click on an image to resume the transition
+;  - ESC key to quit
+; When an image completes its transition an new random image will be
+; displayed using the OnEnd callback function.
+; The code is simple and will show how to use this library to simplify
+; asynchronous effects management.
+
+; Let's setup a screen
+@DISPLAY { width = 600, height = 600 }
+
+; Images size
+Local iWidth = 200
+Local iHeight = 200
+Local iPath = "images"
+
+; Images table
+Global images = {}
+For Local i = 1 To 8
+  images[i-1] = FullPath(iPath, ToString(i) .. ".jpg")
+Next
+
+; We need to initialize the ASyncEffects system
+AFX.Init(
+  { upd_freq = 20,
+    def_state = #AFX_STATE_RUNNING,
+    OnNoTasks = Nil
+    })
+
+;------------------------------------------------
+
+; This function is used when an image complete its transition
+Function respawnImage(msg)
+  ; Let's free the brush we don't need anymore
+  FreeBrush(msg.userData.brushId)
+  
+  ; and let's spawn another one on the same cell
+  spawnImage(msg.userData.r, msg.userData.c)
+EndFunction
+
+; Let's build a function to display an image into a given position
+; Our screen grid is 3x3 composed by 200x200 images.
+Function spawnImage(r, c)
+  ; Where r=row (1-3) and c=column (1-3)
+  ; ---
+
+  ; pick a random image between 1 and 8
+  Local imageNr = Rnd(7)+1
+  
+  ; Load the image in brush r x c
+  Local brushId = (r-1)*3+c
+  LoadBrush(brushId, images[imageNr])
+  
+  ; Brush position
+  Local y = (r-1)*200
+  Local x = (c-1)*200
+  
+  ; Display the image using a random effect
+  ASyncHandle = DisplayBrushFX(brushId, x, y, { Type = #RANDOMEFFECT, ASync = True })
+  
+  ; Now let's setup a task for manage the transition
+  AFX.TaskObject:Add(ASyncHandle, 
+                     ToString(brushId), 
+                     respawnImage, 
+                     { r=r, c=c, brushId=brushId }, 
+                     0, 
+                     ToString(brushId))
+                     
+  ConsolePrint("Image '" .. images[imageNr] .. "' in cell " .. brushId)
+  
+EndFunction
+
+;------------------------------------------------
+
+; Let's inform the user about the keys to interact with this example
+TextOut(4,4,"ASyncEffects Example")
+TextOut(4,16,"  ESC : Complete all running transitions and quit")
+TextOut(4,28,"  LMB : Pause a cell's transition")
+TextOut(4,40,"  RMB : Resume a paused cell's transition")
+TextOut(4,60,"Press left mouse button to start...")
+WaitLeftMouse()
+
+; We need to setup some event handlers to detect the user's input
+InstallEventHandler(
+  { OnKeyUp = Function(msg)
+                ; Listen to key up events
+                ; Esc key terminate all the running transitions and quit
+                If msg.key = "ESC"
+                  ; If some task is paused the program will never end so let's
+                  ; resume them all
+                  For i,v In Pairs(AFX.Tasks) Do v:Resume()
+                  
+                  ; And wait for all tasks to finish
+                  AFX.UpdateAll_UntilFinish(Nil, Nil, True)
+                  SetFillStyle(#FILLCOLOR)
+                  Box(0,#CENTER-10,600,50,$44000000)
+                  TextOut(#CENTER, #CENTER-20, "ALL TRANSITIONS COMPLETED")
+                  TextOut(#CENTER, #CENTER, "PRESS LEFT MOUSE TO QUIT")
+                  WaitLeftMouse()
+                  End
+                EndIf
+              EndFunction,
+
+    OnMouseDown = Function(msg)
+                    ; When left mouse button is pressed pause the cell's transition
+                    Local r = Int(MouseY()/200)+1
+                    Local c = Int(MouseX()/200)+1
+                    Local brushId = (r-1)*3+c
+                    
+                    ; We need the brushID because we have used it to name our tasks
+                    Local taskObj = AFX.SearchByObjName(ToString(brushId))
+                    If taskObj
+                      If taskObj.private.State = #AFX_TASKSTATE_PAUSED
+                        SetFillStyle(#FILLCOLOR)
+                        Box((c-1)*200,(r-1)*200,200,20,$55880000)
+                        TextOut((c-1)*200+4,(r-1)*200+4, "*** ALREADY PAUSED ***")
+                        
+                      Else
+                        taskObj:Pause()
+                        SetFillStyle(#FILLCOLOR)
+                        Box((c-1)*200,(r-1)*200,200,20,$55660000)
+                        TextOut((c-1)*200+4,(r-1)*200+4, "*** PAUSED ***")
+                        
+                      EndIf
+                    EndIf
+                  EndFunction,
+
+    OnRightMouseDown = Function(msg)
+                        ; When right mouse button is pressed resume the cell's transition
+                        Local r = Int(MouseY()/200)+1
+                        Local c = Int(MouseX()/200)+1
+                        Local brushId = (r-1)*3+c
+                        
+                        ; We need the brushID because we have used it to name our tasks
+                        Local taskObj = AFX.SearchByObjName(ToString(brushId))
+                        If taskObj
+                          taskObj:Resume()
+                        EndIf
+                      EndFunction
+    })
+
+
+; Spawn the images on each cell
+For Local r = 1 To 3
+  For Local c = 1 To 3
+    spawnImage(r,c)
+  Next
+Next
+
+While True
+  WaitEvent()
+Wend
