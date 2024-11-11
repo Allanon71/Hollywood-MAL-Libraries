@@ -52,6 +52,29 @@ All you have to do is:
                    inbuilt commands in Hollwyood >10 are only compatible with Linux, Windows
                    and MacOS.
 ```
+---
+
+# ASyncEffects Library
+ **Hollywood-MAL ASyncEffects Library**
+
+ [![ASyncEffects Lib: Test program in action](ASyncEffects.gif)]()
+ 
+  ASyncFX library is an include file that allows you to get rid of the manual tracking of asynchronous effects in Hollywood: using tasks you can make the process automated.
+
+  The development of this library has started loooong time ago, around 2011, when I felt the need to handle all the asynchronous operations running on one of my program using something to keep track of them.
+
+  The basic idea is around 'tasks'. A task is an asynchronous operation you initialize. At a certain point of yout main loop you can call a function to update all registered tasks or you can use an interval function to do this operation.
+  Completed tasks are removed automatically and you can also pause & resume them, one by one, or all them in a single go.
+
+```plaintext
+   Library file  : ASyncEffects.hws
+   Documentation : ASyncEffects.readme
+   Screenshot    : ASyncEffects.gif
+   Version       : 1.3 (November 2024)
+   Dependancies  : Easing, Tables, G2D
+   Examples      : 1 examples provided in Examples/ASyncEffects/ folder
+   Compatibility : Full with any system supported by Hollywood
+```
 
 ---
 
