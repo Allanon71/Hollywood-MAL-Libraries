@@ -1,0 +1,758 @@
+/********************************************************************
+ * AFX (ASync Fx) SUPPORT LIBRARY                                   *
+ * Author  : Fabio Falcucci (Allanon)                               *
+ * License : Freeware                                               *
+ * Version : 1.3                                                    *
+ * Release : 09/11/2024                                             *
+ * Dependancies : Easing, Tables, Debug, G2D                        *
+ * PayPal Support : hijoe@tin.it                                    *
+ * Support me on Patreon!         https://www.patreon.com/Allanon71 *
+ * Github repository                   https://github.com/Allanon71 *
+ * -----------------------------------------------------------------*
+ * The aim of this library is to handle all asynchronous effects    *
+ * available with Hollywood.                                        *
+ ********************************************************************/
+ 
+/*
+ to check/complete
+  -
+  
+ to add
+  -
+*/
+
+@INCLUDE "+Includes.hws"
+@INCLUDE #INC_EASING
+@INCLUDE #INC_TABLES
+@INCLUDE #INC_DEBUG
+@INCLUDE #INC_G2D
+
+Const #AFX_STATE_RUNNING = 1
+Const #AFX_STATE_PAUSED  = 2
+
+Const #AFX_TASKSTATE_RUNNING = 1
+Const #AFX_TASKSTATE_PAUSED  = 2
+Const #AFX_TASKSTATE_ENDED   = 3
+
+Const #EASING_NONE = 1
+Const #PROG_ACCELERATE = 2
+Const #PROG_DECELERATE = 3
+
+
+Global AFX = {}                     ; Main data structure
+AFX.Tasks    = {}                   ; Tasks list
+AFX.Movers   = {}                   ; Movers list
+AFX.Scalers  = {}                   ; Scalers list
+AFX.Faders   = {}                   ; Faders list
+AFX.Rotators = {}                   ; Rotators list
+AFX.DebugChannel = "ASyncFx"        ; Debug channel
+AFX.Version = "1.3"
+AFX.Build   = "09/11/2024"
+
+
+AFX.Data  = {                       ; Engine data
+  Stats = 
+    { tasks = 
+      { upd_count  = 0, 
+        total_time = 0, 
+        mid_time   = 0, 
+        max_time   = 0, 
+        frames_cnt = 50 } },
+  Upd_Freq   = -1,                  ; Updater frequency in ms
+	Def_State  = -1,                  ; Default new tasks state
+  useRefreshBlock = True,           ; Enable/Disable BeginRefresh()/EndRefresh()
+                                    ; If you are using DoubleBuffer you may want to
+                                    ; disable this feature because it is not compatible.
+                                    ; You may also disable it because you are updating
+                                    ; all the tasks by hand.
+	State      = #AFX_STATE_RUNNING,  ; Engine state
+	TasksCount = -1,                  ; Tasks counter
+	ONTFlag    = False,               ; OnNoTasks Flag
+	OnNoTasks  = Function() EndFunction,  ; Function to call when no tasks ended
+	TimerID    = Nil,                 ; Timer id used to update the tasks
+  prevTime   = 0,                   ; Used to calculate the delta time
+	UpdaterID  = Nil }                ; Interval ID for the updater
+
+  AFX.Version = "2021.10.08"        ; Version <- OBSOLETE: Use AFX.Version and AFX.Build
+
+Function AFX.Update()
+  ; This function updates all the active (running) tasks. Generally it is
+  ; called automatically by the system, but if you have specified a negative
+  ; update frequency to switch off this feature you have to remember to call
+  ; this function by yourself otherwise your tasks will not be updated.
+  ; 
+  ; OUTPUT
+  ;   result : True if there are still unfinished tasks otherwise False
+  ;---
+  
+  ; LineHook disabled for some more processor time
+  HL.LineHook.Disable()
+  
+  ; If it was set, call the BeginRefresh command
+  AFX.Data.fBeginRefresh
+
+  Local tmr1 = GetTimer(AFX.Data.TimerID)
+  
+  ; Are there some tasks to update?
+  If AFX.Data.TasksCount = 0
+    ; No, tasks = 0
+    If  AFX.Data.ONTFlag
+      ; No tasks active, execute the 'OnNoTasks' event
+      AFX.Data.ONTFlag = False
+      AFX.Data.OnNoTasks()
+      
+    EndIf
+
+  Else
+    ; There are tasks to update, update them all
+    Local i, v
+    For i, v In Pairs(AFX.Tasks) Do v:update
+    
+  EndIf
+
+  ; STATS, TIMINGS & TWEENS
+  ; Compute delta time and update all running tweens
+  Local timeNow   = GetTimer(AFX.Data.TimerID)
+  Local deltaTime = timeNow - AFX.Data.prevTime
+  AFX.Data.prevTime = timeNow
+  tween.update(deltaTime)
+    
+  Local notFinished = True
+  
+  If AFX.Data.TasksCount = 0
+    ; No more tasks!
+    notFinished = False
+    
+  EndIf
+  
+  ; End the refresh block
+  AFX.Data.fEndRefresh
+  
+  ; Enable LineHook
+  HL.LineHook.Enable()
+  
+  ; Update statistics
+  AFX.Data.Stats.Tasks.Upd_Count  = AFX.Data.Stats.Tasks.Upd_Count + 1
+  AFX.Data.Stats.Tasks.Total_Time = AFX.Data.Stats.Tasks.Total_Time + timeNow - tmr1
+  If AFX.Data.Stats.Tasks.Upd_Count = AFX.Data.Stats.Tasks.Frames_Cnt
+    AFX.Data.Stats.Tasks.Mid_Time   = AFX.Data.Stats.Tasks.Total_Time/AFX.Data.Stats.Tasks.Upd_Count
+    AFX.Data.Stats.Tasks.Upd_Count  = 0
+    AFX.Data.Stats.Tasks.Total_Time = 0
+    If AFX.Data.Stats.Tasks.Mid_Time > AFX.Data.Stats.Tasks.Max_Time
+      AFX.Data.Stats.Tasks.Max_Time = AFX.Data.Stats.Tasks.Mid_Time
+      
+    EndIf
+    
+  EndIf
+  
+  Return(notFinished)
+  
+EndFunction
+
+Function AFX.UpdateAll_UntilFinish(freq, easingCB, detachOnEnd)
+  ; This function will update all the running tasks and animations until all
+  ; of them has been completed.
+  ; 
+  ; INPUT
+  ;   freq : Update frequency in milliseconds
+  ;   easingCB : True if you want to execute the easing callback function
+  ;     attahced to the easing Stop event.
+  ;   detachOnEnd : If set to true detaches all OnEnd callbacks
+  ;---
+  
+  ; Check input parameters
+  If IsNil(freq)     Then freq     = AFX.Data.Upd_Freq
+  If IsNil(easingCB) Then easingCB = True
+  
+  HL.LineHook.Disable()
+  
+  If detachOnEnd
+    ; Removes all OnEnd callbacks
+    For i,v In Pairs(AFX.Tasks)
+      v.OnEnd = Function() EndFunction
+    Next
+  EndIf
+  
+  ; Updates all the tasks until they are all finished  
+  While True
+    If Not(AFX.Update()) Then Return()
+    Wait(freq, #MILLISECONDS)
+    
+  Wend
+  
+  ; Stop all running tweens
+  Easing.StopAll(easingCB)
+  
+  HL.LineHook.Enable()
+  
+EndFunction
+
+Function AFX.Free()
+  ; Use this function to remove all running and paused tasks. Each task will be
+  ; removed from the system, all animation will be cancelled.
+  ;---
+  
+  HL.LineHook.Disable()
+  
+  Local i, v
+  For i, v In Pairs(AFX.Tasks)
+    v:Remove()
+    
+  Next
+  
+  HL.LineHook.Enable()
+
+EndFunction
+
+Function AFX.Finish()
+  ; This function is used to finish all asynch effects currently running.
+  ; Finishing an effect (or a task) means that the animation will be interrupted
+  ; but instead of leaving the animation as is the last frame of the animation
+  ; will be drawn to the screen.
+  ;---
+
+  HL.LineHook.Disable()
+  
+  Local i, v
+  For i, v In Pairs(AFX.Tasks)
+    v:Finish()
+
+  Next
+  
+  HL.LineHook.Enable()
+
+EndFunction
+
+Function AFX.Cancel()
+  ; This function is used to cancel all animation effects currently running.
+  ; Cancelling an effect (or a task) means that the animation will be interrupted
+  ; leaving the last frame that has been drawn to the screen.
+  ; Cancelling a task will remove the OnEnd event attached to it.
+  ;---
+
+  HL.LineHook.Disable()
+  
+  Local i, v
+  For i, v In Pairs(AFX.Tasks)
+    v:Cancel()
+    
+  Next
+  
+  HL.LineHook.Enable()
+  
+EndFunction
+
+Function AFX.Init(params)
+  ; Initialize the AFX system with the specified parameters.
+  ; 
+  ; INPUT
+  ;   params : A table with one or more attribute to set.
+  ;     upd_freq : Sets the default update frequency in milliseconds. 
+  ;       Default is 20 (50 FPS). Use a negative value to specify that you want
+  ;       to update manually the tasks.
+  ;     def_state : Sets default task state (running or paused), default is
+  ;       running. Here are the allowed values:
+  ;         #AFX_STATE_RUNNING  Running state
+  ;         #AFX_STATE_PAUSED   Paused state
+  ;     onnotasks : You can setup a callback event to execute once all tasks
+  ;       have been completed or removed.
+  ; 
+  ; OUTPUT
+  ;   result : Returns True if the initialization was successful.
+  ;---
+  
+  ; If there is a timer active shut it down
+  If TB.Item.Exists(AFX.Data, "timerid")
+    StopTimer(AFX.Data.TimerID)
+    AFX.Data.TimerID = Nil
+    
+  EndIf
+
+  ; If there are active tasks shutdown them all
+  AFX.Free()
+
+  ; Set default values
+  If TB.Item.Exists(params, "upd_freq")
+    AFX.Data.Upd_Freq = params.Upd_Freq
+    
+  Else
+    AFX.Data.Upd_Freq = 20
+    
+  EndIf
+
+  ; Set Default Task state
+  If TB.Item.Exists(params, "def_state")
+    AFX.Data.Def_State = params.def_state
+    
+  Else
+    AFX.Data.Def_State = #AFX_TASKSTATE_RUNNING
+    
+  EndIf
+
+  ; Set 'OnNoTasks' event
+  AFX.Data.TasksCount = 0
+
+  If TB.Item.Exists(params, "onnotasks")
+    AFX.Data.OnNoTasks = params.OnNoTasks
+    
+  Else
+    AFX.Data.OnNoTasks = Function() EndFunction
+    
+  EndIf
+
+  ; Setup a new timer
+  AFX.Data.TimerID = StartTimer(Nil)
+
+  ; Setup the engine state
+  AFX.Data.State = #AFX_STATE_RUNNING
+
+  ; Start the updater, if needed
+  If TB.Item.Exists(AFX.Data, "updaterid")
+    ClearInterval(AFX.Data.UpdaterID)
+    
+  EndIf
+
+  If AFX.Data.Upd_Freq >= 0
+    AFX.Data.UpdaterID = SetInterval(Nil, AFX.Update, AFX.Data.Upd_Freq)
+    
+  EndIf
+  
+  ; Setup the BeginRefresh()/EndRefresh() handler
+  If AFX.Data.useRefreshBlock
+    AFX.Data.fBeginRefresh = BeginRefresh
+    AFX.Data.fEndRefresh   = EndRefresh
+    
+  Else
+    AFX.Data.fBeginRefresh = Function() EndFunction
+    AFX.Data.fEndRefresh   = Function() EndFunction
+    
+  EndIf
+  
+  Return(True)
+  
+EndFunction
+
+Function AFX.Pause()
+  ; Use this function to pause the auto-updating routine, all tasks will be
+  ; freezed. In this state you can still update manually the tasks or resume
+  ; the normal auto-updating.
+  ; If you are using the engine with the automatic update off you should
+  ; manually pause all tasks by yourself.                                                                |
+  ; You can resume the auto-updating feature with the function AFX.Resume().
+  ; 
+  ; OUTPUT
+  ;   result : True if there were no errors.
+  ;---
+  
+  If AFX.Data.State = #AFX_STATE_RUNNING
+    ClearInterval(AFX.Data.UpdaterID)
+    PauseTimer(AFX.Data.TimerID)
+    AFX.Data.State = #AFX_STATE_PAUSED
+    
+    Return(True)
+    
+  Else
+    Return(False)
+    
+  EndIf
+  
+EndFunction
+
+Function AFX.Resume()
+  ; This functon is used to resume the automatic update of all tasks after
+  ; having paused it with AFX.Pause().
+  ; If you are using the engine without the automatic updating you should
+  ; manually resume all tasks by yourself too.
+  ; 
+  ; OUTPUT
+  ;   result : TRUE if there were no errors
+  ;---
+  
+  If AFX.Data.State = #AFX_STATE_PAUSED
+    AFX.Data.UpdaterID = SetInterval(Nil, AFX.Update, AFX.Data.Upd_Freq)
+    ResumeTimer(AFX.Data.TimerID)
+    AFX.Data.State = #AFX_STATE_RUNNING
+    
+    Return(True)
+    
+  Else
+    Return(False)
+    
+  EndIf
+  
+EndFunction
+
+Function AFX.CancelByObjName(ObjName)
+  ; This function is usefull if you need to cancel an animation assigned to
+  ; an object using its name (or its id). At creation time, with the :add()
+  ; method you have to specify the ObjName parameter so, later, using this
+  ; function you will be able to interact with the running task using the
+  ; object name instead of the object itself.
+  ; This function returns the object found (and cancelled) or Nil.
+  ; Cancelling a task will remove the OnEnd event attached to it.
+  ; 
+  ; INPUT
+  ;   ObjName : Name of the object to cancel
+  ;
+  ; OUTPUT
+  ;   object : Cancelled object or Nil
+  ;---
+  
+  HL.LineHook.Disable()
+  
+  Local i, v
+  For i, v In Pairs(AFX.Tasks)
+    If v.ObjName = ObjName
+      v:Cancel()
+      v:Remove()
+      HL.LineHook.Enable()
+      Return(v)
+    EndIf
+  Next
+  
+  HL.LineHook.Enable()
+  
+  Return(Nil)
+  
+EndFunction
+
+Function AFX.FinishByObjName(ObjName)
+  ; This function is usefull if you need to finish an animation assigned to
+  ; an object using its name (or its id). At creation time, with the :add()
+  ; method you have to specify the ObjName parameter so, later, using this
+  ; function you will be able to interact with the running task using the
+  ; object name instead of the object itself.
+  ; This function returns the object found (and cancelled) or Nil.
+  ; 
+  ; INPUT
+  ;   ObjName : The name of the object to finish
+  ;
+  ; OUTPUT
+  ;   object : Finished object or Nil
+  ;---
+  
+  HL.LineHook.Disable()
+   
+  Local i, v
+  For i, v In Pairs(AFX.Tasks)
+    If v.ObjName = ObjName
+      v:Finish()
+      v:Remove()
+      HL.LineHook.Enable()
+      
+      Return(v)
+      
+    EndIf
+    
+  Next
+   
+  HL.LineHook.Enable()
+   
+  Return(Nil)
+   
+EndFunction
+
+Function AFX.SearchByObjName(ObjName)
+  ; This function allow you to find a task object using the involved object
+  ; name or its id, the one you have passed at creation time with the method
+  ; :add().
+  ; 
+  ; INPUT
+  ;   ObjName : The object's name to search for.
+  ;
+  ; OUTPUT
+  ;   object : The found object or Nil.
+  ;---
+  
+  HL.LineHook.Disable()
+   
+  Local i, v
+  For i, v In Pairs(AFX.Tasks)
+    If v.ObjName = ObjName
+      HL.LineHook.Enable()
+      
+      Return(v)
+    EndIf
+     
+  Next
+   
+  HL.LineHook.Enable()
+   
+  Return(Nil)
+   
+EndFunction
+
+Function AFX.GetTimingValue(TimerID, STimer, ETimer, Mode)
+  ; Used to compute a determined value in a given time.
+  ; 
+  ; INPUT
+  ;   TimerID : Id of the used timer
+  ;   STimer : Start time
+  ;   ETime : End Time
+  ;   Mode : #EASING_NONE, #PROG_ACCELERATE, #PROG_DECELERATE
+  ; 
+  ; OUTPUT
+  ;   value : The calculated value
+  ;---
+  
+  Local t = GetTimer(TimerID)
+  
+  Switch Mode
+    Case #EASING_NONE
+      If t < STimer
+        Return(0)
+        
+      ElseIf t > ETimer
+      
+        Return(1)
+        
+      Else
+        Return((t-STimer)/(ETimer-STimer))
+        
+      EndIf
+
+    Case #PROG_ACCELERATE
+      If t < STimer
+        Return(0)
+        
+      ElseIf t > ETimer
+        Return(1)
+        
+      Else
+        Return(((t-STimer)/(ETimer-STimer))^2)
+        
+      EndIf
+
+    Case #PROG_DECELERATE
+      If t < STimer
+        Return(0)
+        
+      ElseIf t > ETimer
+        Return(1)
+          
+      Else
+        Return(((t-STimer)/(STimer-ETimer))^2)
+          
+      EndIf
+
+  EndSwitch
+
+
+EndFunction
+
+/* ========================================================
+   CLASS AFX.TaskObject
+   ======================================================== */
+   AFX.TaskObject = {
+      Name = "",                 ; Unique task name
+      ObjName = "",              ; Object Name
+      FXID    = -1,              ; Async Fx id
+      UpdFreq = 0,               ; Update frequency
+      OnEnd   = Function() EndFunction,  ; OnEnd event
+      Userdata = Nil,            ; Userdata field
+      Private = {
+	 NxUpdate = -1,          ; Timer for the next update
+	 State    = -1           ; FX current state
+      }
+   }
+
+Function AFX.TaskObject:Add(FXId, ObjName, OnEnd, Userdata, UpdFreq, Name)
+  ; Add a new task to handle as asynchronous effect.
+  ; Please note that only FXId is mandatory while ObjName is mandatory only
+  ; if you are planning to use the the functions AFX.____ByObjName().
+  ; 
+  ; INPUT
+  ;   FXId : Effect id returned by the Hollywood FX command
+  ;   ObjName : Name of the object for later references
+  ;   OnEnd : Callback function called when the effect has finished
+  ;   UseData : Custom field for user data
+  ;   UpdFreq : Update frequency added from the default value in ms
+  ;   Name : Task's name (must be unique)
+  ; 
+  ; OUTPUT
+  ;   taskObj : The newly created task object
+  ;---
+
+  ; Check if we need to generate a random name
+  If HL.IsNil(Name) Then Name = HL.GetRndName()
+
+  ; Check if the name is already used
+  If TB.Item.Exists(AFX.Tasks, Name)
+    Return(Nil)
+
+  EndIf
+
+  If IsNil(OnEnd) Then OnEnd = Function() EndFunction
+  
+  ; Create the new task object and initialize it
+  Local new_task = CopyTable(self)
+  new_task.FXID     = FXID
+  new_task.Name     = Name
+  new_task.OnEnd    = OnEnd
+  New_task.Userdata = Userdata
+  new_task.Private.State = AFX.Data.Def_State
+  If HL.IsNotNil(UpdFreq) Then new_task.UpdFreq = UpdFreq
+  If HL.IsNotNil(ObjName) Then new_task.ObjName = ObjName
+
+  ; Set data for 'OnNoTasks' event
+  AFX.Data.TasksCount = AFX.Data.TasksCount + 1
+
+  ; Insert the new task object in the object list
+  AFX.Tasks[Name]  = new_task
+  AFX.Data.ONTFlag = True
+
+  Return(new_task)
+  
+EndFunction
+
+Function AFX.TaskObject:Update()
+  ; This method is called automatically by the system, but it is legal to
+  ; call it by yourself especially if you have switched off the automatic
+  ; update.
+  ; 
+  ; OUTPUT
+  ;   result : True if the task was updated and not yet ended
+  ;---
+  
+  If self.Private.State = #AFX_TASKSTATE_PAUSED
+    ; If paused do nothing
+    Return(False)
+    
+  ElseIf self.Private.State = #AFX_TASKSTATE_ENDED
+    ; If ended remove the task
+    self:Remove()
+    Return(False)
+    
+  EndIf
+
+  ; Check if it's time to update the task
+  If GetTimer(AFX.Data.TimerID) < self.Private.NxUpdate
+    Return(False)
+    
+  EndIf
+
+  ; Draw the next FX frame
+  If AsyncDrawFrame(self.FXID)
+    ; The FX is finished, check if we must execute the OnEnd function
+    self.Private.State = #AFX_TASKSTATE_ENDED
+
+    ; Free the ended task object
+    self:Remove()
+    
+  Else
+    ; The FX is still running, update the timer
+    self.Private.NxUpdate = self.Private.NxUpdate + self.UpdFreq + AFX.Data.Upd_Freq
+    
+  EndIf
+
+  Return(True)
+  
+EndFunction
+
+Function AFX.TaskObject:Remove()
+  ; This method free all the resources used by task and remove the task
+  ; itself.
+  ; This method handles the OnEnd event: removing a task will call the
+  ; OnEnd callback function if there is one.
+  ; Running and paused tasks will be cancelled.
+  ; 
+  ; OUTPUT
+  ;   result : True if the task was removed
+  ;---
+  
+  ; Check the Task state
+  If self.Private.State = #AFX_TASKSTATE_RUNNING Or
+    self.Private.State = #AFX_TASKSTATE_PAUSED
+    self:Cancel()
+  EndIf
+
+  ; Remove the Task from the list
+  AFX.Tasks[self.Name] = Nil
+
+  ; Update the task counter
+  AFX.Data.TasksCount = AFX.Data.TasksCount - 1
+
+  ; OnEnd event
+  self.OnEnd(self)
+
+  Return(True)
+  
+EndFunction
+
+Function AFX.TaskObject:Cancel()
+  ; This method is used to cancel the animation effect currently running.
+  ; Cancelling an effect (or a task) means that the animation will be
+  ; interrupted leaving the last displayed frame to the screen.
+  ; Cancelling a task will remove the OnEnd event attached to it.
+  ; 
+  ; OUTPUT
+  ;   result : True if the task was cancelled
+  ;---
+
+  CancelAsyncDraw(self.FXID)
+
+  self.Private.State = #AFX_TASKSTATE_ENDED
+
+  Return(True)
+  
+EndFunction
+
+Function AFX.TaskObject:Finish()
+  ; This method is used to finish the animation effect currently running.
+  ; Finishing an effect (or a task) means that the animation will be
+  ; interrupted but instead of leaving the animation as is, the last frame
+  ; of the animation will be drawn to the screen.
+  ; 
+  ; OUTPUT
+  ;   result : True if the task was finished.
+  ;---
+
+  If self.Private.State <> #AFX_TASKSTATE_ENDED
+    FinishAsyncDraw(self.FXID)
+
+    self.OnEnd(self)
+    
+    self.Private.State = #AFX_TASKSTATE_ENDED
+  EndIf
+
+  Return(True)
+  
+EndFunction
+
+Function AFX.TaskObject:Pause()
+  ; Use this method to put the task on hold. Once in this state, even if
+  ; you call the update method nothing will happen.
+  ; You can unpause the task with the method AFX.TaskObject:Resume()
+  ; 
+  ; OUTPUT
+  ;   result : True if the task was paused
+  ;---
+
+  If self.Private.State = #AFX_TASKSTATE_PAUSED
+    Return(False)
+    
+  Else
+    self.Private.State = #AFX_TASKSTATE_PAUSED
+    Return(True)
+    
+  EndIf
+  
+EndFunction
+
+Function AFX.TaskObject:Resume()
+  ; Use this method to resume a previously paused task.
+  ;
+  ; OUTPUT
+  ;   result : True if the task was resumed
+  ;---
+  
+  If self.Private.State <> #AFX_TASKSTATE_PAUSED
+    Return(False)
+    
+  Else
+    self.Private.State = #AFX_TASKSTATE_RUNNING
+    Return(True)
+    
+  EndIf
+  
+EndFunction

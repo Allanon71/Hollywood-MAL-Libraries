@@ -1,0 +1,304 @@
+/********************************************************************
+ * AFX (ASync Fx) SUPPORT LIBRARY                                   *
+ * Author  : Fabio Falcucci (Allanon)                               *
+ * License : Freeware                                               *
+ * Version : 1.3                                                    *
+ * Release : 09/11/2024                                             *
+ * Dependancies : Easing, Tables, Debug, G2D                        *
+ * PayPal Support : hijoe@tin.it                                    *
+ * Support me on Patreon!         https://www.patreon.com/Allanon71 *
+ * Github repository                   https://github.com/Allanon71 *
+ * -----------------------------------------------------------------*
+ * The aim of this library is to handle all asynchronous effects    *
+ * available with Hollywood.                                        *
+ ********************************************************************/
+
+WHAT IS
+-------
+  ASyncFX library is an include file that allows you to get rid of the manual
+tracking of asynchronous effects in Hollywood: using tasks you can make the
+process automated. At a later point I added some additional classes to simplify
+some common animations tasks like rotations, movements, scalings and fades,
+all of them appliable to layers, brushes and sprites at will.
+
+INTRODUCTION
+------------
+  The development of this library has started loooong time ago, around 2011,
+when I felt the need to handle all the asynchronous operations running on one
+of my program using something to keep track of them.
+
+THE IDEA
+--------
+  The basic idea is around 'tasks'. A task is an asynchronous operation you
+initialize. At a certain point of yout main loop you can call a function to
+update all registered tasks or you can use an interval function to do this
+operation.
+  Completed tasks are removed automatically and you can also pause & resume
+them, one by one, or all them in a single go.
+
+NOTES
+-----
+  For my own purposes the update routine take care also of computing the
+delta time from two calls and update any running tweens (easing lib).
+If you don't need them you can remove them from the source along with the
+include call at the beginning of this library.
+
+CONTENTS
+========
+
+:: Functions ::
+AFX.Update()
+AFX.UpdateAll_UntilFinish()
+AFX.Free()
+AFX.Finish()
+AFX.Cancel()
+AFX.Init()
+AFX.Pause()
+AFX.Resume()
+AFX.CancelByObjName()
+AFX.FinishByObjName()
+AFX.SearchByObjName()
+AFX.GetTimingValue()
+
+:: Task Object ::
+AFX.TaskObject:Add()
+AFX.TaskObject:Update()
+AFX.TaskObject:Remove()
+AFX.TaskObject:Cancel()
+AFX.TaskObject:Finish()
+AFX.TaskObject:Pause()
+AFX.TaskObject:Resume()
+
+::::::::::    
+:: DOCS ::
+::::::::::
+
+AFX.Update()
+------------
+  This function updates all the active (running) tasks. Generally it is
+  called automatically by the system, but if you have specified a negative
+  update frequency to switch off this feature you have to remember to call
+  this function by yourself otherwise your tasks will not be updated.
+
+  OUTPUT
+    result : True if there are still unfinished tasks otherwise False
+
+AFX.UpdateAll_UntilFinish(freq, easingCB, detachOnEnd)
+------------------------------------------------------
+  This function will update all the running tasks and animations until all
+  of them has been completed.
+
+  INPUT
+    freq : [OPT] Update frequency in milliseconds
+    easingCB : [OPT] True if you want to execute the easing callback function
+      attahced to the easing Stop event.
+    detachOnEnd : If set to true detaches all OnEnd callbacks
+
+AFX.Free()
+----------
+  Use this function to remove all running and paused tasks. Each task will be
+  removed from the system, all animation will be cancelled.
+  
+AFX.Finish()
+------------
+  This function is used to finish all asynchronous effects currently running.
+  Finishing an effect (or a task) means that the animation will be interrupted
+  but instead of leaving the animation as is, the last frame of the animation
+  will be drawn to the screen.
+
+AFX.Cancel()
+------------
+  This function is used to cancel all animation effects currently running.
+  Cancelling an effect (or a task) means that the animation will be interrupted
+  leaving the last frame that has been drawn to the screen.
+  Cancelling a task will remove the OnEnd event attached to it.
+
+AFX.Init(params)
+----------------
+  Initialize the AFX system with the specified parameters.
+  
+  INPUT
+    params : A table with one or more attribute to set.
+      upd_freq : Sets the default update frequency in milliseconds. 
+        Default is 20 (50 FPS). Use a negative value to specify that you want
+        to update manually the tasks.
+      def_state : Sets default task state (running or paused), default is
+        running. Here are the allowed values:
+          #AFX_STATE_RUNNING  Running state
+          #AFX_STATE_PAUSED   Paused state
+      onnotasks : You can setup a callback event to execute once all tasks
+        have been completed or removed.
+
+  OUTPUT
+    result : Returns True if the initialization was successful.
+
+AFX.Pause()
+-----------
+  Use this function to pause the auto-updating routine, all tasks will be
+  freezed. In this state you can still update manually the tasks or resume
+  the normal auto-updating.
+  If you are using the engine with the automatic update off you should
+  manually pause all tasks by yourself.                                                                |
+  You can resume the auto-updating feature with the function AFX.Resume().
+
+  OUTPUT
+    result : True if there were no errors.
+
+AFX.Resume()
+------------
+  This functon is used to resume the automatic update of all tasks after
+  having paused it with AFX.Pause().
+  If you are using the engine without the automatic updating you should
+  manually resume all tasks by yourself too.
+
+  OUTPUT
+    result : TRUE if there were no errors
+
+AFX.CancelByObjName(ObjName)
+----------------------------
+  This function is usefull if you need to cancel an animation assigned to
+  an object using its name (or its id). At creation time, with the :add()
+  method you have to specify the ObjName parameter so, later, using this
+  function you will be able to interact with the running task using the
+  object name instead of the object itself.
+  This function returns the object found (and cancelled) or Nil.
+  Cancelling a task will remove the OnEnd event attached to it.
+
+  INPUT
+    ObjName : Name of the object to cancel
+    
+  OUTPUT
+    object : Cancelled object or Nil
+
+AFX.FinishByObjName(ObjName)
+----------------------------
+  This function is usefull if you need to finish an animation assigned to
+  an object using its name (or its id). At creation time, with the :add()
+  method you have to specify the ObjName parameter so, later, using this
+  function you will be able to interact with the running task using the
+  object name instead of the object itself.
+  This function returns the object found (and cancelled) or Nil.
+
+  INPUT
+    ObjName : The name of the object to finish
+
+  OUTPUT
+    object : Finished object or Nil
+
+AFX.SearchByObjName(ObjName)
+----------------------------
+  This function allow you to find a task object using the involved object
+  name or its id, the one you have passed at creation time with the method
+  :add().
+
+  INPUT
+    ObjName : The object's name to search for.
+
+  OUTPUT
+    object : The found object or Nil.
+
+AFX.GetTimingValue(TimerID, STimer, ETimer, Mode)
+-------------------------------------------------
+  Used to compute a determined value in a given time.
+  
+  INPUT
+    TimerID : Id of the used timer
+    STimer : Start time
+    ETime : End Time
+    Mode : #EASING_NONE, #PROG_ACCELERATE, #PROG_DECELERATE
+
+  OUTPUT
+    value : The calculated value
+
++-------------+
+| TASK OBJECT |
++-------------+
+This object is used to keep track of the asynchronous jobs allowing the
+system to manage them automatically.
+
+AFX.TaskObject:Add(FXId, ObjName, OnEnd, Userdata, UpdFreq, Name)
+-----------------------------------------------------------------
+  Add a new task to handle as asynchronous effect.
+  Please note that only FXId is mandatory while ObjName is mandatory only
+  if you are planning to use the the functions AFX.____ByObjName().
+
+  INPUT
+    FXId : Effect id returned by the Hollywood FX command
+    ObjName : Name of the object for later references
+    OnEnd : Callback function called when the effect has finished
+    UseData : Custom field for user data
+    UpdFreq : Update frequency added from the default value in ms
+    Name : Task's name (must be unique)
+    
+  OUTPUT
+    taskObj : The newly created task object
+
+AFX.TaskObject:Update()
+-----------------------
+  This method is called automatically by the system, but it is legal to
+  call it by yourself especially if you have switched off the automatic
+  update.
+
+  OUTPUT
+    result : True if the task was updated and not yet ended
+
+AFX.TaskObject:Remove()
+-----------------------
+  This method free all the resources used by task and remove the task
+  itself.
+  This method handles the OnEnd event: removing a task will call the
+  OnEnd callback function if there is one.
+  Running and paused tasks will be cancelled.
+
+  OUTPUT
+    result : True if the task was removed
+
+AFX.TaskObject:Cancel()
+-----------------------
+  This method is used to cancel the animation effect currently running.
+  Cancelling an effect (or a task) means that the animation will be
+  interrupted leaving the last displayed frame to the screen.
+  Cancelling a task will remove the OnEnd event attached to it.
+
+  OUTPUT
+    result : True if the task was cancelled
+
+AFX.TaskObject:Finish()
+-----------------------
+  This method is used to finish the animation effect currently running.
+  Finishing an effect (or a task) means that the animation will be
+  interrupted but instead of leaving the animation as is, the last frame
+  of the animation will be drawn to the screen.
+
+  OUTPUT
+    result : True if the task was finished.
+
+AFX.TaskObject:Pause()
+----------------------
+  Use this method to put the task on hold. Once in this state, even if
+  you call the update method nothing will happen.
+  You can unpause the task with the method AFX.TaskObject:Resume()
+
+  OUTPUT
+    result : True if the task was paused
+
+AFX.TaskObject:Resume()
+-----------------------
+  Use this method to resume a previously paused task.
+
+  OUTPUT
+    result : True if the task was resumed
+
+CHANGE LOG
+----------
+1.3 Written proper documentation
+    Fix: in AFX.Init() there was a duplicated check related to already existing
+         timer.
+    Change : Removed all stuff related to Movers/Rotators/Faders/etc... the
+    were completely out of context.
+1.2 Added Rotator class & methods
+    Added Fader class & methods
+    Added Scaler class & methods
+    Added Mover class & methods
+1.1 Fixed an error in the update timing calculations
+1.0 First release
