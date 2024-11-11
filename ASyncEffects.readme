@@ -17,9 +17,7 @@ WHAT IS
 -------
   ASyncFX library is an include file that allows you to get rid of the manual
 tracking of asynchronous effects in Hollywood: using tasks you can make the
-process automated. At a later point I added some additional classes to simplify
-some common animations tasks like rotations, movements, scalings and fades,
-all of them appliable to layers, brushes and sprites at will.
+process automated.
 
 INTRODUCTION
 ------------
